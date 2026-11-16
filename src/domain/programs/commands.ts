@@ -46,6 +46,8 @@ export type DraftCommand =
   | { type: 'setSetCount'; exerciseId: string; setCount: NumericRange | null }
   | { type: 'updateTarget'; exerciseId: string; index: number; patch: z.input<typeof TargetPatch> }
   | { type: 'setTargets'; exerciseId: string; targets: SetTarget[] }
+  /** Replaces set count and targets together, e.g. a Grid row whose sets and per-set targets change at once. */
+  | { type: 'setPrescription'; exerciseId: string; prescription: ExercisePrescription }
   /** `parentId: null` is the program itself (weeks, shared sections, resources). `index` defaults to the end. */
   | { type: 'insert'; parentId: string | null; index?: number; node: DraftNode }
   | { type: 'move'; id: string; parentId: string | null; index?: number }
@@ -122,6 +124,8 @@ export function applyCommand(draft: ProgramDraft, command: DraftCommand, options
       });
     case 'setTargets':
       return updatePrescription(draft, command.exerciseId, (p) => ({ ...p, targets: command.targets }));
+    case 'setPrescription':
+      return updatePrescription(draft, command.exerciseId, () => command.prescription);
     case 'insert':
       return insert(draft, command.parentId, command.index, command.node);
     case 'move':

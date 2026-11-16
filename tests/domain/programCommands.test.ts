@@ -145,6 +145,15 @@ describe('draft commands: updates', () => {
       error: { code: 'invalid_value' },
     });
   });
+
+  it('replaces set count and per-set targets together', () => {
+    const prescription = { setCount: { min: 2, max: 2 }, targets: [target(), target({ rir: { min: 0, max: 0 } })] };
+    const next = run(draft(), { type: 'setPrescription', exerciseId: 'e1', prescription }).draft;
+    expect(next.weeks[0]!.days[0]!.sections[0]!.exercises[0]!.prescription).toEqual(prescription);
+    expect(
+      applyCommand(draft(), { type: 'setPrescription', exerciseId: 'e1', prescription: { setCount: { min: 3, max: 3 }, targets: [target(), target()] } }),
+    ).toMatchObject({ ok: false, error: { code: 'invalid_value' } });
+  });
 });
 
 describe('draft commands: structure', () => {
