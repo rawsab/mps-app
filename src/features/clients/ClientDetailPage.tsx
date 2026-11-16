@@ -1,14 +1,17 @@
-import { useState } from 'react';
+import { useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router';
 import { useViewer } from '@/app/auth';
-import { Alert, Badge, Button, Card, EmptyState, PageHeader, SelectField, Spinner } from '@/components/ui';
+import { Alert, Badge, Button, Card, EmptyState, PageHeader, SelectField, Spinner, TextAreaField } from '@/components/ui';
 import type { ServiceKind } from '@/domain/programs/contract';
 import { capitalize, formatDate } from '@/lib/format';
 import { SERVICE_LABELS, SERVICES } from '@/lib/services';
 import {
   friendlyError,
+  NoteBody,
+  useAddClientNote,
   useAddEnrollment,
   useClient,
+  useClientNotes,
   useInviteClient,
   useSetEnrollmentStatus,
   useUpdateClientStatus,
@@ -43,6 +46,7 @@ export function ClientDetailPage() {
       </div>
       <PageHeader title={c.full_name} subtitle={<span className="break-all">{c.email}</span>} actions={statusBadge(c.status)} />
       <ServicesCard clientId={c.id} enrollments={c.service_enrollments} canEdit={isAdmin} />
+      <NotesCard clientId={c.id} />
       <EmptyState title="Programs">
         Program drafts, the Program and Grid editors, publishing and imports arrive in milestones M3 and M7. Nothing is stored for this
         client yet.
@@ -183,6 +187,51 @@ function ServicesCard({
       ) : null}
       {add.error ? <div className="mt-3"><Alert>{friendlyError(add.error)}</Alert></div> : null}
       {setStatus.error ? <div className="mt-3"><Alert>{friendlyError(setStatus.error)}</Alert></div> : null}
+    </Card>
+  );
+}
+
+/** Private coaching notes. Any staff member who can see the client can read and add them (PRD §4). */
+function NotesCard({ clientId }: { clientId: string }) {
+  const notes = useClientNotes(clientId);
+  const add = useAddClientNote(clientId);
+  const [draft, setDraft] = useState('');
+  const [error, setError] = useState<string>();
+
+  function submit(e: FormEvent) {
+    e.preventDefault();
+    const parsed = NoteBody.safeParse(draft);
+    if (!parsed.success) return setError(parsed.error.issues[0]?.message);
+    setError(undefined);
+    add.mutate(parsed.data, { onSuccess: () => setDraft('') });
+  }
+
+  return (
+    <Card>
+      <h2 className="text-lg font-semibold">Notes</h2>
+      <p className="mb-3 text-xs text-muted">Private to staff. The client never sees these.</p>
+      {notes.isPending ? <Spinner label="Loading notes" /> : null}
+      {notes.error ? <Alert title="Could not load notes">{friendlyError(notes.error)}</Alert> : null}
+      {notes.data && notes.data.length > 0 ? (
+        <ul className="mb-4 grid gap-2">
+          {notes.data.map((n) => (
+            <li key={n.id} className="rounded-card border border-line p-3">
+              <p className="whitespace-pre-wrap break-words text-sm text-text">{n.body}</p>
+              <p className="mt-1.5 text-xs text-muted">{formatDate(n.created_at)}</p>
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {notes.data && notes.data.length === 0 ? <p className="mb-4 text-sm text-muted">No notes yet.</p> : null}
+      <form onSubmit={submit} noValidate className="grid gap-3">
+        <TextAreaField label="Add a note" rows={3} maxLength={5000} value={draft} onChange={(e) => setDraft(e.target.value)} error={error} />
+        {add.error ? <Alert title="Note not saved">{friendlyError(add.error)}</Alert> : null}
+        <div>
+          <Button type="submit" variant="secondary" busy={add.isPending}>
+            Save note
+          </Button>
+        </div>
+      </form>
     </Card>
   );
 }

@@ -1,4 +1,4 @@
-import type { ComponentPropsWithRef, InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react';
+import type { ComponentPropsWithRef, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { useId } from 'react';
 
 type ButtonProps = ComponentPropsWithRef<'button'> & { variant?: 'primary' | 'secondary' | 'ghost' | 'danger'; busy?: boolean };
@@ -42,6 +42,37 @@ export function TextField({ label, error, hint, className = '', ...rest }: Field
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
         className="min-h-11 rounded-card border border-line bg-ink px-3 text-base text-text transition-[border-color,box-shadow] duration-150 placeholder:text-muted/60 focus:border-gold focus:shadow-[0_0_0_3px_color-mix(in_oklab,var(--color-gold)_22%,transparent)] focus:outline-none"
+        {...rest}
+      />
+      {hint ? (
+        <p id={`${id}-hint`} className="text-xs text-muted">
+          {hint}
+        </p>
+      ) : null}
+      {error ? (
+        <p id={`${id}-error`} className="text-sm text-danger">
+          {error}
+        </p>
+      ) : null}
+    </div>
+  );
+}
+
+type TextAreaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & { label: string; error?: string | undefined; hint?: string };
+
+export function TextAreaField({ label, error, hint, className = '', ...rest }: TextAreaProps) {
+  const id = useId();
+  const describedBy = [error ? `${id}-error` : null, hint ? `${id}-hint` : null].filter(Boolean).join(' ') || undefined;
+  return (
+    <div className={`flex flex-col gap-1.5 ${className}`}>
+      <label htmlFor={id} className="text-sm font-medium text-text">
+        {label}
+      </label>
+      <textarea
+        id={id}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={describedBy}
+        className="min-h-24 resize-y rounded-card border border-line bg-ink px-3 py-2.5 text-base text-text transition-[border-color,box-shadow] duration-150 placeholder:text-muted/60 focus:border-gold focus:shadow-[0_0_0_3px_color-mix(in_oklab,var(--color-gold)_22%,transparent)] focus:outline-none"
         {...rest}
       />
       {hint ? (

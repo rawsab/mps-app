@@ -5,6 +5,7 @@ import { useAuth } from '@/app/auth';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Alert, Button, Spinner, TextField } from '@/components/ui';
 import { requireSupabase } from '@/lib/supabase';
+import { DevQuickLogin } from './DevQuickLogin';
 
 /*
  * STAND-IN photograph (Wikimedia Commons, CC BY 2.0, cropped to remove a third-party logo).
@@ -79,9 +80,13 @@ export function SignInPage() {
     const form = new FormData(e.currentTarget);
     const parsed = SignInInput.safeParse({ email: form.get('email'), password: form.get('password') });
     if (!parsed.success) return setError(parsed.error.issues[0]!.message);
+    await signIn(parsed.data);
+  }
+
+  async function signIn(credentials: { email: string; password: string }) {
     setBusy(true);
     setError(null);
-    const { error: signInError } = await requireSupabase().auth.signInWithPassword(parsed.data);
+    const { error: signInError } = await requireSupabase().auth.signInWithPassword(credentials);
     setBusy(false);
     // Same message for unknown email and wrong password.
     if (signInError) return setError(signInError.status === 400 ? 'Email or password is incorrect.' : 'Sign-in is unavailable right now. Try again shortly.');
@@ -101,6 +106,7 @@ export function SignInPage() {
           <span className="link">Forgot your password?</span>
         </Link>
         <p className="text-xs text-muted">Accounts are created by invitation from your coach.</p>
+        {import.meta.env.DEV ? <DevQuickLogin busy={busy} onSignIn={signIn} /> : null}
       </form>
     </AuthFrame>
   );

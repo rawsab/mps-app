@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useViewer } from '@/app/auth';
 import { ComboboxField } from '@/components/ComboboxField';
-import { Alert, Button, Card, EmptyState, PageHeader, Spinner, TextField } from '@/components/ui';
+import { Alert, Button, Card, EmptyState, PageHeader, Spinner, TextAreaField, TextField } from '@/components/ui';
 import type { ServiceKind } from '@/domain/programs/contract';
 import { SERVICE_LABELS, SERVICES } from '@/lib/services';
 import { friendlyError, NewClientInput, useClients, useCreateClient } from './api';
@@ -97,6 +97,7 @@ function NewClientForm({ onDone }: { onDone: () => void }) {
       email: form.get('email'),
       timezone: form.get('timezone'),
       services,
+      notes: form.get('notes') ?? '',
     });
     if (!parsed.success) {
       setErrors(Object.fromEntries(parsed.error.issues.map((i) => [String(i.path[0]), i.message])));
@@ -139,6 +140,15 @@ function NewClientForm({ onDone }: { onDone: () => void }) {
           </div>
           {errors.services ? <p className="mt-1 text-sm text-danger">{errors.services}</p> : null}
         </fieldset>
+        <TextAreaField
+          label="Notes (optional)"
+          name="notes"
+          rows={3}
+          maxLength={5000}
+          placeholder="Discounts, injuries or accessibility needs, scheduling preferences…"
+          error={errors.notes}
+          hint="Private to staff. The client never sees these."
+        />
         {create.error ? <Alert title="Client not created">{friendlyError(create.error)}</Alert> : null}
         <div className="flex gap-2">
           <Button type="submit" busy={create.isPending}>

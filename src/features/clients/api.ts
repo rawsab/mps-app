@@ -56,6 +56,8 @@ export const NewClientInput = z.object({
   email: z.email('Enter a valid email address').transform((e) => e.toLowerCase()),
   timezone: z.string().min(1),
   services: z.array(ServiceKind).min(1, 'Choose at least one service'),
+  /** Optional private note; blank means no note. */
+  notes: z.string().trim().max(5000, 'Keep notes under 5,000 characters'),
 });
 export type NewClientInput = z.infer<typeof NewClientInput>;
 
@@ -75,9 +77,42 @@ export function useCreateClient() {
         .from('service_enrollments')
         .insert(input.services.map((service) => ({ client_id: data.id, service })));
       if (enrollError) throw enrollError;
+      if (input.notes) {
+        const { error: noteError } = await supabase.from('private_coach_notes').insert({ client_id: data.id, body: input.notes });
+        if (noteError) throw noteError;
+      }
       return data.id as string;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clients'] }),
+  });
+}
+
+/** Private coaching notes: staff only, enforced by RLS (clients never read them). */
+export function useClientNotes(clientId: string) {
+  return useQuery({
+    queryKey: ['client-notes', clientId],
+    queryFn: async () => {
+      const { data, error } = await requireSupabase()
+        .from('private_coach_notes')
+        .select('id, body, created_at')
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false });
+      if (error) throw error;
+      return data as { id: string; body: string; created_at: string }[];
+    },
+  });
+}
+
+export const NoteBody = z.string().trim().min(1, 'Write a note first').max(5000, 'Keep notes under 5,000 characters');
+
+export function useAddClientNote(clientId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (body: string) => {
+      const { error } = await requireSupabase().from('private_coach_notes').insert({ client_id: clientId, body });
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['client-notes', clientId] }),
   });
 }
 

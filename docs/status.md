@@ -24,6 +24,7 @@ Date: 2026-11-16
 | Client list, create, enrollments, deactivate/reactivate (FR-02) | Done | `src/features/clients/*` |
 | Import feasibility spike (M1) | Done for the supplied samples | `docs/import-spike-report.md` |
 | M3 step 1: templates, programs, immutable revisions, content hierarchy, RLS | Done (read-only grants; write functions next) | `supabase/migrations/20261116000002_*`, `002_programs.test.sql` (40 pgTAP), decision 0004 |
+| Private coach notes (pulled forward from migration step 5): staff-only table, New client field, client page card | Done | `supabase/migrations/20261116000003_*`, `003_private_coach_notes.test.sql` (12 pgTAP) |
 | `save_draft` / `publish_revision`, editors, publishing UI | Not started | — |
 
 ## Checks performed (2026-11-16)
