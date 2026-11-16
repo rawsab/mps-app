@@ -25,7 +25,8 @@ Date: 2026-11-16
 | Import feasibility spike (M1) | Done for the supplied samples | `docs/import-spike-report.md` |
 | M3 step 1: templates, programs, immutable revisions, content hierarchy, RLS | Done (read-only grants; write functions next) | `supabase/migrations/20261116000002_*`, `002_programs.test.sql` (40 pgTAP), decision 0004 |
 | Private coach notes (pulled forward from migration step 5): staff-only table, New client field, client page card | Done | `supabase/migrations/20261116000003_*`, `003_private_coach_notes.test.sql` (12 pgTAP) |
-| `save_draft` / `publish_revision`, editors, publishing UI | Not started | — |
+| M3 step 2: `create_program`, `save_draft` (expected version, full contract validation), `get_program_draft`, `publish_revision` (readiness, `can_publish`, atomic pointer move) | Done | `supabase/migrations/20261116000004_*`, `004_draft_save_publish.test.sql` (48 pgTAP), `tests/policies/programDrafts.test.ts` (5 HTTP), decision 0005 |
+| Editors, publishing UI | Not started | — |
 
 ## Checks performed (2026-11-16)
 
@@ -65,7 +66,7 @@ Date: 2026-11-16
 ## Next milestone: M3 (program model, lifecycle, two editors)
 
 1. ~~Migration step 2: templates, programs, revisions and the content hierarchy with RLS and pgTAP.~~ Done (decision 0004).
-2. A transactional `save_draft(expected_version, payload)` that validates against the `ProgramDraft` contract, and `publish_revision` that freezes the revision and moves the current pointer atomically.
+2. ~~A transactional `save_draft(expected_version, payload)` that validates against the `ProgramDraft` contract, and `publish_revision` that freezes the revision and moves the current pointer atomically.~~ Done (decision 0005).
 3. Draft command model (update, reorder, duplicate, insert, remove by stable id), shared by both views.
 4. The Program view, then the Grid view (bounded typed columns, keyboard navigation, rectangular paste preview, atomic save), with stale-draft conflict handling.
 5. Add Playwright as a dev dependency and promote the smoke script to `tests/e2e`. Add ESLint and a formatter.

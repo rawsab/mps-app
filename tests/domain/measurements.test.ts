@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { convertWeight } from '@/domain/measurements/load';
+import { convertWeight, Load } from '@/domain/measurements/load';
 import { formatRange, NumericRange, parseRangeText, RirRange, RpeRange } from '@/domain/measurements/range';
 import { parseEffort, parseLabelledFields, parseLoad, parseTimedSets } from '@/domain/imports/notation';
 
@@ -32,6 +32,15 @@ describe('numeric ranges', () => {
     expect(RirRange.safeParse({ min: -1, max: 1 }).success).toBe(false);
     expect(RpeRange.safeParse({ min: 8, max: 11 }).success).toBe(false);
     expect(RpeRange.safeParse({ min: 8.5, max: 9 }).success).toBe(true);
+  });
+});
+
+describe('load contract', () => {
+  it('rejects negative loads in every weighted mode and accepts zero', () => {
+    expect(Load.safeParse({ mode: 'external', value: { min: -5, max: 10 }, unit: 'lb' }).success).toBe(false);
+    expect(Load.safeParse({ mode: 'assisted', value: { min: -20, max: -20 }, unit: 'lb' }).success).toBe(false);
+    expect(Load.safeParse({ mode: 'bodyweight', added: { value: -10, unit: 'kg' } }).success).toBe(false);
+    expect(Load.safeParse({ mode: 'external', value: { min: 0, max: 0 }, unit: 'kg' }).success).toBe(true);
   });
 });
 

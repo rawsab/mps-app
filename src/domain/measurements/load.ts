@@ -9,10 +9,13 @@ export type WeightUnit = z.infer<typeof WeightUnit>;
  * How a set is loaded. Bodyweight, assistance and bands are distinct modes so they never
  * become a lifted-weight number in charts (FR-07, FR-10).
  */
+/** Loads are never negative; assistance is its own mode with a positive amount. */
+const LoadRange = NumericRange.refine((r) => r.min >= 0, { message: 'Load cannot be negative' });
+
 export const Load = z.discriminatedUnion('mode', [
-  z.object({ mode: z.literal('external'), value: NumericRange, unit: WeightUnit.nullable() }),
-  z.object({ mode: z.literal('bodyweight'), added: z.object({ value: z.number(), unit: WeightUnit.nullable() }).nullable() }),
-  z.object({ mode: z.literal('assisted'), value: NumericRange, unit: WeightUnit.nullable() }),
+  z.object({ mode: z.literal('external'), value: LoadRange, unit: WeightUnit.nullable() }),
+  z.object({ mode: z.literal('bodyweight'), added: z.object({ value: z.number().min(0, 'Load cannot be negative'), unit: WeightUnit.nullable() }).nullable() }),
+  z.object({ mode: z.literal('assisted'), value: LoadRange, unit: WeightUnit.nullable() }),
   z.object({ mode: z.literal('band'), label: z.string().min(1) }),
   z.object({ mode: z.literal('not_applicable') }),
 ]);

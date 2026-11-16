@@ -105,49 +105,51 @@ create index programs_client on public.programs (client_id);
 -- ---------------------------------------------------------------------------
 -- Revision content hierarchy. Every row carries revision_id, and each parent link is a composite
 -- FK on (parent_id, revision_id), so a row can't be attached to a parent in another revision.
+-- Node ids are scoped to a revision (primary key (id, revision_id)), so a draft opened from the
+-- published revision keeps the same ids and editors address nodes stably (decision 0005).
 -- Positions are deferrable so a draft save can reorder within one transaction.
 -- ---------------------------------------------------------------------------
 create table public.program_weeks (
-  id uuid primary key default gen_random_uuid(),
+  id uuid not null default gen_random_uuid(),
   revision_id uuid not null references public.program_revisions (id) on delete cascade,
   week_index integer not null check (week_index > 0),
   label text not null default '' check (char_length(label) <= 120),
   start_date date,
-  unique (id, revision_id),
+  primary key (id, revision_id),
   unique (revision_id, week_index) deferrable initially immediate
 );
 
 create table public.workout_days (
-  id uuid primary key default gen_random_uuid(),
+  id uuid not null default gen_random_uuid(),
   revision_id uuid not null,
   week_id uuid not null,
   position integer not null check (position >= 0),
   label text not null check (char_length(label) between 1 and 120),
   -- Optional: without a date, days are sequence-only (FR-03).
   scheduled_date date,
-  unique (id, revision_id),
-  unique (week_id, position) deferrable initially immediate,
+  primary key (id, revision_id),
+  unique (revision_id, week_id, position) deferrable initially immediate,
   foreign key (week_id, revision_id) references public.program_weeks (id, revision_id) on delete cascade
 );
 
 -- day_id null = a shared section (e.g. a warm-up) that applies across days.
 create table public.program_sections (
-  id uuid primary key default gen_random_uuid(),
+  id uuid not null default gen_random_uuid(),
   revision_id uuid not null references public.program_revisions (id) on delete cascade,
   day_id uuid,
   position integer not null check (position >= 0),
   kind public.section_kind not null default 'main',
   title text not null default '' check (char_length(title) <= 160),
   instructions text not null default '' check (char_length(instructions) <= 20000),
-  unique (id, revision_id),
-  unique (day_id, position) deferrable initially immediate,
+  primary key (id, revision_id),
+  unique (revision_id, day_id, position) deferrable initially immediate,
   foreign key (day_id, revision_id) references public.workout_days (id, revision_id) on delete cascade
 );
 create unique index program_sections_shared_position
   on public.program_sections (revision_id, position) where day_id is null;
 
 create table public.program_exercises (
-  id uuid primary key default gen_random_uuid(),
+  id uuid not null default gen_random_uuid(),
   revision_id uuid not null,
   section_id uuid not null,
   position integer not null check (position >= 0),
@@ -162,8 +164,8 @@ create table public.program_exercises (
   -- "2-3" sets is a range; null = not yet prescribed (publish rejects it).
   set_count_min numeric,
   set_count_max numeric,
-  unique (id, revision_id),
-  unique (section_id, position) deferrable initially immediate,
+  primary key (id, revision_id),
+  unique (revision_id, section_id, position) deferrable initially immediate,
   foreign key (section_id, revision_id) references public.program_sections (id, revision_id) on delete cascade,
   constraint program_exercises_set_count check (
     (set_count_min is null and set_count_max is null)
@@ -194,18 +196,19 @@ create table public.prescribed_sets (
   rpe_min numeric,
   rpe_max numeric,
   annotations text[] not null default '{}',
-  unique (exercise_id, position) deferrable initially immediate,
+  unique (revision_id, exercise_id, position) deferrable initially immediate,
   foreign key (exercise_id, revision_id) references public.program_exercises (id, revision_id) on delete cascade,
   constraint prescribed_sets_effort check (
     (effort_kind is null and effort_min is null and effort_max is null and per_side is null)
     or (effort_kind is not null and per_side is not null and effort_min >= 0 and effort_min <= effort_max)),
   constraint prescribed_sets_load check (
     case load_mode
-      when 'external' then load_min is not null and load_min <= load_max and load_band_label is null
-      when 'assisted' then load_min is not null and load_min <= load_max and load_band_label is null
+      -- Loads are never negative; assistance is its own mode with a positive amount.
+      when 'external' then load_min >= 0 and load_min <= load_max and load_band_label is null
+      when 'assisted' then load_min >= 0 and load_min <= load_max and load_band_label is null
       -- Bodyweight with optional added weight, stored as equal endpoints.
       when 'bodyweight' then load_band_label is null
-        and ((load_min is null and load_max is null and load_unit is null) or load_min = load_max)
+        and ((load_min is null and load_max is null and load_unit is null) or (load_min >= 0 and load_min = load_max))
       when 'band' then load_band_label is not null
         and load_min is null and load_max is null and load_unit is null
       else load_min is null and load_max is null and load_unit is null and load_band_label is null
@@ -218,12 +221,13 @@ create table public.prescribed_sets (
 create index prescribed_sets_revision on public.prescribed_sets (revision_id);
 
 create table public.program_resources (
-  id uuid primary key default gen_random_uuid(),
+  id uuid not null default gen_random_uuid(),
   revision_id uuid not null references public.program_revisions (id) on delete cascade,
   position integer not null check (position >= 0),
   title text not null check (char_length(title) between 1 and 160),
   body text not null default '' check (char_length(body) <= 20000),
   url text check (url ~ '^https?://' and char_length(url) <= 2048),
+  primary key (id, revision_id),
   unique (revision_id, position) deferrable initially immediate
 );
 
