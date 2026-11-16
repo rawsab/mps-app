@@ -1,0 +1,230 @@
+@import 'tailwindcss';
+
+/*
+ * MPS design tokens (PRD §6). Dark is the default; `html[data-theme='light']` overrides the same
+ * variables, so every utility (bg-surface, text-muted, …) follows the active theme.
+ * Gold is for primary actions, selection and key targets only.
+ *   gold     – fills and borders (brand #C8A55D in both themes); gold-hover steps 14% toward ink
+ *   gold-fg  – gold used as text; darker in light mode to keep WCAG AA contrast
+ *   on-gold  – text placed on a gold fill
+ *   ink      – page background
+ */
+@theme {
+  --color-gold: #c8a55d;
+  --color-gold-hover: color-mix(in oklab, var(--color-gold) 86%, #0a0a0a);
+  --color-gold-fg: #c8a55d;
+  --color-on-gold: #0a0a0a;
+  --color-ink: #0a0a0a;
+  --color-surface: #171717;
+  --color-surface-raised: #202020;
+  --color-line: #2e2e2e;
+  --color-muted: #a3a3a3;
+  --color-text: #f2f2f2;
+  --color-danger: #f08a7e;
+  --color-success: #8fd19e;
+  --radius-card: 7px;
+  --font-sans: 'Hanken Grotesk Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --ease-ui: cubic-bezier(0.2, 0.8, 0.2, 1);
+  --ease-enter: cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+html[data-theme='light'] {
+  color-scheme: light;
+  --color-gold: #c8a55d;
+  --color-gold-fg: #7a5e22;
+  --color-on-gold: #0a0a0a;
+  --color-ink: #f6f5f1;
+  --color-surface: #ffffff;
+  --color-surface-raised: #f0eee8;
+  --color-line: #e0dcd2;
+  --color-muted: #5c5a55;
+  --color-text: #171717;
+  --color-danger: #b42318;
+  --color-success: #1d7a3a;
+}
+
+html {
+  color-scheme: dark;
+  background: var(--color-ink);
+  color: var(--color-text);
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  font-feature-settings: 'ss01', 'cv11';
+  -webkit-font-smoothing: antialiased;
+  min-width: 320px;
+  overflow-x: hidden;
+  font-family: var(--font-sans);
+  background: var(--color-ink);
+}
+
+/* The supplied logo is light gold on transparent; deepen it slightly on light backgrounds. */
+html[data-theme='light'] .brand-logo {
+  filter: brightness(0.8) saturate(1.15);
+}
+
+/*
+ * Interaction layer. Motion moves transform/opacity only, hover only for a fine pointer,
+ * and everything rests under reduced motion (see the media query at the end).
+ */
+.btn-motion {
+  transition:
+    transform 150ms var(--ease-ui),
+    background-color 150ms var(--ease-ui),
+    border-color 150ms var(--ease-ui),
+    color 150ms var(--ease-ui);
+}
+@media (hover: hover) and (pointer: fine) {
+  .btn-motion:not(:disabled):hover {
+    transform: translateY(-1px);
+  }
+}
+.btn-motion:not(:disabled):active {
+  transform: translateY(1px) scale(0.985);
+  transition-duration: 90ms;
+}
+
+/* Text links: a faint hairline at rest; an ink line draws left to right on hover. */
+.link {
+  color: inherit;
+  text-decoration: none;
+  background-image:
+    linear-gradient(currentColor, currentColor), linear-gradient(color-mix(in oklab, currentColor 25%, transparent), color-mix(in oklab, currentColor 25%, transparent));
+  background-size:
+    0% 1px,
+    100% 1px;
+  background-position:
+    0 100%,
+    0 100%;
+  background-repeat: no-repeat;
+  transition: background-size 150ms var(--ease-ui);
+}
+/* Bare links (names in a table) rest with no hairline; the line still draws on hover. */
+.link.link--bare {
+  background-size:
+    0% 1px,
+    0% 1px;
+}
+@media (hover: hover) and (pointer: fine) {
+  .link:hover,
+  :hover > .link,
+  .row-link:hover .link {
+    background-size:
+      100% 1px,
+      100% 1px;
+  }
+}
+.link:focus-visible,
+:focus-visible > .link {
+  background-size:
+    100% 1px,
+    100% 1px;
+}
+
+/* Section nav: words rest bare; the current page carries a 2px bar under its word. */
+.nav-word {
+  position: relative;
+  transition: color 150ms var(--ease-ui);
+}
+.nav-word::after {
+  content: '';
+  position: absolute;
+  left: 0.75rem;
+  right: 0.75rem;
+  bottom: 0;
+  height: 2px;
+  border-radius: 2px;
+  background: var(--color-gold);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 150ms var(--ease-ui);
+}
+.nav-word[aria-current='page']::after {
+  transform: scaleX(1);
+}
+
+/* Each route's content settles in once when it mounts; nothing animates on scroll. */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+.page-enter {
+  animation: page-enter 420ms var(--ease-enter) both;
+}
+@keyframes photo-enter {
+  from {
+    opacity: 0;
+    transform: scale(1.03);
+  }
+}
+.photo-enter {
+  animation: photo-enter 1100ms var(--ease-enter) both;
+}
+
+/*
+ * Theme toggle: the outgoing icon blurs, shrinks slightly and fades; the incoming one starts
+ * blurred and resolves to sharp. Transitions only, so nothing animates on first render.
+ */
+.theme-icon {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  opacity: 0;
+  filter: blur(6px);
+  transform: scale(0.75);
+  transition:
+    opacity 320ms var(--ease-ui),
+    filter 320ms var(--ease-ui),
+    transform 320ms var(--ease-enter);
+}
+.theme-icon[data-shown] {
+  opacity: 1;
+  filter: blur(0);
+  transform: scale(1);
+}
+
+/* Filter panels open with a 6px drop; they simply disappear on close. */
+@keyframes panel-open {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+.filter-panel {
+  animation: panel-open 200ms var(--ease-ui) both;
+}
+
+/* Linked rows answer the pointer with a fill only; rows never move. */
+.row-link {
+  transition: background-color 120ms var(--ease-ui);
+}
+
+/* A back arrow nudges 3px toward where it leads. */
+.arrow-back {
+  display: inline-block;
+  transition: transform 150ms var(--ease-ui);
+}
+@media (hover: hover) and (pointer: fine) {
+  :hover > .arrow-back {
+    transform: translateX(-3px);
+  }
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-gold);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
