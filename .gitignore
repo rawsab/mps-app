@@ -1,0 +1,23 @@
+node_modules/
+dist/
+coverage/
+*.log
+.DS_Store
+
+# Local environment. Only .env.example is committed.
+.env
+.env.*
+!.env.example
+
+# Supabase local state
+supabase/.branches/
+supabase/.temp/
+supabase/functions/.env
+supabase/signing_keys.json
+
+# Import spike output can contain source excerpts; regenerate locally.
+reports/
+
+# Personal Claude Code settings
+CLAUDE.local.md
+.claude/settings.local.json
