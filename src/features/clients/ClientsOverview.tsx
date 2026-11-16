@@ -49,20 +49,33 @@ export function ClientsOverview({ rows, canInvite }: { rows: ClientRow[]; canInv
         <ColumnChart total={overview.total} items={ALL_STATUSES.map((s) => ({ label: STATUS_LABELS[s], count: overview.statuses[s], color: STATUS_BAR_COLORS[s], badge: statusBadge(s) }))} />
       </Panel>
       <Panel title="Follow up" className="sm:col-span-2 lg:col-span-1">
-        <ul className="grid gap-2">
-          {(['notInvited', 'inviteUnaccepted'] as const).map((kind) => {
-            const list = overview[kind];
-            return (
-              <li key={kind}>
-                <FollowUpButton
-                  count={list.length}
-                  label={list.length === 0 ? FOLLOW_UP_COPY[kind].empty : FOLLOW_UP_COPY[kind].label(list.length)}
-                  onClick={() => setOpen({ kind, ids: list.map((r) => r.id) })}
-                />
-              </li>
-            );
-          })}
-        </ul>
+        {overview.notInvited.length === 0 && overview.inviteUnaccepted.length === 0 ? (
+          <div role="status" className="flex items-center gap-3 py-1">
+            <svg aria-hidden viewBox="0 0 24 24" className="size-9 shrink-0 text-success" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+              <circle cx="12" cy="12" r="9.5" />
+              <path d="m7.5 12.5 3 3 6-6.5" />
+            </svg>
+            <div className="min-w-0">
+              <p className="text-xl font-semibold leading-tight text-text">All done here.</p>
+              <p className="mt-0.5 text-xs text-muted">No invitations left to send, and none waiting to be accepted.</p>
+            </div>
+          </div>
+        ) : (
+          <ul className="grid gap-2">
+            {(['notInvited', 'inviteUnaccepted'] as const).map((kind) => {
+              const list = overview[kind];
+              return (
+                <li key={kind}>
+                  <FollowUpButton
+                    count={list.length}
+                    label={list.length === 0 ? FOLLOW_UP_COPY[kind].empty : FOLLOW_UP_COPY[kind].label(list.length)}
+                    onClick={() => setOpen({ kind, ids: list.map((r) => r.id) })}
+                  />
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </Panel>
       {open ? <FollowUpDialog kind={open.kind} ids={open.ids} rows={rows} canInvite={canInvite} onClose={() => setOpen(null)} /> : null}
     </div>
