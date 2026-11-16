@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router';
 import { AuthCallbackPage, ForgotPasswordPage, SignInPage } from '@/features/auth/AuthPages';
 import { ClientDetailPage } from '@/features/clients/ClientDetailPage';
 import { ClientsPage } from '@/features/clients/ClientsPage';
+import { ProgramEditorPage } from '@/features/programs/ProgramEditorPage';
 import { ClientHomePage, ClientSectionPage, CoachPlaceholderPage } from '@/features/home/ClientPages';
 import { HomeRedirect, RequireClient, RequireSignedIn, RequireStaff } from './guards';
 import { ClientLayout, CoachLayout } from './layouts';
@@ -46,6 +47,7 @@ export const router = createBrowserRouter([
               { path: '/coach', element: <Navigate to="/coach/clients" replace /> },
               { path: '/coach/clients', element: <ClientsPage /> },
               { path: '/coach/clients/:clientId', element: <ClientDetailPage /> },
+              { path: '/coach/clients/:clientId/programs/:programId', element: <ProgramEditorPage /> },
               { path: '/coach/templates', element: <CoachPlaceholderPage title="Templates" body="Reusable program templates arrive with the program model in M3." /> },
               { path: '/coach/reviews', element: <CoachPlaceholderPage title="Reviews" body="Recent logs and check-ins appear here from M4 onward." /> },
             ],

@@ -3,6 +3,7 @@ import { Link, useParams } from 'react-router';
 import { useViewer } from '@/app/auth';
 import { Alert, Badge, Button, Card, EmptyState, PageHeader, SelectField, Spinner, TextAreaField } from '@/components/ui';
 import type { ServiceKind } from '@/domain/programs/contract';
+import { ProgramsCard } from '@/features/programs/ProgramsCard';
 import { capitalize, formatDate } from '@/lib/format';
 import { SERVICE_LABELS, SERVICES } from '@/lib/services';
 import {
@@ -47,10 +48,7 @@ export function ClientDetailPage() {
       <PageHeader title={c.full_name} subtitle={<span className="break-all">{c.email}</span>} actions={statusBadge(c.status)} />
       <ServicesCard clientId={c.id} enrollments={c.service_enrollments} canEdit={isAdmin} />
       <NotesCard clientId={c.id} />
-      <EmptyState title="Programs">
-        Program drafts, the Program and Grid editors, publishing and imports arrive in milestones M3 and M7. Nothing is stored for this
-        client yet.
-      </EmptyState>
+      <ProgramsCard clientId={c.id} enrollments={c.service_enrollments} />
       {isAdmin ? <ClientSettings client={c} /> : null}
     </div>
   );

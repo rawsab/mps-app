@@ -1,6 +1,6 @@
 # 0007 — Program and Grid editors
 
-Date: 2026-11-16 · Status: accepted (grid model done; editor UI in progress, see `docs/status.md`)
+Date: 2026-11-16 · Status: accepted
 
 ## Decision
 
@@ -14,6 +14,16 @@ Date: 2026-11-16 · Status: accepted (grid model done; editor UI in progress, se
   - Weight and assisted keep each other's value when switching modes; other mode changes need a new value.
   - Null (blank) and zero stay distinct.
 - **Grid-invisible fields are preserved.** Annotations, alternatives, groups, demo links and section instructions are edited in the Program view. The grid never touches them.
+
+- **One editor state for both views.** `src/features/programs/useDraftEditor.ts` holds the canonical draft, the commands pending since the last confirmed save, the base `lockVersion` and the save state (`saved`, `unsaved`, `saving`, `error`, `conflict`). Both views change the draft only through `dispatch(commands)`. Autosave sends the whole document about 1 s after the last change. Program-view fields that are also grid columns commit through `planEdits`, so notation and messages are identical in both views.
+- **Edits are never dropped silently (roadmap M3 task 6):**
+  - Refused field or cell text is kept in the editor (`rejected`, keyed `exerciseId:column` for shared fields), so it survives switching views. Escape discards it.
+  - A failed save keeps the edits and offers Retry; the next edit retries too.
+  - A stale version (`PT409`) becomes a conflict. Nothing is written until the coach chooses: replay my pending commands onto the latest draft; replace theirs with mine (an explicit save at the server's current version); or discard mine.
+  - Unsaved work is mirrored to `localStorage` (`mps.draft-recovery.<programId>`) and offered for restore after a reload. It's cleared once saved. It contains program content, but no secrets.
+  - `useBlocker` and `beforeunload` ask before leaving with unsaved or refused edits.
+- **Publish** saves pending edits first, then calls `publish_revision` with the saved `lockVersion`. `PT422` problems replace the local readiness list until the next edit.
+- **Routes:** `/coach/clients/:clientId/programs/:programId`, with `?view=grid` for the Grid. The client page's Programs card creates a program per active training enrollment.
 
 ## Consequences
 

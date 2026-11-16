@@ -29,7 +29,7 @@ Date: 2026-11-16
 | M3 step 3: draft command model (update, target, set count, insert, move, duplicate, remove; atomic batches) | Done | `src/domain/programs/commands.ts`, `tests/domain/programCommands.test.ts` (19), decision 0006 |
 | Clients dashboard (FR-02): service and status charts, invitation follow-ups with send/resend modal | Done | `src/features/clients/ClientsOverview.tsx`, `src/components/Dialog.tsx`, `tests/lib/clientTable.test.ts` |
 | M3 step 4a: Grid model (typed columns, row-level rebuild, per-set lists, rectangular paste planning, clipboard) and `setPrescription` command | Done | `src/domain/programs/grid.ts`, `tests/domain/programGrid.test.ts` (14), decision 0007 |
-| M3 step 4b: editor shell (program list, draft load/autosave, stale-draft conflict, unsaved-navigation guard), Program view | In progress | — |
+| M3 step 4b: editor shell (program list + create on client page, draft load/autosave, stale-draft conflict with replay/overwrite/discard, device recovery, unsaved-navigation guard, publish with readiness), Program view | Done (typechecked and built; not yet exercised in a browser) | `src/features/programs/*`, decision 0007 |
 | M3 step 4c: Grid view UI (keyboard navigation, paste preview dialog) | Not started | builds on `grid.ts` |
 | Publishing UI | Not started | — |
 
@@ -73,6 +73,6 @@ Date: 2026-11-16
 1. ~~Migration step 2: templates, programs, revisions and the content hierarchy with RLS and pgTAP.~~ Done (decision 0004).
 2. ~~A transactional `save_draft(expected_version, payload)` that validates against the `ProgramDraft` contract, and `publish_revision` that freezes the revision and moves the current pointer atomically.~~ Done (decision 0005).
 3. ~~Draft command model (update, reorder, duplicate, insert, remove by stable id), shared by both views.~~ Done (decision 0006).
-4. The Program view, then the Grid view (bounded typed columns, keyboard navigation, rectangular paste preview, atomic save), with stale-draft conflict handling. **In progress:** 4a grid model done (decision 0007); 4b editor shell + Program view and 4c Grid view UI next.
+4. The Program view, then the Grid view (bounded typed columns, keyboard navigation, rectangular paste preview, atomic save), with stale-draft conflict handling. **In progress:** 4a grid model done (decision 0007); 4b editor shell + Program view done; 4c Grid view UI next (`src/features/programs/GridView.tsx` is a placeholder).
 5. Add Playwright as a dev dependency and promote the smoke script to `tests/e2e`. Add ESLint and a formatter.
 6. Start the `audit_events` table for publish and access changes.
