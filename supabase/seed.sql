@@ -51,31 +51,31 @@ insert into public.staff_roles (auth_user_id, role) values
 
 -- Ids ending 001–004 are referenced by the policy tests: 001 Maya (client A), 002 Daniel (client B),
 -- 003 Sofia (disabled), 004 Ethan (pending, no account).
-insert into public.clients (id, auth_user_id, email, full_name, status, primary_coach_id, timezone, created_at) values
+insert into public.clients (id, auth_user_id, email, full_name, status, primary_coach_id, timezone, created_at, activated_at) values
   ('10000000-0000-4000-b000-000000000001', '00000000-0000-4000-a000-000000000011', 'maya.chen@example.test',
-   'Maya Chen', 'active', '00000000-0000-4000-a000-000000000001', 'America/Toronto', '2026-06-03 14:20:00+00'),
+   'Maya Chen', 'active', '00000000-0000-4000-a000-000000000001', 'America/Toronto', '2026-06-03 14:20:00+00', '2026-06-03 14:20:00+00'),
   ('10000000-0000-4000-b000-000000000002', '00000000-0000-4000-a000-000000000012', 'daniel.okafor@example.test',
-   'Daniel Okafor', 'active', '00000000-0000-4000-a000-000000000001', 'America/Toronto', '2026-08-19 16:05:00+00'),
+   'Daniel Okafor', 'active', '00000000-0000-4000-a000-000000000001', 'America/Toronto', '2026-08-19 16:05:00+00', '2026-08-19 16:05:00+00'),
   ('10000000-0000-4000-b000-000000000003', '00000000-0000-4000-a000-000000000013', 'sofia.marquez@example.test',
-   'Sofia Márquez', 'disabled', '00000000-0000-4000-a000-000000000001', 'America/Toronto', '2026-03-11 13:45:00+00'),
+   'Sofia Márquez', 'disabled', '00000000-0000-4000-a000-000000000001', 'America/Toronto', '2026-03-11 13:45:00+00', '2026-03-11 13:45:00+00'),
   ('10000000-0000-4000-b000-000000000004', null, 'ethan.brooks@example.test',
-   'Ethan Brooks', 'pending', '00000000-0000-4000-a000-000000000001', 'America/Toronto', '2026-11-14 18:30:00+00'),
+   'Ethan Brooks', 'pending', '00000000-0000-4000-a000-000000000001', 'America/Toronto', '2026-11-14 18:30:00+00', null),
   ('10000000-0000-4000-b000-000000000005', '00000000-0000-4000-a000-000000000014', 'aisha.rahman@example.test',
-   'Aisha Rahman', 'active', '00000000-0000-4000-a000-000000000001', 'America/Vancouver', '2026-07-22 19:10:00+00'),
+   'Aisha Rahman', 'active', '00000000-0000-4000-a000-000000000001', 'America/Vancouver', '2026-07-22 19:10:00+00', '2026-07-22 19:10:00+00'),
   ('10000000-0000-4000-b000-000000000006', '00000000-0000-4000-a000-000000000015', 'lucas.silva@example.test',
-   'Lucas Silva', 'invited', '00000000-0000-4000-a000-000000000001', 'America/Toronto', '2026-11-10 15:00:00+00'),
+   'Lucas Silva', 'invited', '00000000-0000-4000-a000-000000000001', 'America/Toronto', '2026-11-10 15:00:00+00', null),
   ('10000000-0000-4000-b000-000000000007', '00000000-0000-4000-a000-000000000016', 'hannah.kowalski@example.test',
-   'Hannah Kowalski', 'active', '00000000-0000-4000-a000-000000000001', 'America/Toronto', '2026-02-02 12:00:00+00'),
+   'Hannah Kowalski', 'active', '00000000-0000-4000-a000-000000000001', 'America/Toronto', '2026-02-02 12:00:00+00', '2026-02-02 12:00:00+00'),
   ('10000000-0000-4000-b000-000000000008', null, 'noah.tremblay@example.test',
-   'Noah Tremblay', 'pending', '00000000-0000-4000-a000-000000000001', 'America/Montreal', '2026-11-15 20:40:00+00'),
+   'Noah Tremblay', 'pending', '00000000-0000-4000-a000-000000000001', 'America/Montreal', '2026-11-15 20:40:00+00', null),
   ('10000000-0000-4000-b000-000000000009', '00000000-0000-4000-a000-000000000017', 'grace.liu@example.test',
-   'Grace Liu', 'active', '00000000-0000-4000-a000-000000000002', 'America/Toronto', '2026-09-08 17:25:00+00'),
+   'Grace Liu', 'active', '00000000-0000-4000-a000-000000000002', 'America/Toronto', '2026-09-08 17:25:00+00', '2026-09-08 17:25:00+00'),
   ('10000000-0000-4000-b000-000000000010', '00000000-0000-4000-a000-000000000018', 'owen.fitzgerald@example.test',
-   'Owen Fitzgerald', 'active', '00000000-0000-4000-a000-000000000001', 'Europe/London', '2026-05-27 09:15:00+00'),
+   'Owen Fitzgerald', 'active', '00000000-0000-4000-a000-000000000001', 'Europe/London', '2026-05-27 09:15:00+00', '2026-05-27 09:15:00+00'),
   ('10000000-0000-4000-b000-000000000011', null, 'zara.ahmed@example.test',
-   'Zara Ahmed', 'pending', '00000000-0000-4000-a000-000000000001', 'America/Toronto', '2026-11-12 22:05:00+00'),
+   'Zara Ahmed', 'pending', '00000000-0000-4000-a000-000000000001', 'America/Toronto', '2026-11-12 22:05:00+00', null),
   ('10000000-0000-4000-b000-000000000012', '00000000-0000-4000-a000-000000000019', 'ryan.patel@example.test',
-   'Ryan Patel', 'disabled', '00000000-0000-4000-a000-000000000001', 'America/Edmonton', '2026-01-14 15:50:00+00');
+   'Ryan Patel', 'disabled', '00000000-0000-4000-a000-000000000001', 'America/Edmonton', '2026-01-14 15:50:00+00', '2026-01-14 15:50:00+00');
 
 -- Priya (coach) is assigned Maya and Grace only; Liam (coach) has no clients.
 insert into public.coach_clients (coach_id, client_id) values

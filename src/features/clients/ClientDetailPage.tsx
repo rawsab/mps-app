@@ -58,7 +58,6 @@ function ClientSettings({ client }: { client: ClientRow }) {
   const invite = useInviteClient();
   const setStatus = useUpdateClientStatus();
   const disabled = client.status === 'disabled';
-  const hasAccount = client.auth_user_id !== null;
 
   return (
     <section aria-labelledby="client-settings" className="mt-4 grid gap-3">
@@ -104,7 +103,8 @@ function ClientSettings({ client }: { client: ClientRow }) {
           <Button
             variant={disabled ? 'secondary' : 'danger'}
             busy={setStatus.isPending}
-            onClick={() => setStatus.mutate({ id: client.id, status: disabled ? (hasAccount ? 'active' : 'pending') : 'disabled' })}
+            // Any non-disabled value reactivates; the database derives pending, invited or active.
+            onClick={() => setStatus.mutate({ id: client.id, status: disabled ? 'pending' : 'disabled' })}
           >
             {disabled ? 'Reactivate' : 'Disable'}
           </Button>
