@@ -98,19 +98,14 @@ export function SelectField({ label, children, className = '', ...rest }: Select
       <label htmlFor={id} className="text-sm font-medium text-text">
         {label}
       </label>
-      {/* Native arrow sits flush to the border in some browsers; draw our own with room. */}
-      <div className="relative">
-        <select
-          id={id}
-          className="min-h-11 w-full appearance-none rounded-card border border-line bg-ink pl-3 pr-10 text-base text-text transition-[border-color] duration-150 focus:border-gold focus:outline-none"
-          {...rest}
-        >
-          {children}
-        </select>
-        <svg aria-hidden viewBox="0 0 16 16" className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted" fill="none" stroke="currentColor" strokeWidth="1.6">
-          <path d="m4 6 4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
-        </svg>
-      </div>
+      {/* The chevron and its right padding come from the global select rule in index.css. */}
+      <select
+        id={id}
+        className="min-h-11 w-full rounded-card border border-line bg-ink pl-3 text-base text-text transition-[border-color] duration-150 focus:border-gold focus:outline-none"
+        {...rest}
+      >
+        {children}
+      </select>
     </div>
   );
 }

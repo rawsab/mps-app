@@ -317,6 +317,26 @@ html[data-theme='light'] .brand-logo {
   }
 }
 
+/*
+ * Every native <select> draws the same chevron, inset from the border with room for the text.
+ * Unlayered on purpose: it outranks padding utilities, so no select (now or later) can put the
+ * arrow against its right edge. The chevron follows --color-muted per theme.
+ */
+:root {
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%23a3a3a3' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+}
+html[data-theme='light'] {
+  --select-chevron: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='none' stroke='%235c5a55' stroke-width='1.6' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m4 6 4 4 4-4'/%3E%3C/svg%3E");
+}
+select:not([multiple]):not([size]) {
+  appearance: none;
+  background-image: var(--select-chevron);
+  background-repeat: no-repeat;
+  background-position: right 0.75rem center;
+  background-size: 1rem;
+  padding-right: 2.5rem;
+}
+
 :focus-visible {
   outline: 2px solid var(--color-gold);
   outline-offset: 2px;

@@ -154,7 +154,7 @@ export function CommitSelect({
         value={value}
         aria-invalid={error ? true : undefined}
         onChange={(e) => setError(onCommit(e.target.value))}
-        className={`${inputClass} ${error ? 'border-danger' : 'border-line'} pr-2`}
+        className={`${inputClass} ${error ? 'border-danger' : 'border-line'}`}
       >
         {options.map((o) => (
           <option key={o.value} value={o.value}>
