@@ -66,3 +66,23 @@ export const ReviewsIcon = () => (
     <path d="M4 13.5h4.5l1 2h5l1-2H20" />
   </Icon>
 );
+
+/** Inline action glyphs, sized to sit beside button text. */
+export const CopyIcon = () => (
+  <Icon className="size-4 shrink-0">
+    <rect x="8" y="8" width="12" height="12" rx="2" />
+    <path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2" />
+  </Icon>
+);
+
+export const CheckIcon = () => (
+  <Icon className="size-4 shrink-0" strokeWidth={2.2}>
+    <path d="m5 12.5 4.5 4.5L19 7.5" />
+  </Icon>
+);
+
+export const SendIcon = () => (
+  <Icon className="size-4 shrink-0">
+    <path d="M20.5 3.5 10 14M20.5 3.5 14 20.5l-4-6.5-6.5-4z" />
+  </Icon>
+);

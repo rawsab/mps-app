@@ -8,6 +8,7 @@ import { SERVICE_SHORT_LABELS, SERVICES } from '@/lib/services';
 import type { ClientRow, ClientStatus } from './api';
 import {
   ALL_STATUSES,
+  clientOverview,
   DEFAULT_TABLE_STATE,
   filterAndSortClients,
   liveServices,
@@ -57,16 +58,7 @@ export function ClientsTable({ rows }: { rows: ClientRow[] }) {
       dir: prev.sort === key ? (prev.dir === 'asc' ? 'desc' : 'asc') : key === 'added' ? 'desc' : 'asc',
     }));
 
-  const statusCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const r of rows) counts[r.status] = (counts[r.status] ?? 0) + 1;
-    return counts;
-  }, [rows]);
-  const serviceCounts = useMemo(() => {
-    const counts: Record<string, number> = {};
-    for (const r of rows) for (const e of liveServices(r)) counts[e.service] = (counts[e.service] ?? 0) + 1;
-    return counts;
-  }, [rows]);
+  const overview = useMemo(() => clientOverview(rows), [rows]);
 
   return (
     <div className="grid gap-3">
@@ -83,14 +75,14 @@ export function ClientsTable({ rows }: { rows: ClientRow[] }) {
         </label>
         <MultiSelectFilter
           label="Status"
-          options={ALL_STATUSES.map((st) => ({ value: st, label: STATUS_LABELS[st], display: statusBadge(st), count: statusCounts[st] ?? 0 }))}
+          options={ALL_STATUSES.map((st) => ({ value: st, label: STATUS_LABELS[st], display: statusBadge(st), count: overview.statuses[st] }))}
           selected={state.statuses}
           onChange={(statuses) => update({ statuses })}
           hint="Shows any of these"
         />
         <MultiSelectFilter
           label="Services"
-          options={SERVICES.map((sv) => ({ value: sv, label: SERVICE_SHORT_LABELS[sv], count: serviceCounts[sv] ?? 0 }))}
+          options={SERVICES.map((sv) => ({ value: sv, label: SERVICE_SHORT_LABELS[sv], count: overview.services[sv] }))}
           selected={state.services}
           onChange={(services) => update({ services })}
           hint="Clients with all of these"

@@ -5,6 +5,7 @@ import { Alert, Button, Card, EmptyState, PageHeader, Spinner, TextAreaField, Te
 import type { ServiceKind } from '@/domain/programs/contract';
 import { SERVICE_LABELS, SERVICES } from '@/lib/services';
 import { friendlyError, NewClientInput, useClients, useCreateClient } from './api';
+import { ClientsOverview } from './ClientsOverview';
 import { ClientsTable } from './ClientsTable';
 
 export function ClientsPage() {
@@ -13,6 +14,8 @@ export function ClientsPage() {
   const [creating, setCreating] = useState(false);
   // The form stays mounted while it animates closed.
   const [formMounted, setFormMounted] = useState(false);
+  // The dashboard clips its overflow only while collapsing or expanding, so chart tooltips aren't cut off.
+  const [dashboardSettled, setDashboardSettled] = useState(true);
   const newButton = useRef<HTMLButtonElement>(null);
   const wasCreating = useRef(false);
   const isAdmin = viewer.data?.staffRole === 'admin';
@@ -33,6 +36,7 @@ export function ClientsPage() {
   function openForm() {
     setFormMounted(true);
     setCreating(true);
+    setDashboardSettled(false);
   }
 
   return (
@@ -71,7 +75,24 @@ export function ClientsPage() {
             : 'No clients have been assigned to you.'}
         </EmptyState>
       ) : null}
-      {clients.data && clients.data.length > 0 ? <ClientsTable rows={clients.data} /> : null}
+      {clients.data && clients.data.length > 0 ? (
+        <>
+          {/* Hidden while the New client form is open; inert so its controls can't take focus. */}
+          <div
+            className="collapsible"
+            data-collapsed={creating || undefined}
+            inert={creating}
+            onTransitionEnd={(e) => {
+              if (e.target === e.currentTarget && e.propertyName === 'grid-template-rows' && !creating) setDashboardSettled(true);
+            }}
+          >
+            <div className={`min-h-0 ${dashboardSettled ? '' : 'overflow-hidden'}`}>
+              <ClientsOverview rows={clients.data} canInvite={isAdmin} />
+            </div>
+          </div>
+          <ClientsTable rows={clients.data} />
+        </>
+      ) : null}
     </div>
   );
 }

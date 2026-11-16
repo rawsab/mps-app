@@ -27,6 +27,7 @@ Date: 2026-11-16
 | Private coach notes (pulled forward from migration step 5): staff-only table, New client field, client page card | Done | `supabase/migrations/20261116000003_*`, `003_private_coach_notes.test.sql` (12 pgTAP) |
 | M3 step 2: `create_program`, `save_draft` (expected version, full contract validation), `get_program_draft`, `publish_revision` (readiness, `can_publish`, atomic pointer move) | Done | `supabase/migrations/20261116000004_*`, `004_draft_save_publish.test.sql` (48 pgTAP), `tests/policies/programDrafts.test.ts` (5 HTTP), decision 0005 |
 | M3 step 3: draft command model (update, target, set count, insert, move, duplicate, remove; atomic batches) | Done | `src/domain/programs/commands.ts`, `tests/domain/programCommands.test.ts` (19), decision 0006 |
+| Clients dashboard (FR-02): service and status charts, invitation follow-ups with send/resend modal | Done | `src/features/clients/ClientsOverview.tsx`, `src/components/Dialog.tsx`, `tests/lib/clientTable.test.ts` |
 | Editors, publishing UI | Not started | — |
 
 ## Checks performed (2026-11-16)

@@ -94,3 +94,25 @@ export function paramsFromState(state: ClientTableState): URLSearchParams {
   if (state.dir !== 'asc') params.set('dir', state.dir);
   return params;
 }
+
+export type ClientOverview = {
+  total: number;
+  /** Clients with a live (active or paused) enrollment in each service. */
+  services: Record<ServiceKind, number>;
+  statuses: Record<ClientStatus, number>;
+  /** Follow-ups, by name. Disabled clients are left out on purpose. */
+  notInvited: ClientRow[];
+  inviteUnaccepted: ClientRow[];
+};
+
+export function clientOverview(rows: ClientRow[]): ClientOverview {
+  const services = Object.fromEntries(ALL_SERVICES.map((s) => [s, 0])) as Record<ServiceKind, number>;
+  const statuses = Object.fromEntries(ALL_STATUSES.map((s) => [s, 0])) as Record<ClientStatus, number>;
+  for (const row of rows) {
+    statuses[row.status] += 1;
+    for (const service of new Set(liveServices(row).map((e) => e.service))) services[service] += 1;
+  }
+  const byName = (status: ClientStatus) =>
+    rows.filter((r) => r.status === status).sort((a, b) => a.full_name.localeCompare(b.full_name));
+  return { total: rows.length, services, statuses, notInvited: byName('pending'), inviteUnaccepted: byName('invited') };
+}

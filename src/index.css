@@ -236,6 +236,62 @@ html[data-theme='light'] .brand-logo {
     transform 260ms var(--ease-ui);
 }
 
+/* Modals rise slightly and fade in over a fading scrim. */
+@keyframes dialog-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.985);
+  }
+}
+@keyframes scrim-in {
+  from {
+    opacity: 0;
+  }
+}
+.dialog[open] {
+  animation: dialog-in 220ms var(--ease-enter) both;
+}
+.dialog[open]::backdrop {
+  animation: scrim-in 180ms ease-out both;
+}
+
+/*
+ * Hatched chart bar: diagonal lines over a fill that fades out downwards, inside an outline, all in
+ * --bar. The whole bar is translucent rather than each layer, so layers don't brighten where they cross.
+ */
+.bar-hatched {
+  background:
+    repeating-linear-gradient(135deg, color-mix(in oklab, var(--bar) 45%, transparent) 0 0.75px, transparent 0.75px 4px),
+    linear-gradient(to bottom, color-mix(in oklab, var(--bar) 40%, transparent), color-mix(in oklab, var(--bar) 10%, transparent));
+  /* Open at the bottom: the chart baseline closes each bar. */
+  border: 1.5px solid var(--bar);
+  border-bottom: 0;
+  opacity: 0.55;
+}
+.bar-hatched[data-hover] {
+  opacity: 1;
+}
+
+/*
+ * Collapsible block that is open on page load (e.g. the clients dashboard). Transitions, not keyframes,
+ * so nothing animates on mount. Closing fades first and then folds the height; opening unfolds the
+ * height and then fades in.
+ */
+.collapsible {
+  display: grid;
+  grid-template-rows: 1fr;
+  transition:
+    grid-template-rows 380ms var(--ease-ui),
+    opacity 260ms 140ms ease-out;
+}
+.collapsible[data-collapsed] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  transition:
+    opacity 200ms ease-out,
+    grid-template-rows 380ms 120ms var(--ease-ui);
+}
+
 /* Linked rows answer the pointer with a fill only; rows never move. */
 .row-link {
   transition: background-color 120ms var(--ease-ui);
@@ -249,6 +305,15 @@ html[data-theme='light'] .brand-logo {
 @media (hover: hover) and (pointer: fine) {
   :hover > .arrow-back {
     transform: translateX(-3px);
+  }
+}
+
+/* Tailwind 4 resets buttons to the default cursor; every enabled button shows a pointer. In the base
+ * layer so utilities such as `disabled:cursor-not-allowed` still win. */
+@layer base {
+  button:not(:disabled),
+  [role='button']:not([aria-disabled='true']) {
+    cursor: pointer;
   }
 }
 

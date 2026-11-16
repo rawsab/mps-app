@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { ClientRow } from '@/features/clients/api';
-import { DEFAULT_TABLE_STATE, filterAndSortClients, paramsFromState, stateFromParams } from '@/features/clients/clientTable';
+import { clientOverview, DEFAULT_TABLE_STATE, filterAndSortClients, paramsFromState, stateFromParams } from '@/features/clients/clientTable';
 
 const row = (name: string, status: ClientRow['status'], services: [ClientRow['service_enrollments'][number]['service'], 'active' | 'paused' | 'ended'][], created: string): ClientRow => ({
   id: name,
@@ -59,5 +59,17 @@ describe('client table', () => {
     expect(stateFromParams(params)).toEqual(state);
     expect(paramsFromState(DEFAULT_TABLE_STATE).toString()).toBe('');
     expect(stateFromParams(new URLSearchParams('status=hacked,active&service=;drop&sort=x'))).toEqual({ ...DEFAULT_TABLE_STATE, statuses: ['active'] });
+  });
+});
+
+describe('client overview', () => {
+  it('counts live services and statuses, and lists follow-ups by name', () => {
+    const extra = row('Aaron Bell', 'pending', [], '2026-05-01');
+    const o = clientOverview([...rows, extra]);
+    expect(o.total).toBe(5);
+    expect(o.services).toEqual({ personal_training: 1, mesocycle: 1, nutrition: 2 });
+    expect(o.statuses).toEqual({ active: 1, invited: 1, pending: 2, disabled: 1 });
+    expect(names(o.notInvited)).toEqual(['Aaron Bell', 'Blake Rivers']);
+    expect(names(o.inviteUnaccepted)).toEqual(['Drew Park']);
   });
 });
