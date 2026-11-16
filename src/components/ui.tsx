@@ -1,7 +1,7 @@
-import type { ButtonHTMLAttributes, InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react';
+import type { ComponentPropsWithRef, InputHTMLAttributes, ReactNode, SelectHTMLAttributes } from 'react';
 import { useId } from 'react';
 
-type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & { variant?: 'primary' | 'secondary' | 'ghost' | 'danger'; busy?: boolean };
+type ButtonProps = ComponentPropsWithRef<'button'> & { variant?: 'primary' | 'secondary' | 'ghost' | 'danger'; busy?: boolean };
 
 export function Button({ variant = 'primary', busy, className = '', children, disabled, ...rest }: ButtonProps) {
   const styles = {
@@ -67,9 +67,19 @@ export function SelectField({ label, children, className = '', ...rest }: Select
       <label htmlFor={id} className="text-sm font-medium text-text">
         {label}
       </label>
-      <select id={id} className="min-h-11 rounded-card border border-line bg-ink px-3 text-base text-text transition-[border-color] duration-150 focus:border-gold focus:outline-none" {...rest}>
-        {children}
-      </select>
+      {/* Native arrow sits flush to the border in some browsers; draw our own with room. */}
+      <div className="relative">
+        <select
+          id={id}
+          className="min-h-11 w-full appearance-none rounded-card border border-line bg-ink pl-3 pr-10 text-base text-text transition-[border-color] duration-150 focus:border-gold focus:outline-none"
+          {...rest}
+        >
+          {children}
+        </select>
+        <svg aria-hidden viewBox="0 0 16 16" className="pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted" fill="none" stroke="currentColor" strokeWidth="1.6">
+          <path d="m4 6 4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      </div>
     </div>
   );
 }
@@ -112,7 +122,8 @@ export function EmptyState({ title, children, action }: { title: string; childre
 
 export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: ReactNode; actions?: ReactNode }) {
   return (
-    <header className="mb-6 flex flex-wrap items-end justify-between gap-3">
+    // min-h-11 matches a header button, so the title doesn't shift when an action hides.
+    <header className="mb-6 flex min-h-11 flex-wrap items-end justify-between gap-3">
       <div className="min-w-0">
         <h1 className="text-[1.75rem] font-medium leading-tight tracking-[-0.025em] text-text sm:text-[2rem]">{title}</h1>
         {subtitle ? <p className="mt-1 text-sm text-muted">{subtitle}</p> : null}

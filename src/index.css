@@ -199,6 +199,43 @@ html[data-theme='light'] .brand-logo {
   animation: panel-open 200ms var(--ease-ui) both;
 }
 
+/*
+ * Inline reveal (e.g. the New client form): the height opens via grid rows so the content below
+ * slides down instead of jumping, and the panel fades and drops in. The one layout animation here;
+ * it runs once per open/close.
+ */
+.reveal {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 380ms var(--ease-ui);
+}
+.reveal[data-open] {
+  grid-template-rows: 1fr;
+}
+@keyframes reveal-fade {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes reveal-drop {
+  from {
+    transform: translateY(-10px);
+  }
+}
+/* The fade starts a beat after the height so the panel appears into space already opening. */
+.reveal[data-open] .reveal-content {
+  animation:
+    reveal-fade 340ms 80ms ease-out both,
+    reveal-drop 420ms var(--ease-ui) both;
+}
+.reveal:not([data-open]) .reveal-content {
+  opacity: 0;
+  transform: translateY(-6px);
+  transition:
+    opacity 200ms ease-out,
+    transform 260ms var(--ease-ui);
+}
+
 /* Linked rows answer the pointer with a fill only; rows never move. */
 .row-link {
   transition: background-color 120ms var(--ease-ui);

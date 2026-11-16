@@ -1,5 +1,6 @@
-import { useState, type FormEvent } from 'react';
+import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useViewer } from '@/app/auth';
+import { ComboboxField } from '@/components/ComboboxField';
 import { Alert, Button, Card, EmptyState, PageHeader, Spinner, TextField } from '@/components/ui';
 import type { ServiceKind } from '@/domain/programs/contract';
 import { SERVICE_LABELS, SERVICES } from '@/lib/services';
@@ -10,12 +11,57 @@ export function ClientsPage() {
   const viewer = useViewer();
   const clients = useClients();
   const [creating, setCreating] = useState(false);
+  // The form stays mounted while it animates closed.
+  const [formMounted, setFormMounted] = useState(false);
+  const newButton = useRef<HTMLButtonElement>(null);
+  const wasCreating = useRef(false);
   const isAdmin = viewer.data?.staffRole === 'admin';
+
+  useEffect(() => {
+    // Build the time zone list while idle so opening the form doesn't drop animation frames.
+    if (!isAdmin) return;
+    const handle = requestIdleCallback(() => timeZoneOptions());
+    return () => cancelIdleCallback(handle);
+  }, [isAdmin]);
+
+  useEffect(() => {
+    // Return focus to the button that opened the form.
+    if (wasCreating.current && !creating) newButton.current?.focus();
+    wasCreating.current = creating;
+  }, [creating]);
+
+  function openForm() {
+    setFormMounted(true);
+    setCreating(true);
+  }
 
   return (
     <div>
-      <PageHeader title="Clients" actions={isAdmin && !creating ? <Button onClick={() => setCreating(true)}>New client</Button> : null} />
-      {creating ? <NewClientForm onDone={() => setCreating(false)} /> : null}
+      <PageHeader
+        title="Clients"
+        actions={
+          isAdmin && !creating ? (
+            <Button ref={newButton} onClick={openForm}>
+              New client
+            </Button>
+          ) : null
+        }
+      />
+      <div
+        className="reveal"
+        data-open={creating || undefined}
+        onTransitionEnd={(e) => {
+          if (e.target === e.currentTarget && !creating) setFormMounted(false);
+        }}
+      >
+        <div className="min-h-0 overflow-hidden has-[[aria-expanded=true]]:overflow-visible">
+          {formMounted ? (
+            <div className="reveal-content">
+              <NewClientForm onDone={() => setCreating(false)} />
+            </div>
+          ) : null}
+        </div>
+      </div>
       {clients.isPending ? <Spinner label="Loading clients" /> : null}
       {clients.error ? <Alert title="Could not load clients">{friendlyError(clients.error)}</Alert> : null}
       {clients.data && clients.data.length === 0 ? (
@@ -35,6 +81,13 @@ function NewClientForm({ onDone }: { onDone: () => void }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [services, setServices] = useState<ServiceKind[]>([]);
   const defaultTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const timeZones = timeZoneOptions();
+  const formRef = useRef<HTMLFormElement>(null);
+
+  useEffect(() => {
+    // Not autoFocus: focusing inside the still-collapsed reveal would scroll it and make it jump.
+    formRef.current?.querySelector<HTMLInputElement>('input[name=full_name]')?.focus({ preventScroll: true });
+  }, []);
 
   function submit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -55,12 +108,19 @@ function NewClientForm({ onDone }: { onDone: () => void }) {
 
   return (
     <Card className="mb-6">
-      <form onSubmit={submit} noValidate className="grid gap-4">
+      <form ref={formRef} onSubmit={submit} noValidate className="grid gap-4">
         <h2 className="text-lg font-semibold">New client</h2>
-        <div className="grid gap-4 sm:grid-cols-2">
+        <div className="grid gap-4 sm:grid-cols-2 sm:gap-y-2">
           <TextField label="Full name" name="full_name" autoComplete="off" error={errors.full_name} />
           <TextField label="Email" name="email" type="email" autoComplete="off" error={errors.email} hint="Used for the invitation. No email is sent yet." />
-          <TextField label="Time zone" name="timezone" defaultValue={defaultTz} error={errors.timezone} hint="Activity dates use the client's time zone." />
+          <ComboboxField
+            label="Time zone"
+            name="timezone"
+            options={timeZones}
+            defaultValue={defaultTz}
+            error={errors.timezone}
+            hint="Activity dates use the client's time zone."
+          />
         </div>
         <fieldset>
           <legend className="mb-2 text-sm font-medium">Services</legend>
@@ -91,4 +151,20 @@ function NewClientForm({ onDone }: { onDone: () => void }) {
       </form>
     </Card>
   );
+}
+
+type TimeZoneOption = { value: string; label: string; detail?: string };
+let timeZoneCache: TimeZoneOption[] | null = null;
+
+/** IANA zones with their current UTC offset, e.g. "America/Toronto" · "GMT-5". Built once per page load. */
+function timeZoneOptions(): TimeZoneOption[] {
+  if (timeZoneCache) return timeZoneCache;
+  const now = new Date();
+  timeZoneCache = Intl.supportedValuesOf('timeZone').map((zone) => {
+    const offset = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'shortOffset' })
+      .formatToParts(now)
+      .find((p) => p.type === 'timeZoneName')?.value;
+    return { value: zone, label: zone.replaceAll('_', ' '), ...(offset ? { detail: offset } : {}) };
+  });
+  return timeZoneCache;
 }
