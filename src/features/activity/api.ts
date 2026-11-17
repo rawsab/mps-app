@@ -18,9 +18,15 @@ const NutritionActivitySchema = z.object({
   status: z.enum(['completed','in_progress']), weight: z.number().nullable(), weightUnit: z.enum(['lb','kg']).nullable(),
   intake: z.number().nullable(), output: z.number().nullable(),
 });
+const RequestActivitySchema = z.object({
+  kind: z.literal('request'), id: z.string(), service: z.literal('personal_training'), requestKind: z.enum(['cancel', 'reschedule']),
+  status: z.enum(['pending', 'accepted', 'declined', 'withdrawn', 'expired']), message: z.string(), preferredStartsAt: z.string().nullable(),
+  late: z.boolean().nullable(), response: z.string(), appointmentId: z.string(), startsAt: z.string(), durationMinutes: z.number().int(),
+  activityAt: z.string(), staffEdited: z.boolean(),
+});
 export const ActivitySchema = z.discriminatedUnion('kind',[SessionActivitySchema,NutritionActivitySchema]);
 const reviewFields = { clientId: z.string(), clientName: z.string(), unread: z.boolean() };
-export const ReviewSchema = z.discriminatedUnion('kind',[SessionActivitySchema.extend(reviewFields),NutritionActivitySchema.extend(reviewFields)]);
+export const ReviewSchema = z.discriminatedUnion('kind',[SessionActivitySchema.extend(reviewFields),NutritionActivitySchema.extend(reviewFields),RequestActivitySchema.extend(reviewFields)]);
 
 export const activityKey = (clientId: string) => ['client-activity', clientId];
 export const HISTORY_PAGE = 25;
@@ -54,6 +60,8 @@ export function useActivityHistory(clientId: string) {
 
 /** Opens the logged day in the coach's view of the client log, returning to where the coach came from. */
 export function activityLink(clientId: string, item: ActivityItem): string {
+  // The client page opens the session (and its request) from ?session=.
+  if (item.kind === 'request') return `/coach/clients/${clientId}?${new URLSearchParams({ session: item.appointmentId })}`;
   if (item.kind === 'nutrition') return item.programId
     ? `/coach/clients/${clientId}/nutrition/${item.programId}/log#nutrition-day-${item.loggedOn}`
     : `/coach/clients/${clientId}`;
@@ -127,6 +135,8 @@ export function useMarkActivityRead() {
     mutationFn: async (item: ActivityItem | null) => {
       const { error } = item?.kind === 'nutrition'
         ? await requireSupabase().rpc('mark_nutrition_activity_read', { p_activity_id: item.id })
+        : item?.kind === 'request'
+        ? await requireSupabase().rpc('mark_request_read', { p_request_id: item.id })
         : await requireSupabase().rpc('mark_activity_read', item ? { p_session_id: item.id } : {});
       if (error) throw error;
     },

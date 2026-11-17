@@ -242,11 +242,32 @@ Date: 2026-11-16
   - `pnpm verify` passes. The time zone list moved to `src/lib/timeZones.ts`.
   - The migration was applied to the running local DB without a reset. No browser checks.
 
+## PT scheduling, phase 2, and other requests (2026-11-17)
+
+- **Coach scheduling screens (decision 0037):**
+  - A Sessions card on the client page: patterns, the next 31 days, setup notices, and cancelling remaining sessions after a pause or end.
+  - A repeating-pattern editor with a server preview.
+  - A session dialog: change or cancel one session, reinstate, answer client requests, or change the pattern from this date.
+  - Client requests in Reviews.
+  - Migration 00031: `get_pt_scheduling`, `get_pt_appointment`, `stop_pt_scheduling`, request activity and read state. Sessions with request history survive pattern changes.
+- **Deleting archived services (decision 0038):**
+  - Admins can show archived services on the client page and delete them after confirming (migration 00032).
+  - Services with programs, nutrition programs or PT patterns are refused, with a message naming what is linked.
+- **Nutrition correction history:**
+  - Uses the shared animated chevron instead of the native triangle.
+  - Coach/Client correction appears as a badge, and Before/After sit in their own nested box.
+- **Verification:**
+  - `pnpm verify`: 295 unit tests, typecheck and build.
+  - Full `pnpm test:db` passes, including the new `024` (25) and `025` (9) suites.
+  - Migrations 00031–00032 were applied to the running local DB without a reset.
+  - No browser checks.
+  - The client side of requests (sending them) arrives with phase 3, so requests can only be created through the API for now.
+
 ## Known limitations
 
 - **Programs:** program/revision tables, both coach editors, the client Training view and mesocycle session logging are implemented. Programs under an ended (but not archived) service still appear to the client (decision 0020, open question). Nutrition now has its own draft/publish/archive lifecycle, weekly spreadsheets, shared daily records, correction history and program-relative summaries (decision 0029). Import-batch and general audit tables remain pending; Client Home has saved-record nutrition tasks, while training task derivation remains pending.
 - **Activity feeds:** Training updates derive from latest record state, so a coach overwriting a client's only logged row can drop that workout from Reviews; general `audit_events` is still pending. Nutrition notifications use durable client/day activity, survive coach corrections and retain the separate before/after entry history (decision 0030). Feeds and unread counts poll every minute (no realtime).
-- **Scheduling:** the database layer is built (decision 0037). Coach and client screens are not, so "Upcoming today" still shows sample data in local development and an "isn't set up yet" message elsewhere (decision 0026). Requests don't reach Reviews yet, and nothing emails Matt.
+- **Scheduling:** the database layer is built (decision 0037). Coach screens are built (phase 2); client screens are not, so "Upcoming today" still shows sample data in local development and an "isn't set up yet" message elsewhere (decision 0026). Clients can't send requests from the app yet, and nothing emails Matt.
 - **Invitations:** invite and recovery emails have only been verified against local Mailpit. Real Resend delivery is untested.
 - **Playwright:** not yet a project dependency. The browser smoke script lives outside the repo.
 - **No linting:** no ESLint or formatter is configured yet.

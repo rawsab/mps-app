@@ -183,6 +183,19 @@ export function useArchiveEnrollment() {
   });
 }
 
+/** Admin only; the server refuses services that still have programs or scheduled sessions (decision 0038). */
+export function useDeleteArchivedService() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await requireSupabase().rpc('delete_archived_service', { p_enrollment_id: id });
+      if (error?.code === 'PT409') throw new Error(`${error.message.charAt(0).toUpperCase()}${error.message.slice(1)}.`);
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clients'] }),
+  });
+}
+
 /** Calls the server-side invite function. It verifies the caller's admin role itself. */
 export function useInviteClient() {
   const queryClient = useQueryClient();

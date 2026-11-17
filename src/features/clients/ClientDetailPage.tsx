@@ -3,13 +3,14 @@ import { ActionsMenu, actionItemClass } from '@/components/ActionsMenu';
 import { ArchiveIcon, TrashIcon } from '@/components/icons';
 import { Dialog } from '@/components/Dialog';
 import { useState, type FormEvent } from 'react';
-import { Link, useParams } from 'react-router';
+import { Link, useParams, useSearchParams } from 'react-router';
 import { AnimatedDisclosure } from '@/components/AnimatedDisclosure';
 import { useViewer } from '@/app/auth';
 import { Alert, Badge, Button, EmptyState, PageHeader, SelectField, Spinner, TextAreaField } from '@/components/ui';
 import type { ServiceKind } from '@/domain/programs/contract';
 import { RecentUpdatesCard } from '@/features/activity/ActivityViews';
 import { ProgramsCard } from '@/features/programs/ProgramsCard';
+import { ScheduleCard } from '@/features/scheduling/ScheduleCard';
 import { capitalize, formatDate } from '@/lib/format';
 import { SERVICE_LABELS, SERVICES } from '@/lib/services';
 import {
@@ -21,6 +22,7 @@ import {
   useClient,
   useClientNotes,
   useClientPhoto,
+  useDeleteArchivedService,
   useDeleteClientNote,
   useInviteClient,
   useSetEnrollmentStatus,
@@ -36,6 +38,9 @@ export function ClientDetailPage() {
   const client = useClient(clientId);
   const photo = useClientPhoto(client.data?.auth_user_id);
   const isAdmin = viewer.data?.staffRole === 'admin';
+  // Reviews links to a session with ?session=; closing it drops the parameter.
+  const [params, setParams] = useSearchParams();
+  const focusSession = params.get('session');
 
   if (client.isPending) return <Spinner label="Loading client" />;
   if (client.error) return <Alert title="Could not load client">{friendlyError(client.error)}</Alert>;
@@ -58,7 +63,13 @@ export function ClientDetailPage() {
       </div>
       <PageHeader leading={<Avatar url={photo.data} name={c.full_name} className="size-14 sm:size-16" />} title={c.full_name} subtitle={<span className="break-all">{c.email}</span>} actions={statusBadge(c.status)} />
       <div className="grid min-w-0 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="grid min-w-0 gap-8"><RecentUpdatesCard client={c} /><ProgramsCard clientId={c.id} enrollments={c.service_enrollments} /></div>
+        <div className="grid min-w-0 gap-8">
+          <RecentUpdatesCard client={c} />
+          {c.service_enrollments.some((e) => e.service === 'personal_training' && !e.archived_at) ? (
+            <ScheduleCard clientId={c.id} focusSessionId={focusSession} onFocusClosed={() => setParams((p) => { p.delete('session'); return p; }, { replace: true })} />
+          ) : null}
+          <ProgramsCard clientId={c.id} enrollments={c.service_enrollments} />
+        </div>
         <div className="grid min-w-0 gap-8 lg:border-l lg:border-line lg:pl-6">
           <ServicesCard clientId={c.id} enrollments={c.service_enrollments} canEdit={isAdmin} />
           <NotesCard clientId={c.id} />
@@ -141,7 +152,11 @@ function ServicesCard({
   const add = useAddEnrollment();
   const setStatus = useSetEnrollmentStatus();
   const archive = useArchiveEnrollment();
+  const remove = useDeleteArchivedService();
   const visible = enrollments.filter((enrollment) => !enrollment.archived_at);
+  const archived = enrollments.filter((enrollment) => enrollment.archived_at);
+  const [showArchived, setShowArchived] = useState(false);
+  const [deleting, setDeleting] = useState<EnrollmentRow | null>(null);
   const live = enrollments.filter((e) => e.status !== 'ended');
   const available = SERVICES.filter((s) => !live.some((e) => e.service === s));
   const [service, setService] = useState<ServiceKind | ''>('');
@@ -180,6 +195,39 @@ function ServicesCard({
           </li>
         ))}
       </ul>
+      {canEdit && archived.length ? (
+        <div className="mt-2">
+          <Button variant="ghost" aria-expanded={showArchived} onClick={() => setShowArchived((value) => !value)}>
+            {showArchived ? 'Hide archived services' : `Show archived services (${archived.length})`}
+          </Button>
+          {showArchived ? (
+            <ul className="divide-y divide-line">
+              {archived.map((enrollment) => (
+                <li key={enrollment.id} className="flex min-h-11 items-center gap-2 py-2">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-medium text-muted">{SERVICE_LABELS[enrollment.service]}</p>
+                    <p className="text-xs text-muted">
+                      From {formatDate(enrollment.starts_on)}{enrollment.ends_on ? ` to ${formatDate(enrollment.ends_on)}` : ''}
+                    </p>
+                  </div>
+                  <Badge>Archived</Badge>
+                  <button type="button" aria-label={`Delete archived ${SERVICE_LABELS[enrollment.service]} service`} title="Delete service"
+                    disabled={remove.isPending} onClick={() => { remove.reset(); setDeleting(enrollment); }}
+                    className="flex size-11 shrink-0 items-center justify-center rounded-card text-muted transition-colors hover:bg-surface-raised hover:text-danger disabled:opacity-40">
+                    <TrashIcon />
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      ) : null}
+      {deleting ? <Dialog title={`Delete archived ${SERVICE_LABELS[deleting.service]}?`}
+        description="This permanently removes the service record. Services that still have programs or scheduled sessions can’t be deleted."
+        onClose={() => { if (!remove.isPending) setDeleting(null); }} footer={<>
+          <Button variant="secondary" disabled={remove.isPending} onClick={() => setDeleting(null)}>Keep service</Button>
+          <Button variant="danger" busy={remove.isPending} onClick={() => remove.mutate(deleting.id, { onSuccess: () => setDeleting(null) })}><TrashIcon />Delete service</Button>
+        </>}><Alert visible={!!remove.error} className="m-4" title="Could not delete service">{friendlyError(remove.error)}</Alert></Dialog> : null}
       {canEdit && available.length ? (
         <form
           className="mt-4 flex flex-wrap items-end gap-2"

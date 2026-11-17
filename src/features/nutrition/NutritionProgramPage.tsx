@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Link, useBlocker, useLocation, useParams } from 'react-router';
 import { Dialog } from '@/components/Dialog';
+import { DisclosureSummary } from '@/components/DisclosureSummary';
 import { DraftSaveIndicator, type DraftSaveState } from '@/components/DraftSaveIndicator';
 import { UseNotice } from '@/components/LegalFooter';
 import { SpreadsheetIcon } from '@/components/icons';
@@ -183,5 +184,27 @@ function CorrectionHistory({ snapshot }: { snapshot: NutritionProgramSnapshot })
     const v = value as Record<string, unknown>;
     return kind === 'weight' ? `${v.weight ?? '—'} ${v.unit}` : `Intake: ${v.intake ?? '—'} kcal; output: ${v.output ?? '—'} kcal${v.notes ? `; ${v.notes}` : ''}`;
   };
-  return <details className="rounded-card border border-line p-4"><summary className="min-h-11 cursor-pointer content-center font-medium">Correction history</summary><p className="mt-2 text-xs text-muted">Latest 100 saves within this program’s dates.</p><ul className="mt-3 divide-y divide-line">{changes.map((change) => <li key={change.id} className="py-3 text-sm"><p>{formatDate(change.entry_date)} · {change.kind === 'weight' ? 'Weight' : 'Calorie activity'} · {change.by_staff ? 'Coach correction' : 'Client correction'}</p><p className="mt-1 text-xs text-muted">{formatDateTime(change.created_at)}</p><p className="mt-2 whitespace-pre-wrap break-words">Before: {describe(change.before_value, change.kind)}</p><p className="whitespace-pre-wrap break-words">After: {describe(change.after_value, change.kind)}</p></li>)}</ul></details>;
+  return (
+    <details className="rounded-card border border-line px-4 py-2">
+      <DisclosureSummary className="cursor-pointer list-none font-medium">Correction history</DisclosureSummary>
+      <p className="text-xs text-muted">Latest 100 saves within this program’s dates.</p>
+      <ul className="mt-2 mb-2 divide-y divide-line">
+        {changes.map((change) => (
+          <li key={change.id} className="py-3 text-sm">
+            <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+              <span className="font-medium">{formatDate(change.entry_date)} · {change.kind === 'weight' ? 'Weight' : 'Calorie activity'}</span>
+              <Badge tone={change.by_staff ? 'gold' : 'neutral'}>{change.by_staff ? 'Coach correction' : 'Client correction'}</Badge>
+            </div>
+            <p className="mt-1 text-xs text-muted"><time dateTime={change.created_at}>{formatDateTime(change.created_at)}</time></p>
+            <dl className="mt-2 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-1 rounded-card border border-line bg-surface p-3">
+              <dt className="text-muted">Before</dt>
+              <dd className="whitespace-pre-wrap break-words">{describe(change.before_value, change.kind)}</dd>
+              <dt className="text-muted">After</dt>
+              <dd className="whitespace-pre-wrap break-words">{describe(change.after_value, change.kind)}</dd>
+            </dl>
+          </li>
+        ))}
+      </ul>
+    </details>
+  );
 }

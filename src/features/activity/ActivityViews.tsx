@@ -2,16 +2,30 @@ import { Fragment } from 'react';
 import { Avatar } from '@/components/Avatar';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { Alert, Badge, Button, EmptyState, PageHeader, Spinner } from '@/components/ui';
-import { activityDetails, activityTitle, activityWhere, groupByDay, relativeTime, type ActivityItem, type ReviewItem } from '@/domain/activity/feed';
+import { activityDetails, activityTitle, activityWhere, groupByDay, relativeTime, type ActivityItem, type RequestActivity, type ReviewItem, type SessionActivity } from '@/domain/activity/feed';
 import { friendlyError, useClient, useClientPhoto, type ClientRow } from '@/features/clients/api';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { activityLink, READ_FADE_MS, useActivityHistory, useMarkActivityRead, useRecentActivity, useReviews } from './api';
 
-const STATUS_BADGE: Record<ActivityItem['status'], { label: string; tone: 'neutral' | 'gold' | 'success' }> = {
+const STATUS_BADGE: Record<SessionActivity['status'], { label: string; tone: 'neutral' | 'gold' | 'success' }> = {
   completed: { label: 'Completed', tone: 'success' },
   in_progress: { label: 'In progress', tone: 'gold' },
   skipped: { label: 'Skipped', tone: 'neutral' },
 };
+
+const REQUEST_BADGE: Record<RequestActivity['status'], { label: string; tone: 'neutral' | 'gold' | 'success' }> = {
+  pending: { label: 'Needs a reply', tone: 'gold' },
+  accepted: { label: 'Accepted', tone: 'success' },
+  declined: { label: 'Declined', tone: 'neutral' },
+  withdrawn: { label: 'Withdrawn', tone: 'neutral' },
+  expired: { label: 'Expired', tone: 'neutral' },
+};
+
+function itemBadge(item: ActivityItem) {
+  if (item.kind === 'request') return REQUEST_BADGE[item.status];
+  if (item.kind === 'nutrition') return { label: item.status === 'completed' ? 'Complete' : 'Partial entry', tone: item.status === 'completed' ? 'success' as const : 'neutral' as const };
+  return STATUS_BADGE[item.status];
+}
 
 function emptyMessage(client: Pick<ClientRow, 'status'>): string {
   return client.status === 'pending' || client.status === 'invited' ? 'The client hasn’t signed in yet.' : 'No activity yet.';
@@ -39,7 +53,8 @@ function ActivityAvatar({ clientId, name }: { clientId: string; name?: string })
 export function ActivityRow({ clientId, item, from, review, leaving = false, compact = false }: { clientId: string; item: ActivityItem; from: { backTo: string; backLabel: string }; review?: Review; leaving?: boolean; compact?: boolean }) {
   const markRead = useMarkActivityRead();
   const details = activityDetails(item);
-  const badge = item.kind === 'nutrition' ? { label: item.status === 'completed' ? 'Complete' : 'Partial entry', tone: item.status === 'completed' ? 'success' as const : 'neutral' as const } : STATUS_BADGE[item.status];
+  const badge = itemBadge(item);
+  const performedOn = item.kind === 'request' ? null : item.performedOn;
   return (
     // `leaving`: a read item in the Unread filter fades out before the refetch removes it.
     <li style={{ transitionDuration: `${READ_FADE_MS}ms` }} className={`transition-opacity motion-reduce:transition-none ${leaving ? 'opacity-0' : ''}`}>
@@ -51,19 +66,20 @@ export function ActivityRow({ clientId, item, from, review, leaving = false, com
             <UnreadDot unread={review.unread} />
             <span className="min-w-0">
               {review.clientName}
-              {compact ? <span className="font-normal text-muted"> · {formatDate(item.performedOn ?? item.activityAt)}</span> : null}
+              {compact ? <span className="font-normal text-muted"> · {formatDate(performedOn ?? item.activityAt)}</span> : null}
             </span>
             {review.unread ? <span className="sr-only">(unread)</span> : null}
           </p> : null}
           <p className={`flex flex-wrap items-center gap-x-2 gap-y-1 ${review ? 'mt-1' : ''}`}>
             <span className={review ? 'text-sm' : 'font-medium'}>{activityTitle(item)}</span>
             <Badge tone={badge.tone}>{badge.label}</Badge>
+            {item.kind === 'request' && item.late ? <Badge tone="danger">Late cancellation</Badge> : null}
             {item.staffEdited ? <Badge>Edited by coach</Badge> : null}
           </p>
           {compact ? null : <p className="mt-0.5 break-words text-sm text-muted">{activityWhere(item)}</p>}
-          {!compact && (details.length || item.performedOn) ? (
-            <p className="mt-0.5 text-xs text-muted">
-              {[...(item.performedOn ? [`${item.kind === 'nutrition' ? 'Log date' : 'Workout date'} ${formatDate(item.performedOn)}`] : []), ...details].join(' · ')}
+          {!compact && (details.length || performedOn) ? (
+            <p className="mt-0.5 break-words text-xs text-muted">
+              {[...(performedOn ? [`${item.kind === 'nutrition' ? 'Log date' : 'Workout date'} ${formatDate(performedOn)}`] : []), ...details].join(' · ')}
             </p>
           ) : null}
         </div>
@@ -162,7 +178,7 @@ export function ReviewsPage() {
 
   return (
     <div>
-      <PageHeader title="Reviews" subtitle="Workouts and nutrition logs from your clients, newest first."
+      <PageHeader title="Reviews" subtitle="Workouts, nutrition logs and session requests from your clients, newest first."
         actions={<Button variant="secondary" busy={markAll.isPending} disabled={!items.some((item) => item.unread)} onClick={() => markAll.mutate(null)}>Mark all as read</Button>} />
       <div role="group" aria-label="Filter reviews" className="mb-4 flex flex-wrap gap-1.5">
         {filters.map((option) => <button key={option.label} type="button" aria-pressed={unreadOnly === option.value} onClick={() => setUnreadOnly(option.value)}

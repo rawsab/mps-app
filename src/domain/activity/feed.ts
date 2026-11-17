@@ -29,21 +29,30 @@ export type NutritionActivity = {
   status: 'completed' | 'in_progress'; weight: number | null; weightUnit: 'lb' | 'kg' | null;
   intake: number | null; output: number | null;
 };
-export type ActivityItem = SessionActivity | NutritionActivity;
+/** A client's cancel or reschedule request for a PT session (decision 0037). Reviews only. */
+export type RequestActivity = {
+  kind: 'request'; id: string; service: 'personal_training'; requestKind: 'cancel' | 'reschedule';
+  status: 'pending' | 'accepted' | 'declined' | 'withdrawn' | 'expired'; message: string; preferredStartsAt: string | null;
+  late: boolean | null; response: string; appointmentId: string; startsAt: string; durationMinutes: number;
+  activityAt: string; staffEdited: boolean;
+};
+export type ActivityItem = SessionActivity | NutritionActivity | RequestActivity;
 
 /** A Reviews item: timed by the client's own latest change, with this staff member's read state. */
 export type ReviewItem = ActivityItem & { clientId: string; clientName: string; unread: boolean };
 
-/** Training kinds plus the shared daily nutrition category. */
-export type ActivityKind = 'completed' | 'logged' | 'skipped' | 'started' | 'nutrition';
+/** Training kinds plus the shared daily nutrition and PT request categories. */
+export type ActivityKind = 'completed' | 'logged' | 'skipped' | 'started' | 'nutrition' | 'request';
 
-export function activityKind(item: Pick<SessionActivity, 'status' | 'setCount' | 'feedbackCount'> | NutritionActivity): ActivityKind {
+export function activityKind(item: Pick<SessionActivity, 'status' | 'setCount' | 'feedbackCount'> | NutritionActivity | RequestActivity): ActivityKind {
+  if ('requestKind' in item) return 'request';
   if (!('setCount' in item)) return 'nutrition';
   if (item.status === 'completed' || item.status === 'skipped') return item.status;
   return item.setCount > 0 || item.feedbackCount > 0 ? 'logged' : 'started';
 }
 
 export function activityTitle(item: ActivityItem): string {
+  if (item.kind === 'request') return item.status === 'withdrawn' ? 'Withdrew a session request' : item.requestKind === 'cancel' ? 'Asked to cancel a session' : 'Asked to reschedule a session';
   if (item.kind === 'nutrition') return item.status === 'completed' ? 'Logged daily nutrition' : item.weight !== null ? 'Logged weight' : item.intake !== null || item.output !== null ? 'Logged calories' : 'Updated daily nutrition';
   switch (activityKind(item)) {
     case 'completed': return 'Completed a workout';
@@ -51,11 +60,15 @@ export function activityTitle(item: ActivityItem): string {
     case 'logged': return item.setCount > 0 ? 'Logged sets' : 'Answered Stimulus & Fatigue';
     case 'started': return 'Started a workout';
     case 'nutrition': return 'Logged daily nutrition';
+    case 'request': return 'Session request';
   }
 }
 
 /** "Block one · Week 2 · Day 1 · Push". Numbers follow order, like the editor. */
+const SESSION_TIME = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
+
 export function activityWhere(item: ActivityItem): string {
+  if (item.kind === 'request') return `Personal training · ${SESSION_TIME.format(new Date(item.startsAt))} · ${item.durationMinutes} min`;
   if (item.kind === 'nutrition') return item.programTitle;
   return [item.programTitle.trim() || 'Untitled program', weekName(item.weekIndex), dayHeading({ label: item.dayLabel }, item.dayIndex)].join(' · ');
 }
@@ -64,6 +77,10 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 
 /** Facts worth a glance; nothing is listed for counts the client hasn't produced. */
 export function activityDetails(item: ActivityItem): string[] {
+  if (item.kind === 'request') return [
+    item.message ? `“${item.message}”` : '',
+    item.preferredStartsAt ? `Prefers ${SESSION_TIME.format(new Date(item.preferredStartsAt))}` : '',
+  ].filter(Boolean);
   if (item.kind === 'nutrition') return [
     item.weight === null ? '' : `Weight ${item.weight.toLocaleString()} ${item.weightUnit ?? ''}`,
     item.intake === null ? '' : `Consumed ${item.intake.toLocaleString()} kcal`,

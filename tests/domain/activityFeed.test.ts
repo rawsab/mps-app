@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activityDetails, activityKind, activityTitle, activityWhere, groupByDay, relativeTime, type SessionActivity, type NutritionActivity } from '@/domain/activity/feed';
+import { activityDetails, activityKind, activityTitle, activityWhere, groupByDay, relativeTime, type SessionActivity, type NutritionActivity, type RequestActivity } from '@/domain/activity/feed';
 import { activityLink, ReviewSchema } from '@/features/activity/api';
 
 const item = (overrides: Partial<SessionActivity> = {}): SessionActivity => ({
@@ -66,5 +66,31 @@ describe('activity times', () => {
     expect(groupByDay(items, now, date).map((g) => [g.label, g.items.map((i) => i.id)])).toEqual([
       ['Today', ['s0', 's1']], ['Yesterday', ['s2']], [`date:${items[3]!.activityAt}`, ['s3']],
     ]);
+  });
+});
+
+describe('PT session requests', () => {
+  const request = (overrides: Partial<RequestActivity> = {}): RequestActivity => ({
+    kind: 'request', id: 'r1', service: 'personal_training', requestKind: 'reschedule', status: 'pending', message: 'Thursday instead?',
+    preferredStartsAt: null, late: null, response: '', appointmentId: 'a1', startsAt: '2026-11-24T12:00:00Z', durationMinutes: 60,
+    activityAt: '2026-11-17T12:00:00Z', staffEdited: false, ...overrides,
+  });
+
+  it('names what the client asked for', () => {
+    expect(activityKind(request())).toBe('request');
+    expect(activityTitle(request())).toBe('Asked to reschedule a session');
+    expect(activityTitle(request({ requestKind: 'cancel', late: true }))).toBe('Asked to cancel a session');
+    expect(activityTitle(request({ status: 'withdrawn' }))).toBe('Withdrew a session request');
+  });
+
+  it('shows the session and quotes the message', () => {
+    expect(activityWhere(request())).toMatch(/^Personal training · .+ · 60 min$/);
+    expect(activityDetails(request())[0]).toBe('“Thursday instead?”');
+    expect(activityDetails(request({ message: '' }))).toEqual([]);
+  });
+
+  it('opens the session on the client page and parses from Reviews', () => {
+    expect(activityLink('c1', request())).toBe('/coach/clients/c1?session=a1');
+    expect(ReviewSchema.parse({ ...request(), clientId: 'c1', clientName: 'Grace Liu', unread: true }).kind).toBe('request');
   });
 });

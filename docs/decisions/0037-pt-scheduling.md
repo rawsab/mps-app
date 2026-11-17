@@ -1,6 +1,6 @@
 # 0037 — Personal training scheduling
 
-Date: 2026-11-17 · Status: accepted (owner request) · Phase 1 of 4 built
+Date: 2026-11-17 · Status: accepted (owner request) · Phases 1–2 of 4 built
 
 - **Scope change, recorded rather than resolved silently.** PRD §3 excludes booking and billing from the MVP. The owner wants PT sessions scheduled (decision 0026 recorded the addition). This decision specifies scheduling. Billing stays excluded; the model only prepares for it. The PRD has not been edited.
 - **Patterns.** `pt_schedules` repeat every 1–4 weeks (default 1). `anchor_on` is the Monday that counts as Week 1. Each `pt_schedule_slots` row is a week of the cycle, an ISO weekday, a local start time and a duration, so "every Tuesday", "Wednesday then a week off" and "Monday, then Friday" are all one model. Times are wall-clock in the schedule's time zone, so 07:00 stays 07:00 across daylight saving.
@@ -16,4 +16,12 @@ Date: 2026-11-17 · Status: accepted (owner request) · Phase 1 of 4 built
 - **Billing groundwork.** Statuses: `scheduled`, `completed`, `cancelled`, `late_cancelled`, `no_show`. Attended and no-show sessions are frozen at the database layer; corrections will need an audited function. A future `billing_items.appointment_id` can be unique. Attendance status stays separate from any charge decision. PT workout logging is still limited to one log per program day (`training_sessions`), which repeated PT days will need changed when tracking lands.
 - **Access.** Browsers get SELECT only. Clients read their own rows; staff read clients they can access; disabled clients read nothing. All writes go through security-definer functions with `search_path = ''`.
 
-**Phases.** 1 (done): migration 00030, 80 pgTAP assertions (`023_pt_scheduling.test.sql`), profile time zone, meeting link and late-cancel window. 2: coach Schedule card, pattern editor, session dialog, requests in Reviews. 3: upcoming list and month calendar for coach and client, a UTC time zone prompt on client Home, and replacing `sampleSessions.ts`. 4: attendance, then billing.
+**Phase 2 (coach screens).**
+- *Sessions card:* on the client page whenever a PT service isn't archived. It shows patterns (change or stop each), the next 31 days of sessions, and setup notices: service paused or ended (with "Cancel them", which calls `stop_pt_scheduling`), no primary coach, coach time zone still UTC, no meeting link.
+- *Pattern editor:* 1–4 week cycles, day toggles per week, a time and length per day, and "The week of … is Week N". It previews the next six sessions from the server. A change applies from a date and reports how many changed sessions it kept.
+- *Session dialog:* change or cancel this session only (with a reason), reinstate, or hand off to the pattern editor from this date. It shows the client's open request with its lateness and preferred time, and the coach accepts (adjusting the new time) or declines with an optional reply.
+- *Reviews:* requests appear with the same per-staff read state and badge. A withdrawal comes back as unread. Opening a request goes to `/coach/clients/:id?session=…`. Request times use clock time so they order correctly against read marks.
+- *Kept on pattern changes:* ending a pattern now keeps sessions with any request history, not only modified ones (migration 00031).
+- Times on coach screens are shown and edited in the primary coach's time zone and labelled. Recurrence stays in SQL; `src/domain/scheduling/pattern.ts` only labels patterns and converts wall-clock times.
+
+**Phases.** 1 (done): migration 00030, 80 pgTAP assertions (`023_pt_scheduling.test.sql`), profile time zone, meeting link and late-cancel window. 2 (done): migration 00031, 25 more pgTAP assertions (`024_pt_scheduling_coach.test.sql`), the screens above. 3: upcoming list and month calendar for coach and client, a UTC time zone prompt on client Home, and replacing `sampleSessions.ts`. 4: attendance, then billing.
