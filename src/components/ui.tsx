@@ -188,9 +188,18 @@ export function PageHeader({ title, subtitle, actions, leading }: { title: strin
   );
 }
 
-export function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: 'neutral' | 'gold' | 'danger' | 'success' }) {
-  const styles = { neutral: 'border-line text-muted', gold: 'border-gold/50 text-gold-fg', danger: 'border-danger/50 text-danger', success: 'border-success/50 bg-success/10 text-success' }[tone];
-  return <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs ${styles}`}>{children}</span>;
+const BADGE_STYLES = {
+  neutral: 'border-line text-muted',
+  gold: 'border-gold/50 text-gold-fg',
+  danger: 'border-danger/50 text-danger',
+  success: 'border-success/50 bg-success/10 text-success',
+  info: 'border-info/50 bg-info/10 text-info',
+};
+
+export type BadgeTone = keyof typeof BADGE_STYLES;
+
+export function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: BadgeTone }) {
+  return <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs ${BADGE_STYLES[tone]}`}>{children}</span>;
 }
 
 /** A section heading's icon and text; put it inside an h2 with `flex items-center gap-2`. */

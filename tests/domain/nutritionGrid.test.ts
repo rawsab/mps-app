@@ -1,5 +1,5 @@
 import { describe,expect,it } from 'vitest';
-import { nutritionGridLabels,nutritionGridCoachEdited,nutritionGridText,nutritionPasteEdits,nutritionRangeEdits } from '@/domain/nutritionGrid';
+import { nutritionGridLabels,nutritionGridCoachEdited,nutritionGridMissing,nutritionGridText,nutritionPasteEdits,nutritionRangeEdits } from '@/domain/nutritionGrid';
 import { nutritionTotals,nutritionWeeks,planNutritionCells,type NutritionProgramDraft } from '@/domain/nutritionProgram';
 import { type WeighIn } from '@/domain/nutrition';
 
@@ -8,6 +8,15 @@ const metadata={version:1,updated_at:'2026-11-01T12:00:00Z',updated_by_staff:fal
 const weights:WeighIn[]=[200,201,202].map((weight,i)=>({...metadata,weight,unit:'lb',measured_on:`2026-11-0${i+1}`}));
 const week=nutritionWeeks(draft,weights,[{...metadata,activity_on:'2026-10-31',intake:2200,output:2500,notes:''}],'2026-11-03')[0]!;
 describe('nutrition grid selection and protected cells',()=>{
+  it('warns only for missing weight or calorie entries through today', () => {
+    const today = '2026-11-03';
+    expect(nutritionGridMissing({ exerciseId: today, column: 1 }, today, '')).toBe(true);
+    expect(nutritionGridMissing({ exerciseId: '2026-11-02', column: 3 }, today, '')).toBe(true);
+    expect(nutritionGridMissing({ exerciseId: '2026-11-04', column: 1 }, today, '')).toBe(false);
+    expect(nutritionGridMissing({ exerciseId: today, column: 4 }, today, '')).toBe(false);
+    expect(nutritionGridMissing({ exerciseId: today, column: 5 }, today, '')).toBe(false);
+    expect(nutritionGridMissing({ exerciseId: today, column: 2 }, today, '0')).toBe(false);
+  });
   it('marks only the fields actually edited by a coach, preserving explicit client attribution',()=>{
     const attributed={...week,rows:week.rows.map((row,i)=>i===0?{...row,weight:{...row.weight!,updated_by_staff:true},entry:{...row.entry!,updated_by_staff:false,intake_updated_by_staff:true,output_updated_by_staff:false}}:row)};
     expect(nutritionGridCoachEdited(attributed,{exerciseId:week.from,column:1})).toBe(true);

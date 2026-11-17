@@ -41,7 +41,7 @@ export function ClientDetailPage() {
   const client = useClient(clientId);
   const photo = useClientPhoto(client.data?.auth_user_id);
   const isAdmin = viewer.data?.staffRole === 'admin';
-  // Reviews links to a meeting with ?session=; closing it drops the parameter.
+  // Reviews and Meetings link to a meeting with ?session=; closing it drops the parameter.
   const [params, setParams] = useSearchParams();
   const focusSession = params.get('session');
 
@@ -68,7 +68,7 @@ export function ClientDetailPage() {
       <div className="grid min-w-0 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="grid min-w-0 gap-8">
           <RecentUpdatesCard client={c} />
-          {c.service_enrollments.some((e) => !e.archived_at) ? (
+          {focusSession || c.service_enrollments.some((e) => !e.archived_at) ? (
             <MeetingsCard clientId={c.id} heading={<span className="flex items-center gap-2"><SectionTitle icon={<CalendarIcon />}>Meetings</SectionTitle></span>}
               focusMeetingId={focusSession} onFocusClosed={() => setParams((p) => { p.delete('session'); return p; }, { replace: true })} />
           ) : null}

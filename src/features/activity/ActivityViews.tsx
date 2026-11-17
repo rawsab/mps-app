@@ -1,28 +1,28 @@
 import { Fragment } from 'react';
 import { Avatar } from '@/components/Avatar';
 import { Link, useParams, useSearchParams } from 'react-router';
-import { Alert, Badge, Button, EmptyState, PageHeader, SectionTitle, Spinner } from '@/components/ui';
+import { Alert, Badge, Button, EmptyState, PageHeader, SectionTitle, Spinner, type BadgeTone } from '@/components/ui';
 import { HistoryIcon } from '@/components/icons';
 import { activityDetails, activityTitle, activityWhere, groupByDay, relativeTime, type ActivityItem, type RequestActivity, type ReviewItem, type SessionActivity } from '@/domain/activity/feed';
 import { friendlyError, useClient, useClientPhoto, type ClientRow } from '@/features/clients/api';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { activityLink, READ_FADE_MS, useActivityHistory, useMarkActivityRead, useRecentActivity, useReviews, type ReviewFilter } from './api';
 
-const STATUS_BADGE: Record<SessionActivity['status'], { label: string; tone: 'neutral' | 'gold' | 'success' }> = {
+type BadgeSpec = { label: string; tone: BadgeTone };
+
+const STATUS_BADGE: Record<SessionActivity['status'], BadgeSpec> = {
   completed: { label: 'Completed', tone: 'success' },
   in_progress: { label: 'In progress', tone: 'gold' },
   skipped: { label: 'Skipped', tone: 'neutral' },
 };
 
-const REQUEST_BADGE: Record<RequestActivity['status'], { label: string; tone: 'neutral' | 'gold' | 'success' }> = {
+const REQUEST_BADGE: Record<RequestActivity['status'], BadgeSpec> = {
   pending: { label: 'Needs a reply', tone: 'gold' },
-  accepted: { label: 'Accepted', tone: 'success' },
+  accepted: { label: 'Accepted', tone: 'info' },
   declined: { label: 'Declined', tone: 'neutral' },
   withdrawn: { label: 'Withdrawn', tone: 'neutral' },
   expired: { label: 'Expired', tone: 'neutral' },
 };
-
-type BadgeSpec = { label: string; tone: 'neutral' | 'gold' | 'success' | 'danger' };
 
 /** What kind of request it is, ahead of its status (decision 0042). */
 function categoryBadge(item: ActivityItem): BadgeSpec | null {
@@ -34,7 +34,7 @@ function categoryBadge(item: ActivityItem): BadgeSpec | null {
 function itemBadge(item: ActivityItem): BadgeSpec | null {
   if (item.kind === 'service_request') return item.status === 'enrolled' ? { label: 'Enrolled', tone: 'success' } : null;
   if (item.kind === 'request') return REQUEST_BADGE[item.status];
-  if (item.kind === 'nutrition') return { label: item.status === 'completed' ? 'Complete' : 'Partial entry', tone: item.status === 'completed' ? 'success' as const : 'neutral' as const };
+  if (item.kind === 'nutrition') return item.status === 'completed' ? STATUS_BADGE.completed : { label: 'Partial entry', tone: 'neutral' };
   return STATUS_BADGE[item.status];
 }
 

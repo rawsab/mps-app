@@ -1,7 +1,7 @@
 -- PT scheduling coach reads, stop, and requests in Reviews (decision 0037). Run with: pnpm test:db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(25);
+select plan(34);
 
 create function pg_temp.act_as(uid uuid) returns void language plpgsql as $$
 begin
@@ -23,6 +23,7 @@ grant execute on all functions in schema pg_temp to authenticated;
 \set wed         '''[{"cycleWeek":1,"weekday":3,"startTime":"07:00","durationMinutes":60}]'''
 \set req1        '''b0000000-0000-4000-a000-000000000001'''
 \set req2        '''b0000000-0000-4000-a000-000000000002'''
+\set expired_req '''b0000000-0000-4000-a000-000000000003'''
 
 truncate public.meeting_schedules, public.meetings cascade;
 update public.profiles set timezone = 'America/Toronto', meeting_url = 'https://meet.example.test/abc', display_name = 'Priya' where auth_user_id = :coach;
@@ -66,18 +67,32 @@ select is((select e->>'requestKind' from jsonb_array_elements(public.get_staff_a
 select is((select e->>'meetingId' from jsonb_array_elements(public.get_staff_activity()) e where e->>'id' = :req1), :'a1', 'item links to its session');
 select ok(public.count_unread_activity() >= 1, 'requests count toward the badge');
 select is((public.get_review_summary()->>'requests')::int, 1, 'summary counts requests');
+select is(public.list_pending_meeting_requests()->0->>'id', :'a1', 'the to-do links the pending reschedule to its meeting');
 select pg_temp.act_as(:coach_other);
 select is((select count(*)::int from jsonb_array_elements(public.get_staff_activity()) e where e->>'kind' = 'request'), 0, 'unassigned coach sees no requests');
+select is(public.list_pending_meeting_requests(), '[]'::jsonb, 'unassigned coach sees no meeting to-dos');
 select throws_ok(format('select public.mark_request_read(%L)', :req1), '42501', null, 'unassigned coach cannot mark it');
+select pg_temp.act_as(:user_grace);
+select throws_ok('select public.list_pending_meeting_requests()', '42501', null, 'clients cannot list the coach to-dos');
 select pg_temp.act_as(:coach);
 select lives_ok(format('select public.mark_request_read(%L)', :req1), 'opening a request marks it seen');
 select is((select (e->>'unread')::boolean from jsonb_array_elements(public.get_staff_activity()) e where e->>'id' = :req1), false, 'seen request is read');
+select is(public.list_pending_meeting_requests()->0->'request'->>'id', :req1, 'a seen request still needs a reply');
 select pg_temp.act_as(:user_grace);
 select public.withdraw_meeting_request(:req1) is not null as ok \gset
 select pg_temp.act_as(:coach);
 select is((select (e->>'unread')::boolean from jsonb_array_elements(public.get_staff_activity()) e where e->>'id' = :req1), true, 'a withdrawal comes back as unread');
 select public.mark_activity_read();
 select is((select (e->>'unread')::boolean from jsonb_array_elements(public.get_staff_activity()) e where e->>'id' = :req1), false, 'mark all covers requests');
+select is(public.list_pending_meeting_requests(), '[]'::jsonb, 'a withdrawn request disappears from to-dos');
+
+-- Reschedules expire when the meeting starts, before the cron job updates the stored status.
+select pg_temp.act_as(:user_grace);
+select public.request_meeting_change(:expired_req, :'a1', 'reschedule', 'Next week?') is not null as ok \gset
+select pg_temp.reset_role();
+update public.meetings set starts_at = now() - interval '2 hours', modified = true where id = :'a1';
+select pg_temp.act_as(:coach);
+select is(public.list_pending_meeting_requests(), '[]'::jsonb, 'an expired reschedule disappears without waiting for cron');
 
 -- ---------------------------------------------------------------------------
 -- Stopping
@@ -86,10 +101,17 @@ select pg_temp.act_as(:user_grace);
 select public.request_meeting_change(:req2, :'a2', 'cancel', '') is not null as ok \gset
 select pg_temp.act_as(:coach);
 select throws_ok(format('select public.stop_meetings(%L)', :grace), 'PT409', null, 'stopping waits for open requests');
+select is(public.list_pending_meeting_requests()->0->'request'->>'kind', 'cancel', 'pending cancellation also appears');
+select pg_temp.reset_role();
+update public.meetings set starts_at = now() - interval '1 hour', modified = true where id = :'a2';
+select pg_temp.act_as(:coach);
+select is(public.list_pending_meeting_requests()->0->'request'->>'id', :req2, 'past cancellation still needs a reply');
 select public.respond_to_meeting_request(:req2, false) is not null as ok \gset
+select is(public.list_pending_meeting_requests(), '[]'::jsonb, 'a declined request disappears from to-dos');
 select pg_temp.act_as(:coach_other);
 select throws_ok(format('select public.stop_meetings(%L)', :grace), '42501', null, 'unassigned coach cannot stop it');
 select pg_temp.act_as(:coach);
+select public.add_meeting(:grace, '{personal_training}', now() + interval '2 days', 30) is not null as ok \gset
 select ok((public.stop_meetings(:grace)->>'cancelledMeetings')::int >= 1, 'stopping cancels what remains');
 select pg_temp.reset_role();
 select is((select count(*)::int from public.meetings where client_id = :grace and status = 'scheduled' and starts_at > now()), 0,

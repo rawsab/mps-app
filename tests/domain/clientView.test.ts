@@ -85,4 +85,24 @@ describe('client day structure', () => {
     expect(locateDay(p, 'w1', 'd2')?.day?.id).toBe('d2');
     expect(locateDay({ ...p, weeks: [] }, null, null)).toBeNull();
   });
+
+  it('defaults to the dated week that contains today and preserves explicit links', () => {
+    const p = program(true);
+    const first = { ...p.weeks[0]!, startDate: '2026-11-10' };
+    const second = { ...first, id: 'w2', index: 2, startDate: '2026-11-17', days: [] };
+    p.weeks = [first, second];
+
+    expect(locateDay(p, null, null, '2026-11-16')?.week.id).toBe('w1');
+    expect(locateDay(p, null, null, '2026-11-17')?.week.id).toBe('w2');
+    expect(locateDay(p, null, null, '2026-11-23')?.week.id).toBe('w2');
+    expect(locateDay(p, null, null, '2026-11-24')?.week.id).toBe('w1');
+    expect(locateDay(p, 'w1', 'd2', '2026-11-17')?.day?.id).toBe('d2');
+  });
+
+  it('can identify an undated week by a scheduled workout', () => {
+    const p = program(true);
+    const first = p.weeks[0]!;
+    p.weeks.push({ ...first, id: 'w2', index: 2, days: [{ ...first.days[0]!, id: 'd3', scheduledDate: '2026-11-17' }] });
+    expect(locateDay(p, null, null, '2026-11-17')?.week.id).toBe('w2');
+  });
 });

@@ -4,7 +4,7 @@ import { SpreadsheetViewport } from '@/components/SpreadsheetViewport';
 import { CopyIcon, TrashIcon, StimulusIcon, ProgressIcon } from '@/components/icons';
 import { Alert, Button } from '@/components/ui';
 import { nutritionTotals, nutritionWeeks, type NutritionProgramDraft, type NutritionProgramSnapshot, type NutritionWeek } from '@/domain/nutritionProgram';
-import { NUTRITION_GRID_COLUMNS, nutritionGridLabels, nutritionGridCoachEdited, nutritionGridEditable, nutritionGridText } from '@/domain/nutritionGrid';
+import { NUTRITION_GRID_COLUMNS, nutritionGridLabels, nutritionGridCoachEdited, nutritionGridEditable, nutritionGridMissing, nutritionGridText } from '@/domain/nutritionGrid';
 import { GridPopupMenu } from '@/features/programs/GridPopupMenu';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { NutritionTrendChart } from './NutritionTrendChart';
@@ -26,19 +26,28 @@ function SummaryValue({ label, value, detail }: { label: string; value: number |
   return <div><p className="text-sm text-muted">{label}</p><p className="mt-2 text-2xl font-medium tabular-nums">{nutritionNumber(value, 2)}</p><p className="mt-1 text-xs text-muted">{detail}</p></div>;
 }
 
-export function NutritionSpreadsheet({ snapshot, draft, onDirty }: { snapshot: NutritionProgramSnapshot; draft: NutritionProgramDraft; onDirty: (week: number, dirty: boolean) => void }) {
+export function NutritionSpreadsheet({ snapshot, draft, onDirty, showMissingEntries }: {
+  snapshot: NutritionProgramSnapshot; draft: NutritionProgramDraft; onDirty: (week: number, dirty: boolean) => void; showMissingEntries: boolean;
+}) {
   const weeks = nutritionWeeks(draft, snapshot.weights, snapshot.entries, snapshot.today);
+  const hasMissingEntries = showMissingEntries && weeks.some((week) => week.rows.some((row) => [1, 2, 3].some((column) => {
+    const point = { exerciseId: row.date, column };
+    return nutritionGridMissing(point, snapshot.today, nutritionGridText(week, point));
+  })));
   return <div className="grid min-w-0 gap-8">
     <NutritionAtAGlance weeks={weeks} weightUnit={draft.weight_unit} />
     <NutritionTrendChart weeks={weeks} today={snapshot.today} weightUnit={draft.weight_unit} />
     <p className="text-xs text-muted">Weight in {draft.weight_unit} · calories in kcal{snapshot.can_log ? ' · entries save when you leave a cell' : ''}</p>
     {weeks.some((week)=>week.rows.some((row)=>[1,2,3].some((column)=>nutritionGridCoachEdited(week,{exerciseId:row.date,column})))) ? <p className="inline-flex items-center gap-2 text-xs text-muted"><span aria-hidden className="size-2 rounded-full bg-gold/60" />Coach-edited cells</p> : null}
     {!draft.start_date ? <p className="text-sm text-muted">Choose a Start Date to see the weekly spreadsheets.</p> : null}
-    {weeks.map((week) => <WeeklySheet key={`${snapshot.revision.id}:${week.from}:${week.unit}`} week={week} snapshot={snapshot} onDirty={onDirty} />)}
+    {hasMissingEntries ? <Alert tone="info" title="Some entries are missing">Highlighted cells are missing a weight or calorie entry.</Alert> : null}
+    {weeks.map((week) => <WeeklySheet key={`${snapshot.revision.id}:${week.from}:${week.unit}`} week={week} snapshot={snapshot} onDirty={onDirty} showMissingEntries={showMissingEntries} />)}
   </div>;
 }
 
-function WeeklySheet({ week, snapshot, onDirty }: { week: NutritionWeek; snapshot: NutritionProgramSnapshot; onDirty: (week: number, dirty: boolean) => void }) {
+function WeeklySheet({ week, snapshot, onDirty, showMissingEntries }: {
+  week: NutritionWeek; snapshot: NutritionProgramSnapshot; onDirty: (week: number, dirty: boolean) => void; showMissingEntries: boolean;
+}) {
   const labels=nutritionGridLabels(week.unit);
   const table=useRef<HTMLTableElement>(null);
   const id=useId();
@@ -73,12 +82,13 @@ function WeeklySheet({ week, snapshot, onDirty }: { week: NutritionWeek; snapsho
                 const edit=grid.editing?.exerciseId===row.date&&grid.editing.column===c?grid.editing:null;
                 const rejected=!!grid.error&&grid.hasBuffer(point);
                 const value=grid.text(point);
+                const missing = showMissingEntries && !rejected && nutritionGridMissing(point, snapshot.today, value);
                 const record=column==='weight'?row.weight:column==='intake'||column==='output'?row.entry:null;
                 const coachEdited=nutritionGridCoachEdited(week,point);
                 const title=[coachEdited?'Edited by coach':'',c>=2&&c<=3?`Calories for ${formatDate(row.activityDate)}`:'',c>=4?'Calculated automatically':'',c===0?'Date follows the program Start Date':'',c>=1&&c<=3&&row.date>snapshot.today?'Future dates are read-only':'',record&&!coachEdited?`Saved ${formatDateTime(record.updated_at)}`:''].filter(Boolean).join(' · ');
                 return <td key={column} role="gridcell" aria-colindex={c+1} aria-selected={selected} aria-readonly={!editable} aria-invalid={rejected||undefined} aria-describedby={rejected?`${id}-error`:undefined}
-                  aria-label={`${labels[c]}, ${formatDate(row.date)}${coachEdited?', Edited by coach':''}`} title={title} data-grid-column={column} data-grid-column-index={c} tabIndex={current?0:-1}
-                  className={`relative scroll-mt-24 border-b border-r border-line p-0 align-top focus:z-[1] focus:outline-2 focus:-outline-offset-2 focus:outline-gold ${selected?'bg-gold/10':coachEdited?'bg-gold/5':''} ${!nutritionGridEditable(point,snapshot.today)?'text-muted':''} ${rejected?'bg-danger/10 ring-1 ring-inset ring-danger/50':''}`}
+                  aria-label={`${labels[c]}, ${formatDate(row.date)}${coachEdited?', Edited by coach':''}${missing ? ', Missing entry' : ''}`} title={title} data-grid-column={column} data-grid-column-index={c} tabIndex={current?0:-1}
+                  className={`relative scroll-mt-24 border-b border-r border-line p-0 align-top focus:z-[1] focus:outline-2 focus:-outline-offset-2 focus:outline-gold ${selected || missing ? 'bg-gold/10' : coachEdited ? 'bg-gold/5' : ''} ${!nutritionGridEditable(point,snapshot.today)?'text-muted':''} ${rejected?'bg-danger/10 ring-1 ring-inset ring-danger/50':''}`}
                   onPointerDown={(e)=>grid.drag.start(e,point,e.shiftKey?grid.anchor:point)}
                   onClick={(e)=>{if(!edit)grid.focus(point,e.shiftKey);}}
                   onDoubleClick={()=>grid.beginEdit(point)} onKeyDown={(e)=>grid.keyDown(e,point)}
@@ -87,7 +97,7 @@ function WeeklySheet({ week, snapshot, onDirty }: { week: NutritionWeek; snapsho
                     onFocus={(e)=>{if(edit.select)e.currentTarget.select();else e.currentTarget.setSelectionRange(edit.text.length,edit.text.length);}}
                     onChange={(e)=>grid.changeText(e.target.value)} onBlur={()=>grid.finishEdit()}
                     className="min-h-11 w-full min-w-0 select-text bg-ink px-3 text-right text-base text-text outline-2 -outline-offset-2 outline-gold sm:text-sm"/>
-                    :<span className={`block min-h-11 whitespace-pre-wrap break-words px-3 py-3 tabular-nums ${c===0?'text-left text-xs':'text-right'}`}>{c===0?formatDate(row.date):value===''?'\u00a0':c>=4?nutritionNumber(Number(value),c===4?0:1):value}</span>}
+                    :<span className={`block min-h-11 whitespace-pre-wrap break-words px-3 py-3 tabular-nums ${c===0?'text-left text-xs':'text-right'}`}>{c===0?formatDate(row.date):missing?<span className="text-xs font-medium text-gold-fg">Missing</span>:value===''?'\u00a0':c>=4?nutritionNumber(Number(value),c===4?0:1):value}</span>}
                   {coachEdited ? <span aria-hidden className="pointer-events-none absolute right-1 top-1 size-1 rounded-full bg-gold/60" /> : null}
                 </td>;
               })}

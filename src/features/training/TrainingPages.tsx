@@ -1,4 +1,5 @@
 import { Link, useLocation, useParams, useSearchParams } from 'react-router';
+import { useViewer } from '@/app/auth';
 import { DisclosureSummary } from '@/components/DisclosureSummary';
 import { UseNotice } from '@/components/LegalFooter';
 import { CheckCircleIcon, SectionIcon, SpreadsheetIcon } from '@/components/icons';
@@ -6,6 +7,7 @@ import { Alert, Badge, Button, EmptyState, PageHeader, Spinner } from '@/compone
 import { dayView, locateDay, prescriptionView, weekSummaries, type DayBlock, type DayView } from '@/domain/programs/clientView';
 import type { Exercise, ProgramDraft } from '@/domain/programs/contract';
 import { programServiceIcon, programServiceIconStyle } from '@/features/programs/ProgramsCard';
+import { todayIn } from '@/features/scheduling/time';
 import { formatDate } from '@/lib/format';
 import { SERVICE_LABELS } from '@/lib/services';
 import { isExerciseLogged, type TrainingSession } from '@/domain/training/volume';
@@ -73,6 +75,7 @@ export function CoachTrainingLogPage() {
  * `view=sheet` swaps the day view for a read-only spreadsheet of the selected week.
  */
 export function TrainingProgramView({ programId, backTo, backLabel, staff = false }: { programId: string; backTo: string; backLabel: string; staff?: boolean }) {
+  const viewer = useViewer();
   const program = usePublishedProgram(programId);
   const logging = program.data?.service === 'mesocycle';
   const log = useTrainingLog(programId, logging);
@@ -83,7 +86,8 @@ export function TrainingProgramView({ programId, backTo, backLabel, staff = fals
   if (program.error) return <div>{back}<Alert title="Could not open this program">{trainingErrorMessage(program.error)}</Alert></div>;
 
   const { document: doc, service, archivedAt, publishedAt } = program.data;
-  const located = locateDay(doc, params.get('week'), params.get('day'));
+  const today = !staff && service === 'mesocycle' ? todayIn(viewer.data?.timezone ?? 'UTC') : undefined;
+  const located = locateDay(doc, params.get('week'), params.get('day'), today);
   const sheet = params.get('view') === 'sheet';
   const select = (weekId: string, dayId: string | null, nextSheet = sheet) =>
     setParams({ week: weekId, ...(dayId ? { day: dayId } : {}), ...(nextSheet ? { view: 'sheet' } : {}) }, { replace: true, preventScrollReset: true });

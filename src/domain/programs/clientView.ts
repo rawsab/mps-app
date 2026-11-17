@@ -1,5 +1,6 @@
 import type { Effort, Load } from '../measurements/load';
 import type { NumericRange } from '../measurements/range';
+import { addDays } from '../scheduling/pattern';
 import type { Exercise, ExercisePrescription, ProgramDraft, ProgramWeek, Section, SetTarget, WorkoutDay } from './contract';
 import { dayFocus, dayName, weekName } from './labels';
 
@@ -131,9 +132,15 @@ export function weekSummaries(program: ProgramDraft): WeekSummary[] {
   }));
 }
 
-/** Resolves a requested week/day, falling back to the first day of the first week. */
-export function locateDay(program: ProgramDraft, weekId: string | null, dayId: string | null): { week: ProgramWeek; day: WorkoutDay | null } | null {
-  const week = program.weeks.find((w) => w.id === weekId) ?? program.weeks[0];
+/** Dated weeks cover seven days. An explicit workout date can also identify its week. */
+function weekOnDate(weeks: ProgramWeek[], date: string): ProgramWeek | undefined {
+  return weeks.find((w) => w.startDate && w.startDate <= date && date < addDays(w.startDate, 7))
+    ?? weeks.find((w) => w.days.some((day) => day.scheduledDate === date));
+}
+
+/** Resolves a requested week/day, using the supplied date before falling back to the first week. */
+export function locateDay(program: ProgramDraft, weekId: string | null, dayId: string | null, today?: string): { week: ProgramWeek; day: WorkoutDay | null } | null {
+  const week = program.weeks.find((w) => w.id === weekId) ?? (today ? weekOnDate(program.weeks, today) : undefined) ?? program.weeks[0];
   if (!week) return null;
   return { week, day: week.days.find((d) => d.id === dayId) ?? week.days[0] ?? null };
 }

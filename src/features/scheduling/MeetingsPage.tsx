@@ -11,13 +11,14 @@ import { Alert, Badge, Button, PageHeader, Spinner } from '@/components/ui';
 import { CALENDAR_VIEWS, countdown, layoutDay, stepDate, viewDays, type CalendarView } from '@/domain/scheduling/calendar';
 import { addDays, isoWeekday, weekdayShort, zonedDateTime, zonedToInstant } from '@/domain/scheduling/pattern';
 import { capitalize } from '@/lib/format';
-import { schedulingError, useMeetingsBetween, type Meeting } from './api';
+import { schedulingError, useMeetingsBetween, usePendingMeetingRequests, type Meeting } from './api';
 import { topicLabel } from './MeetingTopic';
-import { sessionDay, sessionRange, sessionTime, todayIn, zoneLabel } from './time';
+import { sessionDay, sessionMoment, sessionRange, sessionTime, todayIn, zoneLabel } from './time';
 import { isCancelled, useHideCancelled } from './useHideCancelled';
 
 const DAY_MS = 86_400_000;
 const UPCOMING_COUNT = 3;
+const VISIBLE_REQUEST_COUNT = 3;
 const HOUR_PX = 48;
 const MONTH_CHIPS = 3;
 
@@ -40,8 +41,8 @@ function useNow(intervalMs = 30_000) {
 }
 
 /**
- * Every meeting the coach can see (decision 0040): the next meeting at a glance, the next three,
- * and a month / week / day calendar. Times are in the coach's own time zone.
+ * Pending requests, upcoming meetings, and a month / week / day calendar.
+ * Times are in the coach's own time zone.
  */
 export function MeetingsPage() {
   const viewer = useViewer();
@@ -51,8 +52,54 @@ export function MeetingsPage() {
     <div className="grid gap-8">
       <PageHeader title="Meetings" subtitle={`All your clients’ meetings. Times in ${zoneLabel(timeZone)}.`} />
       <AtAGlance timeZone={timeZone} />
+      <MeetingTodos timeZone={timeZone} />
       <MeetingCalendar timeZone={timeZone} />
     </div>
+  );
+}
+
+function MeetingTodos({ timeZone }: { timeZone: string }) {
+  const requests = usePendingMeetingRequests();
+  const [showAll, setShowAll] = useState(false);
+  const pending = requests.data ?? [];
+  const visible = showAll ? pending : pending.slice(0, VISIBLE_REQUEST_COUNT);
+
+  return (
+    <section aria-labelledby="meeting-todos" className="min-w-0 border-t border-line pt-4">
+      <h2 id="meeting-todos" className="mb-2 text-xs font-medium text-muted">To-dos</h2>
+      {requests.isPending ? <Spinner label="Loading meeting requests" /> : null}
+      <Alert visible={!!requests.error} title="Could not load meeting requests">{schedulingError(requests.error)}</Alert>
+      {requests.data?.length === 0 ? <p className="text-sm text-muted">No meeting requests need a reply.</p> : null}
+      {visible.length > 0 ? (
+        <ul className="divide-y divide-line rounded-card border border-line">
+          {visible.map((meeting) => {
+            const { request } = meeting;
+            const label = request.kind === 'reschedule' ? 'Reschedule request' : 'Cancellation request';
+            return (
+              <li key={request.id}>
+                <Link to={meetingLink(meeting)} className="row-link flex min-h-11 items-start gap-3 rounded-card px-3 py-2.5 hover:bg-surface-raised">
+                  <div className="min-w-0 flex-1">
+                    <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                      <span className="text-sm font-semibold">{meeting.clientName}</span>
+                      <Badge tone="gold">{label}</Badge>
+                    </p>
+                    <p className="mt-1 text-xs text-muted">{sessionMoment(meeting.startsAt, timeZone)} · {topicLabel(meeting.services)}</p>
+                    {request.preferredStartsAt ? <p className="mt-0.5 text-xs text-muted">Prefers {sessionMoment(request.preferredStartsAt, timeZone)}</p> : null}
+                    {request.message.trim() ? <p className="mt-1 line-clamp-2 break-words text-sm">“{request.message}”</p> : null}
+                  </div>
+                  <span className="shrink-0 text-sm font-medium text-gold-fg">Review <span aria-hidden>→</span></span>
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+      {pending.length > VISIBLE_REQUEST_COUNT ? (
+        <Button variant="ghost" className="mt-1" aria-expanded={showAll} onClick={() => setShowAll((value) => !value)}>
+          {showAll ? 'Show fewer requests' : `Show all ${pending.length} requests`}
+        </Button>
+      ) : null}
+    </section>
   );
 }
 

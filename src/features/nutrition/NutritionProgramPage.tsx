@@ -147,10 +147,10 @@ function NutritionWorkspace({ snapshot, coach, published, embedded }: { snapshot
     </fieldset> : <ReadonlyDetails draft={draft} />}
     {published && coach && snapshot.can_log ? <Alert tone="note">Client spreadsheet. Your changes are recorded as coach corrections.</Alert> : null}
     <h2 className="flex min-h-11 items-center gap-2 border-b border-line text-sm font-medium text-gold-fg"><SpreadsheetIcon /> Spreadsheet</h2>
-    <NutritionSpreadsheet snapshot={sheetSnapshot} draft={preview} onDirty={trackDirty} />
+    <NutritionSpreadsheet snapshot={sheetSnapshot} draft={preview} onDirty={trackDirty} showMissingEntries={!coach} />
     <p className="text-xs text-muted/60">Calorie balance = calories consumed − caloric output. Predicted weight change uses 3,500 kcal per lb and is an estimate. Average Weight uses up to seven days, with at least three weigh-ins. Weekly changes compare weekly averages; Week 1 compares against the first recorded weigh-in.</p>
     {coach ? <CorrectionHistory snapshot={snapshot} /> : null}
-    {!coach ? <UseNotice className="mt-4 border-t border-line pt-6" /> : null}
+    {!coach && !embedded ? <UseNotice className="mt-4 border-t border-line pt-6" /> : null}
     {reviewing ? <Dialog title="Publish nutritional program?" description="Publishing makes these program details available to the client. Existing daily entries remain saved against their original dates." onClose={() => { if (!publish.isPending) setReviewing(false); }} footer={<>
       <Button variant="secondary" disabled={publish.isPending} onClick={() => setReviewing(false)}>Keep editing</Button>
       <Button busy={publish.isPending} disabled={!hasUnpublishedChanges || draftDirty || save.isPending || save.isError || problems.length > 0 || revision.status !== 'draft'} onClick={() => publish.mutate()}>Publish program</Button>

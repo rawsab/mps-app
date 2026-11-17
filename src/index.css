@@ -24,6 +24,7 @@
   --color-text: #f2f2f2;
   --color-danger: #f08a7e;
   --color-success: #8fd19e;
+  --color-info: #93c5fd;
   /* Muted fills for advice cells in resource matrices (add sets / recovery). */
   --color-good-fill: color-mix(in oklab, #5f8f3f 24%, transparent);
   --color-bad-fill: color-mix(in oklab, #b3442f 24%, transparent);
@@ -51,6 +52,7 @@ html[data-theme='light'] {
   --color-text: #171717;
   --color-danger: #b42318;
   --color-success: #1d7a3a;
+  --color-info: #1e40af;
   --color-good-fill: color-mix(in oklab, #5f8f3f 18%, transparent);
   --color-bad-fill: color-mix(in oklab, #b3442f 16%, transparent);
   --color-on-tone: #171717;

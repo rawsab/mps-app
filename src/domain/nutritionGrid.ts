@@ -23,6 +23,9 @@ export function nutritionGridText(week: NutritionWeek, point: GridPoint): string
 export function nutritionGridEditable(point: GridPoint,today: string): boolean {
   return point.column>=1 && point.column<=3 && point.exerciseId<=today;
 }
+export function nutritionGridMissing(point: GridPoint, today: string, value: string): boolean {
+  return value.trim() === '' && nutritionGridEditable(point, today);
+}
 export function nutritionGridCoachEdited(week: NutritionWeek,point: GridPoint): boolean {
   const row=week.rows.find((r)=>r.date===point.exerciseId);
   if(!row)return false;

@@ -56,6 +56,10 @@ const PreviewSchema = z.array(z.object({ occurrenceOn: z.string(), startsAt: z.s
 
 const meetingsKey = ['meetings'];
 
+const PendingMeetingRequestSchema = MeetingSchema.pick({
+  id: true, clientId: true, clientName: true, startsAt: true, services: true,
+}).extend({ request: RequestSchema.extend({ status: z.literal('pending') }) });
+
 /** Database messages are written as sentences without the capital and full stop. */
 export function schedulingError(error: unknown): string {
   const e = error as { code?: string; message?: string } | null;
@@ -115,6 +119,14 @@ export function useMeetingsBetween(from: Date, to: Date) {
     refetchInterval: 60_000,
     placeholderData: keepPreviousData,
     queryFn: () => rpc('list_meetings', { p_from: from.toISOString(), p_to: to.toISOString() }, z.array(MeetingSchema)),
+  });
+}
+
+export function usePendingMeetingRequests() {
+  return useQuery({
+    queryKey: [...meetingsKey, 'pending-requests'],
+    refetchInterval: 60_000,
+    queryFn: () => rpc('list_pending_meeting_requests', {}, z.array(PendingMeetingRequestSchema)),
   });
 }
 

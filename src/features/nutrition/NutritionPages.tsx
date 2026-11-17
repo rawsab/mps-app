@@ -1,5 +1,6 @@
 import { Link, Navigate, useParams } from 'react-router';
 import { useViewer } from '@/app/auth';
+import { UseNotice } from '@/components/LegalFooter';
 import { Alert, Badge, Button, EmptyState, PageHeader, Spinner } from '@/components/ui';
 import { NutritionIcon } from '@/components/icons';
 import { activeNutritionProgram } from '@/domain/clientHome';
@@ -35,6 +36,7 @@ export function NutritionPage({ coach = false }: { coach?: boolean }) {
         {p.is_current && !p.archived_at ? <Badge tone="gold">Current</Badge> : null}{p.archived_at ? <Badge>Archived</Badge> : null}<span aria-hidden className="text-muted group-hover:text-text">→</span>
       </Link>
     </li>)}</ul>
+    {active ? <UseNotice className="mt-10 border-t border-line pt-6" /> : null}
   </div>;
 }
 
