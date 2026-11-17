@@ -1,4 +1,4 @@
-import type { ProgramDraft, WorkoutDay } from '../programs/contract';
+import type { Exercise, ProgramDraft, WorkoutDay } from '../programs/contract';
 import { dayFocus, dayName, weekName } from '../programs/labels';
 import { muscleKey } from '../programs/muscles';
 
@@ -39,9 +39,37 @@ export type TrainingSession = {
   useSections: boolean;
   day: WorkoutDay;
   sets: LoggedSet[];
+  feedback: MuscleFeedback[];
+};
+
+/** Stimulus & Fatigue answers for one muscle of a session (FR-08). Null = unanswered. */
+export type MuscleFeedback = {
+  muscleKey: string;
+  muscleName: string;
+  challenge: number | null;
+  pump: number | null;
+  disruption: number | null;
+  soreness: number | null;
+  performance: number | null;
+  comparedSessionId: string | null;
+  updatedAt: string;
+  updatedByStaff: boolean;
 };
 
 export const isPerformed = (set: LoggedSet) => set.reps !== null;
+
+/**
+ * An exercise is logged once every set up to its maximum prescribed count has reps and a load
+ * (a weight, or bodyweight). No prescribed set count means it can't be logged complete.
+ */
+export function isExerciseLogged(exercise: Exercise, sets: readonly LoggedSet[]): boolean {
+  const max = exercise.prescription.setCount?.max;
+  if (!max) return false;
+  const complete = new Set(sets
+    .filter((set) => set.exerciseId === exercise.id && set.reps !== null && (set.loadMode === 'bodyweight' || set.loadValue !== null))
+    .map((set) => set.setNumber));
+  return complete.size >= Math.ceil(max);
+}
 
 export type MuscleVolume = {
   key: string;
@@ -78,7 +106,7 @@ export type MuscleChange = MuscleVolume & {
    * day isn't logged, there is no earlier day, or that day wasn't logged.
    */
   change: number | null;
-  comparedTo: { dayId: string; label: string; logged: boolean } | null;
+  comparedTo: { dayId: string; label: string; logged: boolean; sessionId: string | null } | null;
 };
 
 type OrderedDay = { id: string; label: string; day: WorkoutDay; session: TrainingSession | null };
@@ -106,7 +134,7 @@ export function dayMuscleChanges(program: ProgramDraft, sessions: readonly Train
   const muscles = volume.muscles.map((muscle): MuscleChange => {
     const previous = days.slice(0, index).reverse().find((day) => trains(day.day, muscle.key));
     if (!previous) return { ...muscle, change: null, comparedTo: null };
-    const comparedTo = { dayId: previous.id, label: previous.label, logged: !!previous.session };
+    const comparedTo = { dayId: previous.id, label: previous.label, logged: !!previous.session, sessionId: previous.session?.id ?? null };
     if (!current.session || !previous.session) return { ...muscle, change: null, comparedTo };
     const before = dayVolume(previous.day, previous.session.sets).muscles.find((m) => m.key === muscle.key)?.logged ?? 0;
     return { ...muscle, change: muscle.logged - before, comparedTo };

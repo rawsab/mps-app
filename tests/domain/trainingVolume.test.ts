@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { ProgramDraft, type Exercise } from '@/domain/programs/contract';
-import { dayMuscleChanges, dayVolume, formatChange, type LoggedSet, type TrainingSession } from '@/domain/training/volume';
+import { dayMuscleChanges, dayVolume, formatChange, isExerciseLogged, type LoggedSet, type TrainingSession } from '@/domain/training/volume';
 
 const exercise = (id: string, muscles: string[], sets: number): Exercise => ({
   id, logicalKey: id, name: id, alternatives: [], groupId: null, demoUrl: null, muscles, notes: '',
@@ -26,7 +26,7 @@ const set = (exerciseId: string, muscles: string[], reps: number | null): Logged
 });
 const session = (dayId: string, sets: LoggedSet[]): TrainingSession => ({
   id: `session-${dayId}`, dayId, revisionId: 'r1', status: 'in_progress', performedOn: null, startedAt: '', completedAt: null, notes: '', updatedAt: '',
-  updatedByStaff: false, useSections: false, day: program.weeks.flatMap((w) => w.days).find((d) => d.id === dayId)!, sets,
+  updatedByStaff: false, useSections: false, day: program.weeks.flatMap((w) => w.days).find((d) => d.id === dayId)!, sets, feedback: [],
 });
 
 describe('mesocycle set totals', () => {
@@ -55,7 +55,7 @@ describe('change since the muscle was last trained', () => {
       session('legs2', [set('lunge', ['quads'], 10), set('lunge', ['quads'], 10), set('lunge', ['quads'], 10)]),
     ];
     const result = dayMuscleChanges(program, sessions, 'legs2')!;
-    expect(result.muscles).toEqual([expect.objectContaining({ key: 'quads', logged: 3, change: 1, comparedTo: { dayId: 'legs1', label: 'Week 1 · Day 1 · legs1', logged: true } })]);
+    expect(result.muscles).toEqual([expect.objectContaining({ key: 'quads', logged: 3, change: 1, comparedTo: { dayId: 'legs1', label: 'Week 1 · Day 1 · legs1', logged: true, sessionId: 'session-legs1' } })]);
   });
 
   it('crosses weeks and reports a drop as negative', () => {
@@ -76,5 +76,17 @@ describe('change since the muscle was last trained', () => {
 
   it('formats changes with signs and missing values as a dash', () => {
     expect([formatChange(2), formatChange(-1), formatChange(0), formatChange(null)]).toEqual(['+2', '−1', '0', '—']);
+  });
+});
+
+describe('exercise logged', () => {
+  const squat = program.weeks[0]!.days[0]!.sections[0]!.exercises[0]!; // 3 sets
+  const done = (setNumber: number, patch: Partial<LoggedSet> = {}): LoggedSet => ({ ...set('squat', ['Quads'], 8), setNumber, ...patch });
+
+  it('needs reps and a load on every set up to the maximum', () => {
+    expect(isExerciseLogged(squat, [done(1), done(2)])).toBe(false);
+    expect(isExerciseLogged(squat, [done(1), done(2), done(3, { reps: null })])).toBe(false);
+    expect(isExerciseLogged(squat, [done(1), done(2), done(3, { loadMode: null, loadValue: null, loadUnit: null })])).toBe(false);
+    expect(isExerciseLogged(squat, [done(1), done(2), done(3, { loadMode: 'bodyweight', loadValue: null, loadUnit: null })])).toBe(true);
   });
 });

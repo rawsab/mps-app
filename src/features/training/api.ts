@@ -1,7 +1,8 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { ProgramDraft, WorkoutDay, type ServiceKind } from '@/domain/programs/contract';
-import type { LoggedSet, SessionStatus, TrainingSession } from '@/domain/training/volume';
+import type { FeedbackAnswers } from '@/domain/training/feedback';
+import type { LoggedSet, MuscleFeedback, SessionStatus, TrainingSession } from '@/domain/training/volume';
 import { requireSupabase } from '@/lib/supabase';
 
 /** Published content only (migration 00014). Drafts never reach the client. */
@@ -66,10 +67,16 @@ const LoggedSetSchema = z.object({
   loadUnit: z.enum(['lb', 'kg']).nullable(), reps: z.number().nullable(), muscles: z.array(z.string()),
   updatedAt: z.string(), updatedByStaff: z.boolean(),
 });
+const score = z.number().int().min(0).max(3).nullable();
+const FeedbackSchema = z.object({
+  muscleKey: z.string(), muscleName: z.string(), challenge: score, pump: score, disruption: score, soreness: score, performance: score,
+  comparedSessionId: z.string().nullable(), updatedAt: z.string(), updatedByStaff: z.boolean(),
+});
 const SessionSchema = z.object({
   id: z.string(), dayId: z.string(), revisionId: z.string(), status: z.enum(['in_progress', 'completed', 'skipped']),
   performedOn: z.string().nullable(), startedAt: z.string(), completedAt: z.string().nullable(), notes: z.string(),
   updatedAt: z.string(), updatedByStaff: z.boolean(), useSections: z.boolean(), day: WorkoutDay, sets: z.array(LoggedSetSchema),
+  feedback: z.array(FeedbackSchema),
 });
 
 const logKey = (programId: string) => ['training', 'log', programId];
@@ -134,6 +141,33 @@ export function useDeleteSet(programId: string) {
     onSuccess: (_, { id, sessionId }) => {
       queryClient.setQueryData<TrainingSession[]>(logKey(programId), (sessions) => sessions?.map((session) =>
         session.id === sessionId ? { ...session, sets: session.sets.filter((set) => set.id !== id) } : session));
+    },
+  });
+}
+
+export type FeedbackInput = { sessionId: string; muscleName: string; answers: FeedbackAnswers; comparedSessionId: string | null };
+
+/** Saves one muscle's Stimulus & Fatigue answers (migration 00017) and merges the row into the cached log. */
+export function useSaveFeedback(programId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: FeedbackInput) => {
+      const { answers: a } = input;
+      const { data, error } = await requireSupabase().rpc('save_muscle_feedback', {
+        p_session_id: input.sessionId, p_muscle_name: input.muscleName, p_challenge: a.challenge, p_pump: a.pump,
+        p_disruption: a.disruption, p_soreness: a.soreness, p_performance: a.performance, p_compared_session_id: input.comparedSessionId,
+      });
+      if (error) throw error;
+      return data as { muscle_key: string; muscle_name: string; updated_at: string };
+    },
+    onSuccess: (row, input) => {
+      queryClient.setQueryData<TrainingSession[]>(logKey(programId), (sessions) => sessions?.map((session) => {
+        if (session.id !== input.sessionId) return session;
+        const existing = session.feedback.find((f) => f.muscleKey === row.muscle_key);
+        const saved: MuscleFeedback = { muscleKey: row.muscle_key, muscleName: row.muscle_name, ...input.answers,
+          comparedSessionId: input.comparedSessionId, updatedAt: row.updated_at, updatedByStaff: existing?.updatedByStaff ?? false };
+        return { ...session, feedback: existing ? session.feedback.map((f) => (f === existing ? saved : f)) : [...session.feedback, saved] };
+      }));
     },
   });
 }

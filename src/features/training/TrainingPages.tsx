@@ -1,16 +1,18 @@
 import { Link, useParams, useSearchParams } from 'react-router';
 import { DisclosureSummary } from '@/components/DisclosureSummary';
+import { UseNotice } from '@/components/LegalFooter';
 import { CheckCircleIcon } from '@/components/icons';
-import { Alert, Button, EmptyState, PageHeader, Spinner } from '@/components/ui';
+import { Alert, Badge, Button, EmptyState, PageHeader, Spinner } from '@/components/ui';
 import { dayView, locateDay, prescriptionView, weekSummaries, type DayBlock, type DayView } from '@/domain/programs/clientView';
 import type { Exercise, ProgramDraft } from '@/domain/programs/contract';
 import { programServiceIcon, programServiceIconStyle } from '@/features/programs/ProgramsCard';
 import { formatDate } from '@/lib/format';
 import { SERVICE_LABELS } from '@/lib/services';
-import type { TrainingSession } from '@/domain/training/volume';
+import { isExerciseLogged, type TrainingSession } from '@/domain/training/volume';
 import { logErrorMessage, trainingErrorMessage, usePublishedProgram, usePublishedPrograms, useStartSession, useTrainingLog } from './api';
 import { ResourceBody } from './ResourceBody';
 import { ExerciseSetLog, SessionDate, SessionWrapUp, SetTotals } from './SetLog';
+import { StimulusFatigue } from './StimulusFatigue';
 
 const programName = (title: string) => title.trim() || 'Your program';
 
@@ -62,7 +64,7 @@ export function CoachTrainingLogPage() {
 
 /**
  * Week → day view of the current published revision. Selection lives in the URL so reloads keep it.
- * Mesocycles add set logging and set totals; a logged day shows its session's own revision.
+ * Mesocycles add set logging, set totals and optional Stimulus & Fatigue answers; a logged day shows its session's own revision.
  */
 export function TrainingProgramView({ programId, backTo, backLabel, staff = false }: { programId: string; backTo: string; backLabel: string; staff?: boolean }) {
   const program = usePublishedProgram(programId);
@@ -107,6 +109,7 @@ export function TrainingProgramView({ programId, backTo, backLabel, staff = fals
               {logging && session ? <SessionDate programId={programId} session={session} readOnly={false} /> : null}
               <Day view={dayView(doc, week, day)} log={logging && session ? { programId, session } : null} />
               {logging && log.data ? <SetTotals program={doc} sessions={log.data} dayId={located.day.id} /> : null}
+              {logging && session && log.data ? <StimulusFatigue programId={programId} program={doc} sessions={log.data} session={session} staff={staff} /> : null}
               {logging && session ? <SessionWrapUp programId={programId} session={session} readOnly={false} /> : null}
             </>;
           })() : <p className="mt-6 text-sm text-muted">This week has no workouts.</p>}
@@ -116,6 +119,7 @@ export function TrainingProgramView({ programId, backTo, backLabel, staff = fals
       )}
 
       {doc.resources.length ? <Resources program={doc} /> : null}
+      <UseNotice className="mt-16 border-t border-line pt-6" />
     </div>
   );
 }
@@ -205,12 +209,12 @@ function Block({ block, shared, log }: { block: DayBlock; shared?: boolean; log:
       {block.instructions ? <p className="mb-3 whitespace-pre-line text-sm text-muted">{block.instructions}</p> : null}
       <ol className="grid gap-3">
         {block.groups.map((g) => g.superset ? (
-          <li key={g.key} className="rounded-card border border-line p-3">
+          <li key={g.key} className={`rounded-card border bg-surface p-3 ${boxBorder(g.exercises, log)}`}>
             <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gold-fg">Superset · do these back to back</p>
             <ol className="grid divide-y divide-line">{g.exercises.map((e) => <li key={e.id} className="py-2 first:pt-0 last:pb-0"><ExerciseItem exercise={e} log={log} /></li>)}</ol>
           </li>
         ) : (
-          <li key={g.key} className="rounded-card border border-line p-3"><ExerciseItem exercise={g.exercises[0]!} log={log} /></li>
+          <li key={g.key} className={`rounded-card border bg-surface p-3 ${boxBorder(g.exercises, log)}`}><ExerciseItem exercise={g.exercises[0]!} log={log} /></li>
         ))}
       </ol>
     </>
@@ -234,13 +238,26 @@ function Block({ block, shared, log }: { block: DayBlock; shared?: boolean; log:
   );
 }
 
+const exerciseLogged = (exercise: Exercise, log: DayLog) => !!log && isExerciseLogged(exercise, log.session.sets);
+
+/** A box turns green once every exercise in it is logged. */
+const boxBorder = (exercises: readonly Exercise[], log: DayLog) =>
+  exercises.every((e) => exerciseLogged(e, log)) ? 'border-success/50' : 'border-line';
+
 function ExerciseItem({ exercise, log }: { exercise: Exercise; log: DayLog }) {
   const p = prescriptionView(exercise.prescription);
+  const logged = exerciseLogged(exercise, log);
   return (
     <div className="min-w-0">
-      <div className="flex flex-wrap items-baseline justify-between gap-x-3">
-        <p className="break-words font-medium">{exercise.name}</p>
-        {p.sets ? <p className="shrink-0 text-sm text-muted">{p.sets}</p> : null}
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <p className="flex min-w-0 items-center gap-2 break-words font-medium">
+          {logged ? <span className="text-success"><CheckCircleIcon /></span> : null}
+          {exercise.name}
+        </p>
+        <div className="flex shrink-0 items-center gap-2">
+          {logged ? <Badge tone="success">Logged</Badge> : null}
+          {p.sets ? <p className="text-sm text-muted">{p.sets}</p> : null}
+        </div>
       </div>
       {exercise.alternatives.length ? <p className="mt-0.5 break-words text-sm text-muted">Or: {exercise.alternatives.map((a) => a.name).join(', ')}</p> : null}
       {p.lines.length ? (

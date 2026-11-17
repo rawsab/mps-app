@@ -2,6 +2,7 @@ import { lazy, Suspense, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, Navigate, useNavigate } from 'react-router';
 import { z } from 'zod';
 import { useAuth } from '@/app/auth';
+import { LegalFooter } from '@/components/LegalFooter';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Alert, Button, Spinner, TextField } from '@/components/ui';
 import { envResult } from '@/lib/env';
@@ -24,7 +25,7 @@ const PHOTO = {
 
 function AuthFrame({ title, lead, children }: { title: string; lead?: string; children: ReactNode }) {
   return (
-    <div className="grid min-h-dvh lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)]">
+    <div className="grid min-h-dvh grid-rows-[auto_1fr] lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:grid-rows-none">
       <div className="relative h-44 overflow-hidden bg-surface sm:h-56 lg:sticky lg:top-0 lg:h-dvh">
         <img
           src={PHOTO.src}
@@ -64,6 +65,7 @@ function AuthFrame({ title, lead, children }: { title: string; lead?: string; ch
           </a>
           , cropped)
         </p>
+        <LegalFooter className="mt-6" />
       </main>
     </div>
   );

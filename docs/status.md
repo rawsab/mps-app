@@ -35,7 +35,7 @@ Date: 2026-11-16
 | Program removal (FR-04): delete unpublished programs, archive published; week/day removal in both views | Done | migration `20261116000006`, 16 pgTAP checks, decision 0008 |
 | Publishing UI | Not started | — |
 | M4 (partial): mesocycle set logging, coach corrections, set totals and change; exercise muscle groups | Done (manual checks pending) | migrations `20261116000015`–`16`, `010`/`011` pgTAP (38), `tests/domain/trainingVolume.test.ts`, decision 0021 |
-| FR-08 Stimulus & Fatigue Tracking | Planned | decision 0021 |
+| FR-08 Stimulus & Fatigue Tracking: per-muscle 0–3 answers on the day view, coach suggestion inline (weekly coach table pending) | Done (manual checks pending) | migration `20261116000017`, `012_muscle_feedback.test.sql` (18 pgTAP), `tests/domain/trainingFeedback.test.ts`, decision 0021 |
 | M3 step 5: client Training view (read-only): published program list, week → day view with shared sections, supersets, per-set targets, alternatives, notes, demo links and resources | Done (manual phone check pending) | migration `20261116000014`, `009_client_training_read.test.sql` (14 pgTAP), `tests/policies/clientTraining.test.ts` (4 HTTP), `tests/domain/clientView.test.ts` (9), decision 0020 |
 | Demo programs in the local seed: realistic mesocycles and PT plans modelled on `samples/`, generated from `scripts/seed/`; fix for the `programTheme` regression in `revision_document` | Done | `supabase/seed/programs.sql`, migration `20261116000013`, `tests/domain/seedPrograms.test.ts`, decision 0019 |
 
@@ -201,7 +201,9 @@ Date: 2026-11-16
   - Coaches open the same view from the editor's **Client log** link (`/coach/clients/:id/programs/:id/log`). Their edits are attributed.
 - **Set totals:** per-day sets per muscle (logged/planned), a total, and the change since the last earlier day that trained each muscle. "—" means there is no comparison; missing data is never 0.
 - **Clients table:** Last edited shows date and time and counts service changes. It is now the default sort, newest first. Columns have pixel default widths (Name 160, Email 210, Services 180, Status 128, Added 128, Last edited 192), each with a minimum. Drag a header edge to resize (arrow keys on the focused handle, double-click to reset); widths are remembered in this browser. Services tags wrap onto more lines when the column is narrow; every other cell stays on one line and overflow ends in "…" with the full value on hover.
-- **Stimulus & Fatigue Tracking:** planned only, in decision 0021, with open questions for Matt.
+- **Copyright and use notice:** a footer on every page (`© 2026 Modern Physique Systems`) links to a public `/use-notice` page. The full notice also appears under every client program. The owner approved the wording on 2026-11-17, and it lives in `src/lib/legal.ts`.
+- **Client exercise boxes** have a light surface fill.
+- **Stimulus & Fatigue Tracking:** built (decision 0021). Owner answers are recorded there. The coach's per-week muscle table is still to do.
 - **Verification:**
   - `pnpm verify`: all unit tests, typecheck and build pass.
   - `pnpm test:db`: all 250 assertions pass, including 8 muscle and 30 session checks.

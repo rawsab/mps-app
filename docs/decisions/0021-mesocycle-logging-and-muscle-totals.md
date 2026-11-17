@@ -1,6 +1,6 @@
 # 0021 — Mesocycle set logging, muscle totals and the Stimulus & Fatigue plan
 
-Date: 2026-11-17 · Status: logging and totals accepted; Stimulus & Fatigue planned (not built)
+Date: 2026-11-17 · Status: logging and totals accepted; Stimulus & Fatigue built (coach weekly table pending)
 
 ## Muscle groups on exercises (FR-05, FR-06)
 
@@ -28,7 +28,7 @@ Date: 2026-11-17 · Status: logging and totals accepted; Stimulus & Fatigue plan
 - Owner decision: **Change compares with the last earlier day (in program order, across weeks) that trained the muscle**, using logged sets on both days. It is null ("—") when this day isn't logged, the muscle wasn't trained earlier, or that earlier day has no log. Missing data is never treated as zero.
 - A logged day uses its session's snapshot for both planned totals and muscles.
 
-## Stimulus & Fatigue Tracking — plan (FR-08), not yet built
+## Stimulus & Fatigue Tracking (FR-08)
 
 Source: the sample's day blocks and its "Additional Resources" sheet.
 
@@ -46,8 +46,17 @@ Source: the sample's day blocks and its "Additional Resources" sheet.
    - Soreness × performance matrix → "Add 1–3 sets" … "Recovery".
    - It never changes a prescription (PRD FR-08).
 5. **UI:** an optional "Stimulus & Fatigue" card under the day's set totals. It has one compact 0–3 segmented control per question per muscle, saves on change, and has the same coach-edit attribution. The coach gets a per-week muscle table.
-6. **Open questions for Matt:**
-   - Confirm the scale wording and the soreness × performance matrix. The sample's matrix (Additional Resources M24:Q32) is complete: soreness rows 0–3 by performance columns 0–3. An earlier seed guide wrongly read the columns as stimulus bands; the seed now shows the matrix as a table.
-   - Is "performance" per muscle (as in the sample) or per exercise?
-   - Should Set Progression also be asked on Week 2+ Day 1, where the comparison crosses weeks?
-   - The rubric text is MPS IP. Keep it in the (private) codebase, or store it as editable template content?
+6. **Answers (2026-11-17):**
+   - Scale wording and the soreness × performance matrix: confirmed as in the sample.
+   - Performance is scored per muscle group trained that day, not per exercise.
+   - Set Progression is also asked on Day 1 of Week 2 onward; the earlier session can be in the previous week.
+   - The scale descriptions and grading text are fixed in the app code (same for every program), not coach-editable content.
+
+### As built (2026-11-17)
+
+- Migration 00017: `muscle_feedback` with RLS, grants, `save_muscle_feedback` (security definer, `can_log_for_client`) and `feedback` in `get_training_log`; pgTAP `012_muscle_feedback.test.sql`.
+- A muscle must be listed on an exercise of the session's own day. `compared_session_id` is optional: it is null when the earlier day isn't logged yet. When given, it must be another session of the same program that trained the muscle. Program order is not checked in SQL; the browser picks it by the Change rule.
+- Rubric text and grading live in `src/domain/training/feedback.ts`.
+- The card appears once a session is started (answers belong to a session). Tapping the selected score again clears it.
+- Not built yet: the coach's per-week muscle table. For now, staff see the suggestion inline on the client's day view.
+

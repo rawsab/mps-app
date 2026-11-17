@@ -169,7 +169,7 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
   );
 }
 
-export function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: 'neutral' | 'gold' | 'danger' }) {
-  const styles = { neutral: 'border-line text-muted', gold: 'border-gold/50 text-gold-fg', danger: 'border-danger/50 text-danger' }[tone];
+export function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: 'neutral' | 'gold' | 'danger' | 'success' }) {
+  const styles = { neutral: 'border-line text-muted', gold: 'border-gold/50 text-gold-fg', danger: 'border-danger/50 text-danger', success: 'border-success/50 bg-success/10 text-success' }[tone];
   return <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs ${styles}`}>{children}</span>;
 }

@@ -130,3 +130,5 @@ export const SectionIcon = () => <Icon><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M
 export const SectionsIcon = () => <Icon className="size-4 shrink-0"><path d="M4 5h9M8 9h12M4 14h9M8 18h12" /></Icon>;
 export const SpreadsheetIcon = () => <Icon><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M3 14h18M9 4v16M15 9v11" /></Icon>;
 export const ChevronIcon = ({ open }: { open: boolean }) => <Icon className={`size-4 shrink-0 transition-transform duration-150 motion-reduce:transition-none ${open ? 'rotate-90' : ''}`}><path d="m9 5 7 7-7 7" /></Icon>;
+export const StimulusIcon = () => <Icon className="size-4 shrink-0"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" /></Icon>;
+export const ProgressionIcon = () => <Icon className="size-4 shrink-0"><path d="m3 17 6-6 4 4 8-8M15 7h6v6" /></Icon>;

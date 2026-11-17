@@ -1,4 +1,5 @@
 import { useEffect, useId, useState } from 'react';
+import { SaveStatus } from '@/components/SaveStatus';
 import { Button } from '@/components/ui';
 import type { Exercise, ProgramDraft } from '@/domain/programs/contract';
 import { dayMuscleChanges, formatChange, type LoggedSet, type TrainingSession } from '@/domain/training/volume';
@@ -158,9 +159,9 @@ function SetRow({ row, exerciseName, readOnly, canRemove, onChange, onCommit, on
           </button>
         ) : <span />}
       </div>
-      <p id={`${id}-message`} aria-live="polite" className={`ml-11 min-h-4 text-xs ${row.state === 'error' && row.message ? 'text-danger' : 'text-muted'}`}>
-        {row.state === 'saving' ? 'Saving…' : row.state === 'error' ? <>{row.message ?? 'Not saved yet'}{row.message ? <> · <button type="button" className="underline" onClick={() => commit()}>Retry</button></> : null}</> : row.byStaff ? 'Edited by your coach' : ''}
-      </p>
+      <SaveStatus id={`${id}-message`} saving={row.state === 'saving'} className="ml-11 pt-1 text-xs text-muted">
+          {row.state === 'error' ? <span className={row.message ? 'text-danger' : undefined}>{row.message ?? 'Not saved yet'}{row.message ? <> · <button type="button" className="underline" onClick={() => commit()}>Retry</button></> : null}</span> : row.byStaff ? 'Edited by your coach' : ''}
+      </SaveStatus>
     </li>
   );
 }

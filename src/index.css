@@ -160,6 +160,49 @@ html[data-theme='light'] .brand-logo {
   transform: scaleX(1);
 }
 
+/* Inline save status (SaveStatus): "Saving…" fades in and out; the settled message fades in. */
+@keyframes status-in {
+  from {
+    opacity: 0;
+    transform: translateY(2px);
+  }
+}
+@keyframes status-out {
+  to {
+    opacity: 0;
+    transform: translateY(-2px);
+  }
+}
+.status-in {
+  display: inline-block;
+  animation: status-in 180ms var(--ease-enter) both;
+}
+.status-out {
+  display: inline-block;
+  animation: status-out 160ms ease-in both;
+}
+.status-slot {
+  display: grid;
+  grid-template-rows: 0fr;
+  margin-block-start: calc(-1 * var(--status-gap, 0px));
+  transition:
+    grid-template-rows 200ms var(--ease-ui),
+    margin-block-start 200ms var(--ease-ui);
+}
+.status-slot[data-open='true'] {
+  grid-template-rows: 1fr;
+  margin-block-start: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .status-in,
+  .status-out {
+    animation: none;
+  }
+  .status-slot {
+    transition: none;
+  }
+}
+
 /* Each route's content settles in once when it mounts; nothing animates on scroll. */
 @keyframes page-enter {
   from {

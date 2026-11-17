@@ -5,6 +5,8 @@ import { ClientsPage } from '@/features/clients/ClientsPage';
 import { ProgramEditorPage } from '@/features/programs/ProgramEditorPage';
 import { ClientHomePage, ClientSectionPage, CoachPlaceholderPage } from '@/features/home/ClientPages';
 import { CoachTrainingLogPage, TrainingPage, TrainingProgramPage } from '@/features/training/TrainingPages';
+import { UseNoticePage } from '@/components/LegalFooter';
+import { USE_NOTICE_PATH } from '@/lib/legal';
 import { HomeRedirect, RequireClient, RequireSignedIn, RequireStaff } from './guards';
 import { ClientLayout, CoachLayout } from './layouts';
 
@@ -12,6 +14,7 @@ export const router = createBrowserRouter([
   { path: '/sign-in', element: <SignInPage /> },
   { path: '/forgot-password', element: <ForgotPasswordPage /> },
   { path: '/auth/callback', element: <AuthCallbackPage /> },
+  { path: USE_NOTICE_PATH, element: <UseNoticePage /> },
   {
     element: <RequireSignedIn />,
     children: [

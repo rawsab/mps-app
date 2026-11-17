@@ -12,6 +12,7 @@ import {
   TemplatesIcon,
   TrainingIcon,
 } from '@/components/icons';
+import { LegalFooter } from '@/components/LegalFooter';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { clientSections } from '@/lib/services';
 import { signOut, useViewer } from './auth';
@@ -71,7 +72,7 @@ export function ClientLayout() {
   ].filter((i) => i.show);
 
   return (
-    <div className="min-h-dvh pb-24 sm:pb-0">
+    <div className="flex min-h-dvh flex-col pb-24 sm:pb-0">
       <SkipLink />
       <TopBar>
         <nav aria-label="Main" className="mr-2 hidden items-stretch sm:flex">
@@ -82,9 +83,10 @@ export function ClientLayout() {
           ))}
         </nav>
       </TopBar>
-      <main id="main-content" tabIndex={-1} className="mx-auto max-w-3xl scroll-mt-20 px-4 py-8">
+      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-3xl flex-1 scroll-mt-20 px-4 py-8">
         <RouteContent />
       </main>
+      <LegalFooter className="mx-auto mt-8 w-full max-w-3xl px-4 pb-8" />
       <nav
         aria-label="Main"
         className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-ink/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md sm:hidden"
@@ -292,7 +294,7 @@ export function CoachLayout() {
           </button>
         </div>
       </aside>
-      <div className="min-w-0 flex-1">
+      <div className="flex min-h-dvh min-w-0 flex-1 flex-col">
         <TopBar
           className="lg:hidden"
           leading={
@@ -301,9 +303,10 @@ export function CoachLayout() {
             </button>
           }
         />
-        <main id="main-content" tabIndex={-1} className="mx-auto max-w-5xl scroll-mt-20 px-4 py-8 lg:scroll-mt-4 lg:px-8 lg:pt-12">
+        <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 scroll-mt-20 px-4 py-8 lg:scroll-mt-4 lg:px-8 lg:pt-12">
           <RouteContent />
         </main>
+        <LegalFooter className="mx-auto mt-8 w-full max-w-5xl px-4 pb-8 lg:px-8" />
       </div>
       {drawerOpen ? <CoachDrawer onClose={() => setDrawerOpen(false)} /> : null}
     </div>
