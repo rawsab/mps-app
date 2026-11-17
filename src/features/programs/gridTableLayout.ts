@@ -1,5 +1,12 @@
 import type { GridColumnKey, GridRow } from '@/domain/programs/grid';
 
+/** Shared by the coach's editable grid and the client's read-only spreadsheet. */
+export const GRID_COLUMN_WIDTHS: Record<GridColumnKey, string> = {
+  day: 'min-w-40', section: 'min-w-32', order: 'min-w-12', name: 'min-w-56', muscles: 'min-w-44', sets: 'min-w-20',
+  effort: 'min-w-36', perSide: 'min-w-24', loadMode: 'min-w-32', load: 'min-w-28',
+  unit: 'min-w-20', rir: 'min-w-24', rpe: 'min-w-24', notes: 'min-w-64',
+};
+
 export type CellSpan = { start: number; length: number };
 export type GridRowSpans = { day: CellSpan; section: CellSpan };
 

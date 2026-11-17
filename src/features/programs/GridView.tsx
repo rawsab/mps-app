@@ -18,7 +18,7 @@ import { GridCellMenu, type GridCellAction } from './GridCellMenu';
 import { GridTableFrame } from './GridTableFrame';
 import { cellKey, useCellCommit } from './fields';
 import { PastePreview } from './PastePreview';
-import { gridCellOwner, gridRowSpans } from './gridTableLayout';
+import { GRID_COLUMN_WIDTHS as widths, gridCellOwner, gridRowSpans } from './gridTableLayout';
 import { gridPointAtCell, useGridDragSelection } from './useGridDragSelection';
 import { useEditor } from './useDraftEditor';
 import { useMuscleSuggestions } from './MuscleSuggestions';
@@ -33,11 +33,6 @@ const choices: Partial<Record<GridColumnKey, { value: string; label: string }[]>
   perSide: [{ value: '', label: '' }, { value: 'Yes', label: 'Yes' }],
   loadMode: [{ value: '', label: '—' }, ...LOAD_MODE_OPTIONS.map((option) => ({ value: option.label, label: option.label }))],
   unit: [{ value: '', label: '—' }, { value: 'lb', label: 'lb' }, { value: 'kg', label: 'kg' }],
-};
-const widths: Record<GridColumnKey, string> = {
-  day: 'min-w-40', section: 'min-w-32', order: 'min-w-12', name: 'min-w-56', muscles: 'min-w-44', sets: 'min-w-20',
-  effort: 'min-w-36', perSide: 'min-w-24', loadMode: 'min-w-32', load: 'min-w-28',
-  unit: 'min-w-20', rir: 'min-w-24', rpe: 'min-w-24', notes: 'min-w-64',
 };
 
 /** FR-06: separate sheets share one canonical draft, command history and save path. */

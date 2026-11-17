@@ -1,7 +1,7 @@
 import { Link, useLocation, useParams, useSearchParams } from 'react-router';
 import { DisclosureSummary } from '@/components/DisclosureSummary';
 import { UseNotice } from '@/components/LegalFooter';
-import { CheckCircleIcon } from '@/components/icons';
+import { CheckCircleIcon, SectionIcon, SpreadsheetIcon } from '@/components/icons';
 import { Alert, Badge, Button, EmptyState, PageHeader, Spinner } from '@/components/ui';
 import { dayView, locateDay, prescriptionView, weekSummaries, type DayBlock, type DayView } from '@/domain/programs/clientView';
 import type { Exercise, ProgramDraft } from '@/domain/programs/contract';
@@ -10,6 +10,7 @@ import { formatDate } from '@/lib/format';
 import { SERVICE_LABELS } from '@/lib/services';
 import { isExerciseLogged, type TrainingSession } from '@/domain/training/volume';
 import { logErrorMessage, trainingErrorMessage, usePublishedProgram, usePublishedPrograms, useStartSession, useTrainingLog } from './api';
+import { ProgramSpreadsheet } from './ProgramSpreadsheet';
 import { ResourceBody } from './ResourceBody';
 import { ExerciseSetLog, SessionDate, SessionWrapUp, SetTotals } from './SetLog';
 import { StimulusFatigue } from './StimulusFatigue';
@@ -68,6 +69,7 @@ export function CoachTrainingLogPage() {
 /**
  * Week → day view of the current published revision. Selection lives in the URL so reloads keep it.
  * Mesocycles add set logging, set totals and optional Stimulus & Fatigue answers; a logged day shows its session's own revision.
+ * `view=sheet` swaps the day view for a read-only spreadsheet of the selected week.
  */
 export function TrainingProgramView({ programId, backTo, backLabel, staff = false }: { programId: string; backTo: string; backLabel: string; staff?: boolean }) {
   const program = usePublishedProgram(programId);
@@ -81,8 +83,9 @@ export function TrainingProgramView({ programId, backTo, backLabel, staff = fals
 
   const { document: doc, service, archivedAt, publishedAt } = program.data;
   const located = locateDay(doc, params.get('week'), params.get('day'));
-  const select = (weekId: string, dayId: string | null) =>
-    setParams(dayId ? { week: weekId, day: dayId } : { week: weekId }, { replace: true, preventScrollReset: true });
+  const sheet = params.get('view') === 'sheet';
+  const select = (weekId: string, dayId: string | null, nextSheet = sheet) =>
+    setParams({ week: weekId, ...(dayId ? { day: dayId } : {}), ...(nextSheet ? { view: 'sheet' } : {}) }, { replace: true, preventScrollReset: true });
 
   return (
     <div>
@@ -98,7 +101,14 @@ export function TrainingProgramView({ programId, backTo, backLabel, staff = fals
       <Alert visible={!!archivedAt} className="mb-4" tone="info" title="Archived program">Your coach archived this program on {archivedAt ? formatDate(archivedAt) : ''}. It’s kept here for reference.</Alert>
       {doc.coachNotes.trim() ? <Notes title="Program notes" body={doc.coachNotes} /> : null}
 
-      {located ? (
+      {located ? <ViewTabs sheet={sheet} onSelect={(next) => select(located.week.id, located.day?.id ?? null, next)} /> : null}
+      {located && sheet ? (
+        <>
+          <WeekPicker program={doc} weekId={located.week.id} onSelect={(weekId) => select(weekId, null)} />
+          {logging ? <p className="mb-4 text-sm text-muted">Shows the current program. A workout you’ve already started keeps the targets it began with.</p> : null}
+          <ProgramSpreadsheet program={doc} service={service} weekId={located.week.id} />
+        </>
+      ) : located ? (
         <>
           <WeekPicker program={doc} weekId={located.week.id} onSelect={(weekId) => select(weekId, null)} />
           <DayPicker program={doc} weekId={located.week.id} dayId={located.day?.id ?? null} completed={new Set(log.data?.filter((s) => s.status === 'completed').map((s) => s.dayId))} onSelect={(dayId) => select(located.week.id, dayId)} />
@@ -123,6 +133,21 @@ export function TrainingProgramView({ programId, backTo, backLabel, staff = fals
 
       {doc.resources.length ? <Resources program={doc} /> : null}
       <UseNotice className="mt-16 border-t border-line pt-6" />
+    </div>
+  );
+}
+
+/** Day-by-day workout or the whole week as a spreadsheet; both read the same published program. */
+function ViewTabs({ sheet, onSelect }: { sheet: boolean; onSelect: (sheet: boolean) => void }) {
+  const views = [{ sheet: false, label: 'Workout', icon: <SectionIcon /> }, { sheet: true, label: 'Spreadsheet', icon: <SpreadsheetIcon /> }];
+  return (
+    <div role="group" aria-label="Program view" className="mb-4 flex gap-1 border-b border-line">
+      {views.map((v) => (
+        <button key={v.label} type="button" aria-pressed={v.sheet === sheet} onClick={() => onSelect(v.sheet)}
+          className={`-mb-px inline-flex min-h-11 items-center gap-2 border-b-2 px-3 text-sm ${v.sheet === sheet ? 'border-gold font-medium text-text' : 'border-transparent text-muted hover:text-text'}`}>
+          {v.icon}{v.label}
+        </button>
+      ))}
     </div>
   );
 }
