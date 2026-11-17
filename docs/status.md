@@ -214,13 +214,27 @@ Date: 2026-11-16
   - Migrations 00015–00016 and the regenerated seed are applied to the running local DB without a reset; the local demo programs need `pnpm db:reset` to pick up seeded muscles.
   - No browser checks and no new HTTP tests for logging (the pgTAP suite covers retries, limits and access).
 
+## Client activity, Reviews and clients-page overview (2026-11-17)
+
+- **Recent updates (decision 0023):** the client page shows the 5 latest sessions above Programs; "View full history" opens `/coach/clients/:id/activity` (grouped by day, "Load more"). Items open the logged day and return to where the coach came from.
+- **Reviews (decision 0024):** the sidebar's Reviews page lists client activity across all visible clients with per-staff read state (opening an item marks it seen; "Mark all as read"), an All/Unread filter (`?filter=unread`) and an unread badge (count when collapsed, dot on the phone menu button), polled every minute. Markers fade out on read. Coach corrections never notify.
+- **Clients page (decisions 0025–0026):** "To review" (unread count, latest 3 in a compact form) and "Upcoming today" (next 3 of today's PT sessions) sit above Services / Status / Follow up. Upcoming sessions use labelled sample data in local development only; booking is a recorded PRD scope addition. Services and Status stay side by side on phones.
+- **Fixes:** the Grid no longer scrolls to its first cell when an editor opens (only an explicit `item`/`focus` in the URL moves focus); the coach's client-log notice is a grey note with an info icon; clients-table cells are top-aligned when services wrap.
+- **Verification:**
+  - `pnpm verify`: typecheck, 247 unit tests and build pass.
+  - pgTAP run per file for the affected suites: `011` (30), `012` (18), `013_client_activity` (15) and `014_staff_activity_reviews` (26) pass. The full `pnpm test:db` was not rerun.
+  - The production bundle was checked to contain none of the sample sessions.
+  - No browser checks; the owner is checking the UI manually.
+
 ## Known limitations
 
-- **Programs:** program/revision tables, both coach editors and the read-only client Training view are implemented. Programs under an ended (but not archived) service still appear to the client (decision 0020, open question). Session, nutrition, import-batch and audit tables are still pending. Client Home shows honest empty states, not metrics.
+- **Programs:** program/revision tables, both coach editors, the client Training view and mesocycle session logging are implemented. Programs under an ended (but not archived) service still appear to the client (decision 0020, open question). Nutrition, import-batch and audit tables are still pending. Client Home shows honest empty states, not metrics.
+- **Activity feeds:** Recent updates and Reviews derive from the latest state of each record, so edits show who changed something last but not earlier values, and a coach overwriting a client's only logged row drops that session from Reviews. Both are fixed by `audit_events`. Unread counts poll every minute (no realtime).
+- **Scheduling:** not built. "Upcoming today" shows sample data in local development and an "isn't set up yet" message elsewhere (decision 0026).
 - **Invitations:** invite and recovery emails have only been verified against local Mailpit. Real Resend delivery is untested.
 - **Playwright:** not yet a project dependency. The browser smoke script lives outside the repo.
 - **No linting:** no ESLint or formatter is configured yet.
-- **Bundle size:** ~821 kB unsplit; Vite reports the existing large-chunk warning.
+- **Bundle size:** ~921 kB unsplit; Vite reports the existing large-chunk warning.
 - **Roles:** staff roles are assigned by SQL. There is no role-management UI (by design for the MVP).
 - **Activation:** `mark_client_active` runs when the client first loads the app after sign-in, not inside Auth itself.
 - **Email changes:** changing a client's email after binding does not update their auth email. A server-side flow will be needed.
@@ -241,7 +255,7 @@ Date: 2026-11-16
 4. ~~The Program view, then the Grid view (bounded typed columns, keyboard navigation, rectangular paste preview, atomic save), with stale-draft conflict handling.~~ Done: 4a grid model, 4b editor shell + Program view, 4c Grid UI (decision 0007). Program deletion/archiving and Grid day/week removal added (decision 0008).
 5. ~~Client Training view (read-only).~~ Done (decision 0020). Owner still to check it at phone width as Maya (mesocycle) and Daniel (personal training).
 6. **Next:** add Playwright as a dev dependency and promote the smoke script to `tests/e2e`. Add ESLint and a formatter.
-7. Start the `audit_events` table for publish and access changes.
+7. Start the `audit_events` table for publish and access changes. It also gives Recent updates and Reviews edit history (before/after values).
 
 ## Backlog (owner requests, not scheduled)
 
