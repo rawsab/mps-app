@@ -1,4 +1,4 @@
-import { lazy, Suspense, useState, type FormEvent, type ReactNode } from 'react';
+import { lazy, Suspense, useEffect, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router';
 import { z } from 'zod';
 import { useAuth } from '@/app/auth';
@@ -23,14 +23,21 @@ const PHOTO = {
   license: 'https://creativecommons.org/licenses/by/2.0/',
 };
 
+// Each auth route mounts its own frame; play the photo entrance once per page load, not on every switch.
+let photoEntered = false;
+
 function AuthFrame({ title, lead, children }: { title: string; lead?: string; children: ReactNode }) {
+  const [animatePhoto] = useState(() => !photoEntered);
+  useEffect(() => {
+    photoEntered = true;
+  }, []);
   return (
     <div className="grid min-h-dvh grid-rows-[auto_1fr] lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:grid-rows-none">
       <div className="relative h-44 overflow-hidden bg-surface sm:h-56 lg:sticky lg:top-0 lg:h-dvh">
         <img
           src={PHOTO.src}
           alt="A hand gripping a dumbbell in a gym"
-          className="photo-enter size-full object-cover object-[50%_45%]"
+          className={`${animatePhoto ? 'photo-enter ' : ''}size-full object-cover object-[50%_45%]`}
           width={1100}
           height={1333}
           fetchPriority="high"

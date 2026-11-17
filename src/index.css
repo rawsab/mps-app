@@ -257,6 +257,32 @@ html[data-theme='light'] .brand-logo {
   animation: panel-open 200ms var(--ease-ui) both;
 }
 
+/* Popover menus that fade both ways: visibility flips after the fade-out so the closed menu is hidden. */
+.menu-fade {
+  opacity: 0;
+  transform: translateY(-4px);
+  visibility: hidden;
+  transition:
+    opacity 160ms ease-out,
+    transform 200ms var(--ease-ui),
+    visibility 0s 200ms;
+}
+.menu-fade[data-open] {
+  opacity: 1;
+  transform: none;
+  visibility: visible;
+  transition:
+    opacity 180ms ease-out,
+    transform 220ms var(--ease-ui),
+    visibility 0s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .menu-fade,
+  .menu-fade[data-open] {
+    transform: none;
+  }
+}
+
 /*
  * Inline reveal (e.g. the New client form): the height opens via grid rows so the content below
  * slides down instead of jumping, and the panel fades and drops in. The one layout animation here;
