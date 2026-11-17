@@ -13,6 +13,7 @@ import {
   TrainingIcon,
 } from '@/components/icons';
 import { LegalFooter } from '@/components/LegalFooter';
+import { READ_FADE_MS, useUnreadCount } from '@/features/activity/api';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { clientSections } from '@/lib/services';
 import { signOut, useViewer } from './auth';
@@ -172,8 +173,31 @@ function SidebarResizeHandle({ width, onResize, onDragging }: { width: number; o
 
 const sidebarControl = 'btn-motion inline-flex size-11 shrink-0 items-center justify-center rounded-card text-muted hover:bg-surface-raised hover:text-text';
 
+const REVIEWS_PATH = '/coach/reviews';
+const unreadLabel = (count: number) => (count > 99 ? '99+' : String(count));
+
+/** Keeps the last count on screen while the badge fades out at zero. */
+function useShownCount(count: number) {
+  const last = useRef(count);
+  if (count > 0) last.current = count;
+  return last.current;
+}
+
+/** Unread count on Reviews: inline when expanded, a gold circle on the icon when collapsed. */
+function UnreadBadge({ count, collapsed }: { count: number; collapsed: boolean }) {
+  const shown = useShownCount(count);
+  if (shown === 0) return null;
+  return (
+    <span aria-hidden={count === 0} style={{ transitionDuration: `${READ_FADE_MS}ms` }}
+      className={`rounded-full bg-gold text-center font-semibold tabular-nums leading-4 text-on-gold transition-[opacity,transform] ease-out motion-reduce:transition-none ${count ? 'scale-100 opacity-100' : 'scale-50 opacity-0'} ${collapsed ? 'absolute -right-2.5 -top-2 h-4 min-w-4 px-1 text-[0.625rem]' : 'ml-auto min-w-5 px-1.5 text-xs leading-5'}`}>
+      {unreadLabel(shown)}<span className="sr-only"> unread</span>
+    </span>
+  );
+}
+
 /** Sidebar and drawer links. Collapsed, the label stays as the accessible name and a hover title. */
 function CoachNavLinks({ collapsed = false, onNavigate }: { collapsed?: boolean; onNavigate?: () => void }) {
+  const unread = useUnreadCount().data ?? 0;
   return (
     <ul className="flex flex-col gap-1">
       {COACH_ITEMS.map((i) => (
@@ -181,15 +205,19 @@ function CoachNavLinks({ collapsed = false, onNavigate }: { collapsed?: boolean;
           <NavLink
             to={i.to}
             onClick={onNavigate}
-            title={collapsed ? i.label : undefined}
+            title={collapsed ? (i.to === REVIEWS_PATH && unread ? `${i.label} (${unread} unread)` : i.label) : undefined}
             className={({ isActive }) =>
               `flex min-h-11 items-center gap-3 rounded-card text-sm transition-colors ${collapsed ? 'justify-center' : 'px-3'} ${isActive ? 'bg-surface-raised font-medium text-text' : 'text-muted hover:bg-surface-raised hover:text-text'}`
             }
           >
             {({ isActive }) => (
               <>
-                <span className={isActive ? 'text-gold-fg' : undefined}>{i.icon}</span>
-                <span className={collapsed ? 'sr-only' : undefined}>{i.label}</span>
+                <span className={`relative ${isActive ? 'text-gold-fg' : ''}`}>
+                  {i.icon}
+                  {collapsed && i.to === REVIEWS_PATH ? <UnreadBadge count={unread} collapsed /> : null}
+                </span>
+                <span className={collapsed ? 'sr-only' : 'flex-1'}>{i.label}</span>
+                {!collapsed && i.to === REVIEWS_PATH ? <UnreadBadge count={unread} collapsed={false} /> : null}
               </>
             )}
           </NavLink>
@@ -246,6 +274,7 @@ export function CoachLayout() {
   const [width, setWidth] = useState(readSidebarWidth);
   const [resizing, setResizing] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const unread = useUnreadCount().data ?? 0;
 
   const resize = (next: number) => {
     const clamped = clampSidebarWidth(next);
@@ -298,8 +327,10 @@ export function CoachLayout() {
         <TopBar
           className="lg:hidden"
           leading={
-            <button type="button" onClick={() => setDrawerOpen(true)} aria-label="Open navigation" className={`${sidebarControl} -ml-2`}>
+            <button type="button" onClick={() => setDrawerOpen(true)} aria-label={unread ? `Open navigation (${unread} unread reviews)` : 'Open navigation'} className={`${sidebarControl} relative -ml-2`}>
               <MenuIcon />
+              <span aria-hidden style={{ transitionDuration: `${READ_FADE_MS}ms` }}
+                className={`absolute right-2 top-2 size-2 rounded-full bg-gold transition-[opacity,transform] motion-reduce:transition-none ${unread ? 'opacity-100' : 'scale-50 opacity-0'}`} />
             </button>
           }
         />

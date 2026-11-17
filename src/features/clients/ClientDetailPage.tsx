@@ -7,6 +7,7 @@ import { AnimatedDisclosure } from '@/components/AnimatedDisclosure';
 import { useViewer } from '@/app/auth';
 import { Alert, Badge, Button, EmptyState, PageHeader, SelectField, Spinner, TextAreaField } from '@/components/ui';
 import type { ServiceKind } from '@/domain/programs/contract';
+import { RecentUpdatesCard } from '@/features/activity/ActivityViews';
 import { ProgramsCard } from '@/features/programs/ProgramsCard';
 import { capitalize, formatDate } from '@/lib/format';
 import { SERVICE_LABELS, SERVICES } from '@/lib/services';
@@ -54,7 +55,7 @@ export function ClientDetailPage() {
       </div>
       <PageHeader title={c.full_name} subtitle={<span className="break-all">{c.email}</span>} actions={statusBadge(c.status)} />
       <div className="grid min-w-0 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
-        <div className="min-w-0"><ProgramsCard clientId={c.id} enrollments={c.service_enrollments} /></div>
+        <div className="grid min-w-0 gap-8"><RecentUpdatesCard client={c} /><ProgramsCard clientId={c.id} enrollments={c.service_enrollments} /></div>
         <div className="grid min-w-0 gap-8 lg:border-l lg:border-line lg:pl-6">
           <ServicesCard clientId={c.id} enrollments={c.service_enrollments} canEdit={isAdmin} />
           <NotesCard clientId={c.id} />

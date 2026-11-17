@@ -36,6 +36,9 @@ Date: 2026-11-16
 | Publishing UI | Not started | — |
 | M4 (partial): mesocycle set logging, coach corrections, set totals and change; exercise muscle groups | Done (manual checks pending) | migrations `20261116000015`–`16`, `010`/`011` pgTAP (38), `tests/domain/trainingVolume.test.ts`, decision 0021 |
 | FR-08 Stimulus & Fatigue Tracking: per-muscle 0–3 answers on the day view, coach suggestion inline (weekly coach table pending) | Done (manual checks pending) | migration `20261116000017`, `012_muscle_feedback.test.sql` (18 pgTAP), `tests/domain/trainingFeedback.test.ts`, decision 0021 |
+| Coach client page: Recent updates card and full activity history (sessions, sets, Stimulus & Fatigue; coach edits labelled) | Done (manual checks pending) | migration `20261116000018`, `013_client_activity.test.sql` (15 pgTAP), `tests/domain/activityFeed.test.ts`, decision 0023 |
+| Reviews (coach notifications): cross-client activity, unread filter, mark all read, sidebar unread badge | Done (manual checks pending) | migration `20261116000019`, `014_staff_activity_reviews.test.sql` (21 pgTAP), decision 0024 |
+| Clients page lower row: "To review" (unread count, latest 3 unread, compact rows; started sessions count as unread, migration `20261116000021`) and "Upcoming today" preview (next 3 of today's sessions; sample data in local dev only; booking is a recorded PRD scope addition, decision 0026) | Done (manual checks pending) | migration `20261116000020`, `014_staff_activity_reviews.test.sql` (26 pgTAP), `tests/domain/activityFeed.test.ts`, `tests/domain/upcomingSessions.test.ts`, decisions 0025–0026 |
 | M3 step 5: client Training view (read-only): published program list, week → day view with shared sections, supersets, per-set targets, alternatives, notes, demo links and resources | Done (manual phone check pending) | migration `20261116000014`, `009_client_training_read.test.sql` (14 pgTAP), `tests/policies/clientTraining.test.ts` (4 HTTP), `tests/domain/clientView.test.ts` (9), decision 0020 |
 | Demo programs in the local seed: realistic mesocycles and PT plans modelled on `samples/`, generated from `scripts/seed/`; fix for the `programTheme` regression in `revision_document` | Done | `supabase/seed/programs.sql`, migration `20261116000013`, `tests/domain/seedPrograms.test.ts`, decision 0019 |
 
@@ -239,3 +242,7 @@ Date: 2026-11-16
 5. ~~Client Training view (read-only).~~ Done (decision 0020). Owner still to check it at phone width as Maya (mesocycle) and Daniel (personal training).
 6. **Next:** add Playwright as a dev dependency and promote the smoke script to `tests/e2e`. Add ESLint and a formatter.
 7. Start the `audit_events` table for publish and access changes.
+
+## Backlog (owner requests, not scheduled)
+
+- **Upcoming today — "starts soon" cue** (decision 0026): on the clients page, under a session's time (e.g. "7:00 AM"), show small red text "in X minutes" when it starts in 30 minutes or less. Needs a timer so it updates while the page is open (and disappears once the session starts), plus a unit test for the 30-minute boundary. Use the danger token, not a hard-coded red.

@@ -195,7 +195,7 @@ export function ClientsTable({ rows }: { rows: ClientRow[] }) {
                 onClick={(e) => {
                   if (!(e.target as HTMLElement).closest('a')) navigate(`/coach/clients/${row.id}`);
                 }}
-                className="row-link cursor-pointer border-b border-line align-middle last:border-b-0 hover:bg-surface-raised"
+                className="row-link cursor-pointer border-b border-line align-top last:border-b-0 hover:bg-surface-raised"
               >
                 <td className="p-0">
                   <Link to={`/coach/clients/${row.id}`} className="block min-h-11 truncate px-3 py-2.5 font-medium text-text">

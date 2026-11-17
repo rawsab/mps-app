@@ -174,7 +174,10 @@ function WeekGrid({ rows, weekId, label, readOnly, addedId, onAdded, onMove, onA
   const [params] = useSearchParams();
   const selectedDay = selectedProgramItem(editor.draft, params.get('item'));
   const focusKey = params.get('focus');
+  // Only an explicit destination in the URL moves focus; opening the editor keeps the page at the top.
+  const requestedItem = params.get('item');
   useEffect(() => {
+    if (!requestedItem && !focusKey) return;
     const issueRow = focusKey ? rows.find((row) => columns.some((column) => rejectKey(row, column.key) === focusKey)) : undefined;
     const row = issueRow ?? rows.find((row) => row.dayId === selectedDay);
     if (!row) return;

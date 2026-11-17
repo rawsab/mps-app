@@ -110,14 +110,22 @@ export function SelectField({ label, children, className = '', ...rest }: Select
   );
 }
 
-export function Alert({ tone = 'error', title, children, onDismiss }: { tone?: 'error' | 'info' | 'success'; title?: string; children: ReactNode; onDismiss?: () => void }) {
+export function Alert({ tone = 'error', title, children, onDismiss }: { tone?: 'error' | 'info' | 'note' | 'success'; title?: string; children: ReactNode; onDismiss?: () => void }) {
   const styles = {
     error: 'border-danger/50 bg-danger/10 text-danger',
     info: 'border-gold/40 bg-gold/10 text-text',
+    // Grey, for context that needs no action.
+    note: 'border-line bg-surface-raised text-text',
     success: 'border-success/50 bg-success/10 text-success',
   }[tone];
   return (
     <div role={tone === 'error' ? 'alert' : 'status'} className={`flex items-start gap-2 rounded-card border px-3 py-2.5 text-sm ${styles}`}>
+      {tone === 'note' ? (
+        <svg aria-hidden viewBox="0 0 20 20" className="mt-0.5 size-4 shrink-0 text-muted" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+          <circle cx="10" cy="10" r="8" />
+          <path d="M10 9v5M10 6.25v.01" />
+        </svg>
+      ) : null}
       <div className="min-w-0 flex-1">
         {title ? <p className="font-semibold">{title}</p> : null}
         <div>{children}</div>

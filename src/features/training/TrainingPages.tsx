@@ -1,4 +1,4 @@
-import { Link, useParams, useSearchParams } from 'react-router';
+import { Link, useLocation, useParams, useSearchParams } from 'react-router';
 import { DisclosureSummary } from '@/components/DisclosureSummary';
 import { UseNotice } from '@/components/LegalFooter';
 import { CheckCircleIcon } from '@/components/icons';
@@ -59,7 +59,10 @@ export function TrainingProgramPage() {
 /** Coach route: the client's published program and log, editable by staff with access (FR-07). */
 export function CoachTrainingLogPage() {
   const { clientId, programId } = useParams();
-  return <TrainingProgramView programId={programId!} backTo={`/coach/clients/${clientId}/programs/${programId}`} backLabel="Back to editor" staff />;
+  // Activity links pass where they came from; otherwise the log is reached from the editor.
+  const from = useLocation().state as { backTo?: string; backLabel?: string } | null;
+  return <TrainingProgramView programId={programId!} backTo={from?.backTo ?? `/coach/clients/${clientId}/programs/${programId}`}
+    backLabel={from?.backLabel ? `Back to ${from.backLabel}` : 'Back to editor'} staff />;
 }
 
 /**
@@ -91,7 +94,7 @@ export function TrainingProgramView({ programId, backTo, backLabel, staff = fals
           <span className="block">{SERVICE_LABELS[service]} · updated {formatDate(publishedAt)}</span>
         </>}
       />
-      {staff ? <div className="mb-4"><Alert tone="info" title="Client log">You’re viewing the published program as the client sees it. Changes you make to logged sets are saved to the client’s record and marked as coach edits.</Alert></div> : null}
+      {staff ? <div className="mb-4"><Alert tone="note" title="Client log">You’re viewing the published program as the client sees it. Changes you make are saved to the client’s record and marked as coach edits.</Alert></div> : null}
       {archivedAt ? <div className="mb-4"><Alert tone="info" title="Archived program">Your coach archived this program on {formatDate(archivedAt)}. It’s kept here for reference.</Alert></div> : null}
       {doc.coachNotes.trim() ? <Notes title="Program notes" body={doc.coachNotes} /> : null}
 
