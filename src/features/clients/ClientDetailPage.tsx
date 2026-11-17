@@ -1,7 +1,11 @@
+import { ActionsMenu, actionItemClass } from '@/components/ActionsMenu';
+import { ArchiveIcon, TrashIcon } from '@/components/icons';
+import { Dialog } from '@/components/Dialog';
 import { useState, type FormEvent } from 'react';
 import { Link, useParams } from 'react-router';
+import { AnimatedDisclosure } from '@/components/AnimatedDisclosure';
 import { useViewer } from '@/app/auth';
-import { Alert, Badge, Button, Card, EmptyState, PageHeader, SelectField, Spinner, TextAreaField } from '@/components/ui';
+import { Alert, Badge, Button, EmptyState, PageHeader, SelectField, Spinner, TextAreaField } from '@/components/ui';
 import type { ServiceKind } from '@/domain/programs/contract';
 import { ProgramsCard } from '@/features/programs/ProgramsCard';
 import { capitalize, formatDate } from '@/lib/format';
@@ -11,12 +15,15 @@ import {
   NoteBody,
   useAddClientNote,
   useAddEnrollment,
+  useArchiveEnrollment,
   useClient,
   useClientNotes,
+  useDeleteClientNote,
   useInviteClient,
   useSetEnrollmentStatus,
   useUpdateClientStatus,
   type ClientRow,
+  type EnrollmentRow,
 } from './api';
 import { statusBadge } from './ClientsTable';
 
@@ -46,9 +53,13 @@ export function ClientDetailPage() {
         </Link>
       </div>
       <PageHeader title={c.full_name} subtitle={<span className="break-all">{c.email}</span>} actions={statusBadge(c.status)} />
-      <ServicesCard clientId={c.id} enrollments={c.service_enrollments} canEdit={isAdmin} />
-      <NotesCard clientId={c.id} />
-      <ProgramsCard clientId={c.id} enrollments={c.service_enrollments} />
+      <div className="grid min-w-0 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+        <div className="min-w-0"><ProgramsCard clientId={c.id} enrollments={c.service_enrollments} /></div>
+        <div className="grid min-w-0 gap-8 lg:border-l lg:border-line lg:pl-6">
+          <ServicesCard clientId={c.id} enrollments={c.service_enrollments} canEdit={isAdmin} />
+          <NotesCard clientId={c.id} />
+        </div>
+      </div>
       {isAdmin ? <ClientSettings client={c} /> : null}
     </div>
   );
@@ -60,10 +71,7 @@ function ClientSettings({ client }: { client: ClientRow }) {
   const disabled = client.status === 'disabled';
 
   return (
-    <section aria-labelledby="client-settings" className="mt-4 grid gap-3">
-      <h2 id="client-settings" className="text-lg font-semibold">
-        Client settings
-      </h2>
+    <AnimatedDisclosure label="Client settings" className="mt-4 border-t border-line pt-3">
       <div className="rounded-card border border-line bg-surface">
         <dl className="grid gap-x-6 gap-y-3 p-4 text-sm sm:grid-cols-[10rem_1fr] sm:p-5">
           <dt className="text-muted">Email</dt>
@@ -113,7 +121,7 @@ function ClientSettings({ client }: { client: ClientRow }) {
       {invite.isSuccess ? <Alert tone="success">Invitation request accepted by the server ({invite.data?.status}).</Alert> : null}
       {invite.error ? <Alert title="Invitation not sent">{friendlyError(invite.error)}</Alert> : null}
       {setStatus.error ? <Alert title="Status not changed">{friendlyError(setStatus.error)}</Alert> : null}
-    </section>
+    </AnimatedDisclosure>
   );
 }
 
@@ -123,42 +131,46 @@ function ServicesCard({
   canEdit,
 }: {
   clientId: string;
-  enrollments: { id: string; service: ServiceKind; status: string; starts_on: string; ends_on: string | null }[];
+  enrollments: EnrollmentRow[];
   canEdit: boolean;
 }) {
   const add = useAddEnrollment();
   const setStatus = useSetEnrollmentStatus();
+  const archive = useArchiveEnrollment();
+  const visible = enrollments.filter((enrollment) => !enrollment.archived_at);
   const live = enrollments.filter((e) => e.status !== 'ended');
   const available = SERVICES.filter((s) => !live.some((e) => e.service === s));
   const [service, setService] = useState<ServiceKind | ''>('');
 
   return (
-    <Card>
+    <section className="min-w-0">
       <h2 className="mb-3 text-lg font-semibold">Services</h2>
-      {enrollments.length === 0 ? <p className="text-sm text-muted">No services assigned.</p> : null}
-      <ul className="grid gap-2">
-        {enrollments.map((e) => (
-          <li key={e.id} className="flex flex-wrap items-center justify-between gap-2 rounded-card border border-line p-3">
-            <div>
-              <p className="font-medium">{SERVICE_LABELS[e.service]}</p>
-              <p className="text-xs text-muted">
-                From {formatDate(e.starts_on)}
-                {e.ends_on ? ` to ${formatDate(e.ends_on)}` : ''}
-              </p>
+      {visible.length === 0 ? <p className="text-sm text-muted">No services to show.</p> : null}
+      <ul className="divide-y divide-line">
+        {visible.map((enrollment) => (
+          <li key={enrollment.id} className="py-2">
+            <div className="flex min-h-11 items-center gap-2">
+              <p className="min-w-0 flex-1 font-medium">{SERVICE_LABELS[enrollment.service]}</p>
+              <Badge tone={enrollment.status === 'active' ? 'gold' : 'neutral'}>{capitalize(enrollment.status)}</Badge>
+              {canEdit ? enrollment.status === 'ended' ? (
+                <button type="button" aria-label={`Archive ended ${SERVICE_LABELS[enrollment.service]} service`} title="Archive service"
+                  disabled={archive.isPending} onClick={() => archive.mutate(enrollment.id)}
+                  className="flex size-11 shrink-0 items-center justify-center rounded-card text-muted transition-colors hover:bg-surface-raised hover:text-text disabled:opacity-40">
+                  <ArchiveIcon />
+                </button>
+              ) : <ActionsMenu label={`Options for ${SERVICE_LABELS[enrollment.service]}`}>
+                <button type="button" className={actionItemClass} disabled={setStatus.isPending}
+                  onClick={() => setStatus.mutate({ id: enrollment.id, status: enrollment.status === 'paused' ? 'active' : 'paused' })}>
+                  {enrollment.status === 'paused' ? 'Resume' : 'Pause'}
+                </button>
+                <button type="button" className={`${actionItemClass} text-danger`} disabled={setStatus.isPending}
+                  onClick={() => setStatus.mutate({ id: enrollment.id, status: 'ended' })}>End</button>
+              </ActionsMenu> : null}
             </div>
-            <div className="flex items-center gap-2">
-              <Badge tone={e.status === 'active' ? 'gold' : 'neutral'}>{capitalize(e.status)}</Badge>
-              {canEdit && e.status !== 'ended' ? (
-                <>
-                  <Button variant="ghost" onClick={() => setStatus.mutate({ id: e.id, status: e.status === 'paused' ? 'active' : 'paused' })}>
-                    {e.status === 'paused' ? 'Resume' : 'Pause'}
-                  </Button>
-                  <Button variant="ghost" onClick={() => setStatus.mutate({ id: e.id, status: 'ended' })}>
-                    End
-                  </Button>
-                </>
-              ) : null}
-            </div>
+            <p className="text-xs text-muted">
+              From {formatDate(enrollment.starts_on)}
+              {enrollment.ends_on ? ` to ${formatDate(enrollment.ends_on)}` : ''}
+            </p>
           </li>
         ))}
       </ul>
@@ -170,7 +182,7 @@ function ServicesCard({
             if (service) add.mutate({ clientId, service }, { onSuccess: () => setService('') });
           }}
         >
-          <SelectField label="Add service" value={service} onChange={(ev) => setService(ev.target.value as ServiceKind)} className="min-w-56">
+          <SelectField label="Add service" value={service} onChange={(ev) => setService(ev.target.value as ServiceKind)} className="min-w-0 flex-1 basis-44">
             <option value="">Choose a service</option>
             {available.map((s) => (
               <option key={s} value={s}>
@@ -179,21 +191,26 @@ function ServicesCard({
             ))}
           </SelectField>
           <Button type="submit" disabled={!service} busy={add.isPending}>
-            Add
+            Add service
           </Button>
         </form>
       ) : null}
       {add.error ? <div className="mt-3"><Alert>{friendlyError(add.error)}</Alert></div> : null}
+      {archive.error ? <div className="mt-3"><Alert title="Could not archive service">{friendlyError(archive.error)}</Alert></div> : null}
       {setStatus.error ? <div className="mt-3"><Alert>{friendlyError(setStatus.error)}</Alert></div> : null}
-    </Card>
+    </section>
   );
 }
 
 /** Private coaching notes. Any staff member who can see the client can read and add them (PRD §4). */
 function NotesCard({ clientId }: { clientId: string }) {
   const notes = useClientNotes(clientId);
+  const viewer = useViewer();
+  const remove = useDeleteClientNote(clientId);
+  const [deleting, setDeleting] = useState<string | null>(null);
   const add = useAddClientNote(clientId);
   const [draft, setDraft] = useState('');
+  const [showAll, setShowAll] = useState(false);
   const [error, setError] = useState<string>();
 
   function submit(e: FormEvent) {
@@ -205,22 +222,29 @@ function NotesCard({ clientId }: { clientId: string }) {
   }
 
   return (
-    <Card>
+    <section className="min-w-0">
       <h2 className="text-lg font-semibold">Notes</h2>
-      <p className="mb-3 text-xs text-muted">Private to staff. The client never sees these.</p>
+      <p className="mb-3 text-sm text-muted">Private to staff. The client never sees these.</p>
       {notes.isPending ? <Spinner label="Loading notes" /> : null}
       {notes.error ? <Alert title="Could not load notes">{friendlyError(notes.error)}</Alert> : null}
       {notes.data && notes.data.length > 0 ? (
-        <ul className="mb-4 grid gap-2">
-          {notes.data.map((n) => (
-            <li key={n.id} className="rounded-card border border-line p-3">
-              <p className="whitespace-pre-wrap break-words text-sm text-text">{n.body}</p>
-              <p className="mt-1.5 text-xs text-muted">{formatDate(n.created_at)}</p>
+        <ul className="mb-3 divide-y divide-line">
+          {(showAll ? notes.data : notes.data.slice(0, 3)).map((n) => (
+            <li key={n.id} className="flex items-start gap-3 py-3">
+              <div className="min-w-0 flex-1"><p className="whitespace-pre-wrap break-words text-sm text-text">{n.body}</p>
+              <p className="mt-1.5 text-xs text-muted">{formatDate(n.created_at)}</p></div>
+              {n.author_id === viewer.data?.userId ? <Button variant="ghost" aria-label="Delete note" title="Delete note" disabled={remove.isPending} onClick={() => { remove.reset(); setDeleting(n.id); }}><TrashIcon /></Button> : null}
             </li>
           ))}
         </ul>
       ) : null}
+      {notes.data && notes.data.length > 3 ? <Button variant="ghost" className="mb-3" onClick={() => setShowAll((value) => !value)}>{showAll ? 'Show recent notes' : `Show all ${notes.data.length} notes`}</Button> : null}
       {notes.data && notes.data.length === 0 ? <p className="mb-4 text-sm text-muted">No notes yet.</p> : null}
+      {remove.error && !deleting ? <Alert title="Could not delete note">{friendlyError(remove.error)}</Alert> : null}
+      {deleting ? <Dialog title="Delete this note?" description="This permanently deletes your note." onClose={() => { if (!remove.isPending) setDeleting(null); }} footer={<>
+        <Button variant="secondary" disabled={remove.isPending} onClick={() => setDeleting(null)}>Keep note</Button>
+        <Button variant="danger" busy={remove.isPending} onClick={() => remove.mutate(deleting, { onSuccess: () => setDeleting(null) })}><TrashIcon />Delete note</Button>
+      </>}>{remove.error ? <div className="p-4"><Alert title="Could not delete note">{friendlyError(remove.error)}</Alert></div> : <span />}</Dialog> : null}
       <form onSubmit={submit} noValidate className="grid gap-3">
         <TextAreaField label="Add a note" rows={3} maxLength={5000} value={draft} onChange={(e) => setDraft(e.target.value)} error={error} />
         {add.error ? <Alert title="Note not saved">{friendlyError(add.error)}</Alert> : null}
@@ -230,6 +254,6 @@ function NotesCard({ clientId }: { clientId: string }) {
           </Button>
         </div>
       </form>
-    </Card>
+    </section>
   );
 }

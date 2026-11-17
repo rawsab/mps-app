@@ -15,6 +15,7 @@ export type ClientRow = {
   timezone: string;
   auth_user_id: string | null;
   created_at: string;
+  updated_at: string;
   service_enrollments: EnrollmentRow[];
 };
 
@@ -24,9 +25,12 @@ export type EnrollmentRow = {
   status: z.infer<typeof EnrollmentStatus>;
   starts_on: string;
   ends_on: string | null;
+  archived_at: string | null;
+  /** Selected by the clients list, which counts service changes as edits. */
+  updated_at?: string;
 };
 
-const CLIENT_COLUMNS = 'id, email, full_name, status, timezone, auth_user_id, created_at, service_enrollments(id, service, status, starts_on, ends_on)';
+const CLIENT_COLUMNS = 'id, email, full_name, status, timezone, auth_user_id, created_at, updated_at, service_enrollments(id, service, status, starts_on, ends_on, archived_at, updated_at)';
 
 export function useClients() {
   return useQuery({
@@ -94,11 +98,11 @@ export function useClientNotes(clientId: string) {
     queryFn: async () => {
       const { data, error } = await requireSupabase()
         .from('private_coach_notes')
-        .select('id, body, created_at')
+        .select('id, body, author_id, created_at')
         .eq('client_id', clientId)
         .order('created_at', { ascending: false });
       if (error) throw error;
-      return data as { id: string; body: string; created_at: string }[];
+      return data as { id: string; body: string; author_id: string | null; created_at: string }[];
     },
   });
 }
@@ -150,6 +154,19 @@ export function useSetEnrollmentStatus() {
   });
 }
 
+/** Hide ended enrollments without removing linked program/session history. */
+export function useArchiveEnrollment() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await requireSupabase().from('service_enrollments')
+        .update({ archived_at: new Date().toISOString() }).eq('id', id).eq('status', 'ended').select('id').single();
+      if (error) throw error;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clients'] }),
+  });
+}
+
 /** Calls the server-side invite function. It verifies the caller's admin role itself. */
 export function useInviteClient() {
   const queryClient = useQueryClient();
@@ -173,4 +190,17 @@ export function friendlyError(err: unknown): string {
   if (e?.code === '23505') return 'That would duplicate an existing record (email or active service).';
   if (e?.code === '42501') return 'You do not have permission to do that.';
   return e?.message ?? 'Something went wrong. Nothing was saved.';
+}
+
+/** Authorship and client access are enforced again by the delete policy. */
+export function useDeleteClientNote(clientId: string) {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { data, error } = await requireSupabase().from('private_coach_notes').delete().eq('id', id).eq('client_id', clientId).select('id').single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['client-notes', clientId] }),
+  });
 }

@@ -1,16 +1,22 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
 import { MultiSelectFilter } from '@/components/MultiSelectFilter';
 import { Badge, Button } from '@/components/ui';
 import type { ServiceKind } from '@/domain/programs/contract';
-import { formatDate } from '@/lib/format';
+import { formatDate, formatDateTime } from '@/lib/format';
 import { SERVICE_SHORT_LABELS, SERVICES } from '@/lib/services';
 import type { ClientRow, ClientStatus } from './api';
 import {
   ALL_STATUSES,
+  clampColumnWidth,
+  DEFAULT_COLUMN_WIDTHS,
+  MIN_COLUMN_WIDTHS,
+  parseColumnWidths,
+  type ColumnWidths,
   clientOverview,
   DEFAULT_TABLE_STATE,
   filterAndSortClients,
+  lastEditedAt,
   liveServices,
   paramsFromState,
   STATUS_LABELS,
@@ -24,13 +30,63 @@ export function statusBadge(status: ClientStatus) {
 }
 
 
-const COLUMNS: { key: SortKey; label: string; className?: string }[] = [
-  { key: 'name', label: 'Name', className: 'w-[19%]' },
-  { key: 'email', label: 'Email', className: 'w-[28%]' },
+const COLUMNS: { key: SortKey; label: string }[] = [
+  { key: 'name', label: 'Name' },
+  { key: 'email', label: 'Email' },
   { key: 'services', label: 'Services' },
-  { key: 'status', label: 'Status', className: 'w-32' },
-  { key: 'added', label: 'Added', className: 'w-32' },
+  { key: 'status', label: 'Status' },
+  { key: 'added', label: 'Added' },
+  { key: 'edited', label: 'Last edited' },
 ];
+
+const WIDTHS_STORAGE_KEY = 'mps.clientsTable.columnWidths';
+
+/** Per-viewer column widths, remembered in this browser only (a convenience, not shared state). */
+function useColumnWidths() {
+  const [widths, setWidths] = useState<ColumnWidths>(() => {
+    try { return parseColumnWidths(localStorage.getItem(WIDTHS_STORAGE_KEY)); } catch { return { ...DEFAULT_COLUMN_WIDTHS }; }
+  });
+  useEffect(() => {
+    try { localStorage.setItem(WIDTHS_STORAGE_KEY, JSON.stringify(widths)); } catch { /* Storage unavailable: widths last for this visit. */ }
+  }, [widths]);
+  const resize = (key: SortKey, width: number) => setWidths((current) => ({ ...current, [key]: clampColumnWidth(key, width) }));
+  return { widths, resize };
+}
+
+/** Drag (pointer), arrow keys (keyboard) or double-click (reset) to size a column. */
+function ResizeHandle({ label, width, min, onResize, onReset }: { label: string; width: number; min: number; onResize: (width: number) => void; onReset: () => void }) {
+  const start = useRef<{ x: number; width: number } | null>(null);
+  return (
+    <span
+      role="separator"
+      aria-orientation="vertical"
+      aria-label={`Resize ${label} column`}
+      aria-valuenow={width}
+      aria-valuemin={min}
+      tabIndex={0}
+      title="Drag to resize · double-click to reset"
+      onClick={(e) => e.stopPropagation()}
+      onDoubleClick={(e) => { e.stopPropagation(); onReset(); }}
+      onPointerDown={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        start.current = { x: e.clientX, width };
+      }}
+      onPointerMove={(e) => { if (start.current) onResize(start.current.width + e.clientX - start.current.x); }}
+      onPointerUp={() => { start.current = null; }}
+      onPointerCancel={() => { start.current = null; }}
+      onKeyDown={(e) => {
+        if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+        e.preventDefault();
+        onResize(width + (e.key === 'ArrowRight' ? 16 : -16));
+      }}
+      className="group/resize absolute -right-1.5 top-0 z-[1] flex h-full w-3 cursor-col-resize touch-none justify-center focus:outline-none"
+    >
+      <span aria-hidden className="h-full w-px bg-line transition-colors group-hover/resize:w-0.5 group-hover/resize:bg-gold group-focus-visible/resize:w-0.5 group-focus-visible/resize:bg-gold" />
+    </span>
+  );
+}
 
 const controlClass =
   'min-h-10 rounded-card border border-line bg-surface px-3 text-sm text-text focus:border-gold focus:outline-none';
@@ -42,6 +98,7 @@ export function ClientsTable({ rows }: { rows: ClientRow[] }) {
   // React state is the source of truth (updates queue reliably); the URL mirrors it so filters
   // survive navigating to a client and back, and can be bookmarked.
   const [state, setState] = useState<ClientTableState>(() => stateFromParams(params));
+  const columnWidths = useColumnWidths();
   const urlSearch = paramsFromState(state).toString();
   useEffect(() => {
     if (urlSearch !== params.toString()) setParams(new URLSearchParams(urlSearch), { replace: true });
@@ -55,7 +112,7 @@ export function ClientsTable({ rows }: { rows: ClientRow[] }) {
     setState((prev) => ({
       ...prev,
       sort: key,
-      dir: prev.sort === key ? (prev.dir === 'asc' ? 'desc' : 'asc') : key === 'added' ? 'desc' : 'asc',
+      dir: prev.sort === key ? (prev.dir === 'asc' ? 'desc' : 'asc') : key === 'added' || key === 'edited' ? 'desc' : 'asc',
     }));
 
   const overview = useMemo(() => clientOverview(rows), [rows]);
@@ -100,7 +157,9 @@ export function ClientsTable({ rows }: { rows: ClientRow[] }) {
 
       {/* The table scrolls inside its own frame on narrow screens; the page itself never overflows. */}
       <div className="overflow-x-auto rounded-card border border-line bg-surface">
-        <table className="w-full min-w-[720px] table-fixed border-collapse text-sm">
+        {/* Fixed layout with pixel columns: resizing one column never reflows the others. */}
+        <table className="min-w-full table-fixed border-collapse text-sm" style={{ width: COLUMNS.reduce((sum, col) => sum + columnWidths.widths[col.key], 0) }}>
+          <colgroup>{COLUMNS.map((col) => <col key={col.key} style={{ width: columnWidths.widths[col.key] }} />)}</colgroup>
           <thead>
             <tr className="border-b border-line text-left">
               {COLUMNS.map((col) => {
@@ -109,19 +168,21 @@ export function ClientsTable({ rows }: { rows: ClientRow[] }) {
                   <th
                     key={col.key}
                     scope="col"
-                    className={`px-3 py-0 font-medium text-muted ${col.className ?? ''}`}
+                    className="relative px-3 py-0 font-medium text-muted"
                     aria-sort={active ? (state.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
                   >
                     <button
                       type="button"
                       onClick={() => sortBy(col.key)}
-                      className={`flex min-h-10 w-full items-center gap-1 text-left hover:text-text ${active ? 'text-text' : ''}`}
+                      className={`flex min-h-10 w-full min-w-0 items-center gap-1 text-left hover:text-text ${active ? 'text-text' : ''}`}
                     >
-                      {col.label}
+                      <span className="truncate">{col.label}</span>
                       <span aria-hidden className={`text-xs ${active ? 'text-gold-fg' : 'opacity-0'}`}>
                         {active && state.dir === 'desc' ? '↓' : '↑'}
                       </span>
                     </button>
+                    <ResizeHandle label={col.label} width={columnWidths.widths[col.key]} min={MIN_COLUMN_WIDTHS[col.key]}
+                      onResize={(width) => columnWidths.resize(col.key, width)} onReset={() => columnWidths.resize(col.key, DEFAULT_COLUMN_WIDTHS[col.key])} />
                   </th>
                 );
               })}
@@ -134,7 +195,7 @@ export function ClientsTable({ rows }: { rows: ClientRow[] }) {
                 onClick={(e) => {
                   if (!(e.target as HTMLElement).closest('a')) navigate(`/coach/clients/${row.id}`);
                 }}
-                className="row-link cursor-pointer border-b border-line align-top last:border-b-0 hover:bg-surface-raised"
+                className="row-link cursor-pointer border-b border-line align-middle last:border-b-0 hover:bg-surface-raised"
               >
                 <td className="p-0">
                   <Link to={`/coach/clients/${row.id}`} className="block min-h-11 truncate px-3 py-2.5 font-medium text-text">
@@ -144,6 +205,7 @@ export function ClientsTable({ rows }: { rows: ClientRow[] }) {
                 <td className="truncate px-3 py-2.5 text-muted" title={row.email}>
                   {row.email}
                 </td>
+                {/* Services may wrap onto more lines; every other cell stays on one line and ends in "…". */}
                 <td className="px-3 py-2.5">
                   <div className="flex flex-wrap gap-1">
                     {liveServices(row).length === 0 ? <span className="text-muted">—</span> : null}
@@ -152,8 +214,11 @@ export function ClientsTable({ rows }: { rows: ClientRow[] }) {
                     ))}
                   </div>
                 </td>
-                <td className="px-3 py-2.5">{statusBadge(row.status)}</td>
-                <td className="px-3 py-2.5 text-muted">{formatDate(row.created_at)}</td>
+                <td className="truncate px-3 py-2.5">{statusBadge(row.status)}</td>
+                <td className="truncate px-3 py-2.5 text-muted" title={formatDate(row.created_at)}>{formatDate(row.created_at)}</td>
+                <td className="truncate px-3 py-2.5 text-muted">
+                  <time dateTime={lastEditedAt(row)} title={new Date(lastEditedAt(row)).toLocaleString()}>{formatDateTime(lastEditedAt(row))}</time>
+                </td>
               </tr>
             ))}
             {visible.length === 0 ? (
@@ -173,7 +238,7 @@ export function ClientsTable({ rows }: { rows: ClientRow[] }) {
 function ServiceTag({ service, paused }: { service: ServiceKind; paused: boolean }) {
   return (
     <span
-      className={`inline-flex items-center rounded px-1.5 py-0.5 text-xs ${paused ? 'bg-surface-raised text-muted' : 'bg-gold/15 text-gold-fg'}`}
+      className={`inline-block max-w-full truncate whitespace-nowrap rounded px-1.5 py-0.5 align-middle text-xs ${paused ? 'bg-surface-raised text-muted' : 'bg-gold/15 text-gold-fg'}`}
       title={paused ? `${SERVICE_SHORT_LABELS[service]} (paused)` : SERVICE_SHORT_LABELS[service]}
     >
       {SERVICE_SHORT_LABELS[service]}

@@ -1,7 +1,7 @@
 -- Private coaching notes are staff-only (PRD §4, FR-11, NFR-01). Run with: pnpm test:db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(12);
+select plan(18);
 
 create function pg_temp.act_as(uid uuid) returns void language plpgsql as $$
 begin
@@ -57,13 +57,29 @@ select is_empty('select 1 from public.private_coach_notes', 'unassigned coach se
 select pg_temp.reset_role();
 
 select pg_temp.act_as(:admin);
-select is((select count(*)::int from public.private_coach_notes), 3, 'admin reads every note');
+select is((select count(*)::int from public.private_coach_notes where body in ('Synthetic note: 10% referral discount', 'Synthetic note: prefers morning sessions', 'Coach note')), 3, 'admin reads every fixture note');
 select throws_ok(format('insert into public.private_coach_notes (client_id, body) values (%L, ''   '')', :client_a),
   '23514', null, 'blank notes are rejected');
 select pg_temp.reset_role();
 
 select pg_temp.act_as(:user_a);
 select is_empty('select 1 from public.private_coach_notes', 'client still sees nothing after staff writes');
+select pg_temp.reset_role();
+
+-- Deletion requires both authorship and current client access.
+select pg_temp.act_as(:coach);
+select is_empty('delete from public.private_coach_notes where body like ''Synthetic note:%'' returning id', 'coach cannot delete another author''s notes');
+select results_eq('delete from public.private_coach_notes where body = ''Coach note'' returning body', array['Coach note']::text[], 'coach can delete their own note');
+select is_empty('select id from public.private_coach_notes where body = ''Coach note''', 'deleted note is gone');
+select pg_temp.reset_role();
+select pg_temp.act_as(:coach_other);
+select is_empty('delete from public.private_coach_notes returning id', 'unassigned staff cannot delete notes');
+select pg_temp.reset_role();
+select pg_temp.act_as(:user_a);
+select is_empty('delete from public.private_coach_notes returning id', 'client cannot delete staff notes');
+select pg_temp.reset_role();
+select pg_temp.act_as(:admin);
+select results_eq('delete from public.private_coach_notes where body = ''Synthetic note: 10% referral discount'' returning body', array['Synthetic note: 10% referral discount']::text[], 'admin can delete their own note');
 select pg_temp.reset_role();
 
 select * from finish();
