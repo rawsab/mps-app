@@ -118,7 +118,7 @@ create function pg_temp.doc(n text) returns jsonb language sql as $$ select doc 
 grant execute on function pg_temp.doc(text) to anon, authenticated;
 
 select id as enr_a from public.service_enrollments where client_id = :client_a and service = 'mesocycle' \gset
-select id as enr_a_nutrition from public.service_enrollments where client_id = :client_a and service = 'nutrition' \gset
+select id as enr_a_nutrition from public.service_enrollments where client_id = :client_a and service = 'nutrition' order by (status = 'active') desc, starts_on desc, id limit 1 \gset
 select id as enr_b from public.service_enrollments where client_id = :client_b and service = 'personal_training' \gset
 
 -- Creating programs -----------------------------------------------------------------

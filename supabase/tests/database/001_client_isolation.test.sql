@@ -33,6 +33,11 @@ grant execute on all functions in schema pg_temp to anon, authenticated;
 \set client_b    '''10000000-0000-4000-b000-000000000002'''
 \set client_g    '''10000000-0000-4000-b000-000000000009'''
 
+-- Capture expected enrollment IDs as owner so historical/re-enrolled services do not
+-- change isolation assertions. Compare exact IDs, not seed-dependent counts.
+select coalesce(array_agg(id order by id),'{}'::uuid[])::text as expected_client_enrollments from public.service_enrollments where client_id=:client_a \gset
+select coalesce(array_agg(id order by id),'{}'::uuid[])::text as expected_coach_enrollments from public.service_enrollments where client_id in (:client_a,:client_g) \gset
+
 -- Anonymous ---------------------------------------------------------------
 select pg_temp.act_as(null);
 select throws_ok('select count(*) from public.clients', '42501', null, 'anon cannot read clients');
@@ -45,8 +50,8 @@ select pg_temp.act_as(:user_a);
 select results_eq('select id from public.clients', array[:client_a::uuid], 'client A sees only their own client record');
 select is_empty(format('select 1 from public.clients where id = %L', :client_b), 'client A cannot fetch client B by id');
 select results_eq(
-  'select service::text from public.service_enrollments order by service',
-  array['mesocycle', 'nutrition'],
+  'select id from public.service_enrollments order by id',
+  :'expected_client_enrollments'::uuid[],
   'client A sees only their own enrollments');
 select is_empty(format('select 1 from public.service_enrollments where client_id = %L', :client_b),
   'client A cannot read client B enrollments');
@@ -100,7 +105,7 @@ select pg_temp.reset_role();
 -- Assigned coach --------------------------------------------------------------
 select pg_temp.act_as(:coach);
 select results_eq('select id from public.clients order by id', array[:client_a::uuid, :client_g::uuid], 'assigned coach sees only their two assigned clients');
-select is((select count(*)::int from public.service_enrollments), 4, 'assigned coach sees only their clients'' enrollments');
+select results_eq('select id from public.service_enrollments order by id', :'expected_coach_enrollments'::uuid[], 'assigned coach sees only their clients'' enrollments');
 select throws_ok(format('insert into public.coach_clients (coach_id, client_id) values (%L, %L)', :coach, :client_b),
   '42501', null, 'coach cannot self-assign another client');
 select pg_temp.reset_role();

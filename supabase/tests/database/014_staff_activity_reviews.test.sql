@@ -36,6 +36,9 @@ grant execute on all functions in schema pg_temp to anon, authenticated;
 \set day3     '''93000000-0000-4000-a000-000000000003'''
 \set press    '''95000000-0000-4000-a000-000000000001'''
 
+-- Isolate the training-only fixture from nutrition activity created during local use.
+-- This transaction is rolled back; development records are preserved.
+truncate public.nutrition_daily_activity cascade;
 truncate public.programs cascade;
 -- Read state from local use would otherwise hide unread items.
 truncate public.staff_activity_reads, public.staff_activity_seen;
