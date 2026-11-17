@@ -92,7 +92,7 @@ export function ClientsPage() {
               <ClientsOverview rows={clients.data} canInvite={isAdmin} />
             </div>
           </div>
-          <ClientsTable rows={clients.data} />
+          <ClientsTable rows={clients.data} isAdmin={isAdmin} />
         </>
       ) : null}
     </div>

@@ -15,6 +15,7 @@ export type ClientRow = {
   status: ClientStatus;
   timezone: string;
   auth_user_id: string | null;
+  primary_coach_id: string | null;
   created_at: string;
   updated_at: string;
   service_enrollments: EnrollmentRow[];
@@ -34,7 +35,7 @@ export type EnrollmentRow = {
   current_nutrition_program_id: string | null;
 };
 
-const CLIENT_COLUMNS = 'id, email, full_name, status, timezone, auth_user_id, created_at, updated_at, service_enrollments(id, service, status, starts_on, ends_on, archived_at, updated_at, current_program_id, current_nutrition_program_id)';
+const CLIENT_COLUMNS = 'id, email, full_name, status, timezone, auth_user_id, primary_coach_id, created_at, updated_at, service_enrollments(id, service, status, starts_on, ends_on, archived_at, updated_at, current_program_id, current_nutrition_program_id)';
 
 export function useClients() {
   return useQuery({
@@ -147,6 +148,37 @@ export function useUpdateClientStatus() {
       if (error) throw error;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clients'] }),
+  });
+}
+
+export type CoachOption = { id: string; name: string; role: 'admin' | 'coach' };
+
+/** Staff a client can be transferred to. Admin only; the function checks the role itself. */
+export function useTransferCoachOptions(enabled: boolean) {
+  return useQuery({
+    queryKey: ['transfer-coach-options'],
+    enabled,
+    staleTime: 5 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await requireSupabase().rpc('transfer_coach_options');
+      if (error) throw error;
+      return data as CoachOption[];
+    },
+  });
+}
+
+/** Moves the client to a new primary coach (decision 0041); future sessions and meetings follow. */
+export function useTransferClient() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ clientId, coachId }: { clientId: string; coachId: string }) => {
+      const { error } = await requireSupabase().rpc('transfer_client', { p_client_id: clientId, p_coach_id: coachId });
+      if (error) throw error;
+    },
+    onSuccess: () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['clients'] }),
+      queryClient.invalidateQueries({ queryKey: ['meetings'] }),
+    ]),
   });
 }
 

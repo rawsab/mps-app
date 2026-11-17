@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import type { PatternSlot } from '@/domain/scheduling/pattern';
@@ -75,6 +75,10 @@ export function useMeetingContext(clientId: string) {
 
 /** Today's meetings across every client the coach can see, in the viewer's local day ("Upcoming today"). */
 export function useMeetingsToday() {
+  return useMeetingsTodayQuery(true);
+}
+
+function useMeetingsTodayQuery(enabled: boolean) {
   const day = new Date().toDateString();
   const range = useMemo(() => {
     const start = new Date(day);
@@ -82,9 +86,24 @@ export function useMeetingsToday() {
   }, [day]);
   return useQuery({
     queryKey: [...meetingsKey, 'today', range.from.toISOString()],
+    enabled,
     refetchInterval: 60_000,
     queryFn: () => rpc('list_meetings', { p_from: range.from.toISOString(), p_to: range.to.toISOString() }, z.array(MeetingSchema)),
   });
+}
+
+/**
+ * Today's scheduled meetings that haven't ended yet (the sidebar badge). Rechecked every 30 seconds,
+ * so the count drops as each meeting finishes.
+ */
+export function useMeetingsLeftToday(enabled = true) {
+  const today = useMeetingsTodayQuery(enabled);
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const timer = setInterval(() => setNow(Date.now()), 30_000);
+    return () => clearInterval(timer);
+  }, []);
+  return (today.data ?? []).filter((m) => m.status === 'scheduled' && new Date(m.startsAt).getTime() + m.durationMinutes * 60_000 > now).length;
 }
 
 /** Every visible client's meetings overlapping [from, to) (at most 100 days), soonest first. */

@@ -6,6 +6,7 @@ import type { ServiceKind } from '@/domain/programs/contract';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { SERVICE_SHORT_LABELS, SERVICES } from '@/lib/services';
 import type { ClientRow, ClientStatus } from './api';
+import { ClientRowMenu, type ClientRowMenuState } from './ClientRowMenu';
 import {
   ALL_STATUSES,
   clampColumnWidth,
@@ -91,14 +92,15 @@ function ResizeHandle({ label, width, min, onResize, onReset }: { label: string;
 const controlClass =
   'min-h-10 rounded-card border border-line bg-surface px-3 text-sm text-text focus:border-gold focus:outline-none';
 
-/** Notion-style client database: search, filter chips, sortable columns. State lives in the URL. */
-export function ClientsTable({ rows }: { rows: ClientRow[] }) {
+/** Notion-style client database: search, filter chips, sortable columns, a right-click row menu. State lives in the URL. */
+export function ClientsTable({ rows, isAdmin }: { rows: ClientRow[]; isAdmin: boolean }) {
   const [params, setParams] = useSearchParams();
   const navigate = useNavigate();
   // React state is the source of truth (updates queue reliably); the URL mirrors it so filters
   // survive navigating to a client and back, and can be bookmarked.
   const [state, setState] = useState<ClientTableState>(() => stateFromParams(params));
   const columnWidths = useColumnWidths();
+  const [menu, setMenu] = useState<ClientRowMenuState | null>(null);
   const urlSearch = paramsFromState(state).toString();
   useEffect(() => {
     if (urlSearch !== params.toString()) setParams(new URLSearchParams(urlSearch), { replace: true });
@@ -195,6 +197,14 @@ export function ClientsTable({ rows }: { rows: ClientRow[] }) {
                 onClick={(e) => {
                   if (!(e.target as HTMLElement).closest('a')) navigate(`/coach/clients/${row.id}`);
                 }}
+                onContextMenu={(e) => {
+                  e.preventDefault();
+                  // The keyboard menu key reports no pointer position; open beside the row instead.
+                  const fromKeyboard = e.clientX === 0 && e.clientY === 0;
+                  const rect = e.currentTarget.getBoundingClientRect();
+                  setMenu({ row, x: fromKeyboard ? rect.left + 16 : e.clientX, y: fromKeyboard ? rect.bottom : e.clientY,
+                    returnFocus: e.currentTarget.querySelector('a') });
+                }}
                 className="row-link cursor-pointer border-b border-line align-top last:border-b-0 hover:bg-surface-raised"
               >
                 <td className="p-0">
@@ -231,6 +241,7 @@ export function ClientsTable({ rows }: { rows: ClientRow[] }) {
           </tbody>
         </table>
       </div>
+      {menu ? <ClientRowMenu key={menu.row.id + menu.x + menu.y} menu={menu} isAdmin={isAdmin} onClose={() => setMenu(null)} /> : null}
     </div>
   );
 }

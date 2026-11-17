@@ -16,6 +16,7 @@ import {
 import { Avatar } from '@/components/Avatar';
 import { LegalFooter } from '@/components/LegalFooter';
 import { READ_FADE_MS, useUnreadCount } from '@/features/activity/api';
+import { useMeetingsLeftToday } from '@/features/scheduling/api';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { clientSections } from '@/lib/services';
 import { signOut, useViewer } from './auth';
@@ -191,6 +192,7 @@ function SidebarResizeHandle({ width, onResize, onDragging }: { width: number; o
 const sidebarControl = 'btn-motion inline-flex size-11 shrink-0 items-center justify-center rounded-card text-muted hover:bg-surface-raised hover:text-text';
 
 const REVIEWS_PATH = '/coach/reviews';
+const MEETINGS_PATH = '/coach/meetings';
 const unreadLabel = (count: number) => (count > 99 ? '99+' : String(count));
 
 /** Keeps the last count on screen while the badge fades out at zero. */
@@ -200,14 +202,14 @@ function useShownCount(count: number) {
   return last.current;
 }
 
-/** Unread count on Reviews: inline when expanded, a gold circle on the icon when collapsed. */
-function UnreadBadge({ count, collapsed }: { count: number; collapsed: boolean }) {
+/** A count on a nav item (Reviews: unread; Meetings: left today): inline when expanded, a gold circle on the icon when collapsed. */
+function UnreadBadge({ count, collapsed, label = 'unread' }: { count: number; collapsed: boolean; label?: string }) {
   const shown = useShownCount(count);
   if (shown === 0) return null;
   return (
     <span aria-hidden={count === 0} style={{ transitionDuration: `${READ_FADE_MS}ms` }}
       className={`rounded-full bg-gold text-center font-semibold tabular-nums leading-4 text-on-gold transition-[opacity,transform] ease-out motion-reduce:transition-none ${count ? 'scale-100 opacity-100' : 'scale-50 opacity-0'} ${collapsed ? 'absolute -right-2.5 -top-2 h-4 min-w-4 px-1 text-[0.625rem]' : 'ml-auto min-w-5 px-1.5 text-xs leading-5'}`}>
-      {unreadLabel(shown)}<span className="sr-only"> unread</span>
+      {unreadLabel(shown)}<span className="sr-only"> {label}</span>
     </span>
   );
 }
@@ -215,6 +217,11 @@ function UnreadBadge({ count, collapsed }: { count: number; collapsed: boolean }
 /** Sidebar and drawer links. Collapsed, the label stays as the accessible name and a hover title. */
 function CoachNavLinks({ collapsed = false, onNavigate }: { collapsed?: boolean; onNavigate?: () => void }) {
   const unread = useUnreadCount().data ?? 0;
+  const meetingsLeft = useMeetingsLeftToday();
+  const badges: Record<string, { count: number; label: string } | undefined> = {
+    [REVIEWS_PATH]: { count: unread, label: 'unread' },
+    [MEETINGS_PATH]: { count: meetingsLeft, label: 'left today' },
+  };
   return (
     <ul className="flex flex-col gap-1">
       {COACH_ITEMS.map((i) => (
@@ -222,7 +229,7 @@ function CoachNavLinks({ collapsed = false, onNavigate }: { collapsed?: boolean;
           <NavLink
             to={i.to}
             onClick={onNavigate}
-            title={collapsed ? (i.to === REVIEWS_PATH && unread ? `${i.label} (${unread} unread)` : i.label) : undefined}
+            title={collapsed ? (badges[i.to]?.count ? `${i.label} (${badges[i.to]!.count} ${badges[i.to]!.label})` : i.label) : undefined}
             className={({ isActive }) =>
               `flex min-h-11 items-center gap-3 rounded-card text-sm transition-colors ${collapsed ? 'justify-center' : 'px-3'} ${isActive ? 'bg-surface-raised font-medium text-text' : 'text-muted hover:bg-surface-raised hover:text-text'}`
             }
@@ -231,10 +238,10 @@ function CoachNavLinks({ collapsed = false, onNavigate }: { collapsed?: boolean;
               <>
                 <span className={`relative ${isActive ? 'text-gold-fg' : ''}`}>
                   {i.icon}
-                  {collapsed && i.to === REVIEWS_PATH ? <UnreadBadge count={unread} collapsed /> : null}
+                  {collapsed && badges[i.to] ? <UnreadBadge count={badges[i.to]!.count} label={badges[i.to]!.label} collapsed /> : null}
                 </span>
                 <span className={collapsed ? 'sr-only' : 'flex-1'}>{i.label}</span>
-                {!collapsed && i.to === REVIEWS_PATH ? <UnreadBadge count={unread} collapsed={false} /> : null}
+                {!collapsed && badges[i.to] ? <UnreadBadge count={badges[i.to]!.count} label={badges[i.to]!.label} collapsed={false} /> : null}
               </>
             )}
           </NavLink>
