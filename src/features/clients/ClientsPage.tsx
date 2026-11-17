@@ -5,6 +5,7 @@ import { PlusIcon } from '@/components/icons';
 import { Alert, Button, Card, EmptyState, PageHeader, Spinner, TextAreaField, TextField } from '@/components/ui';
 import type { ServiceKind } from '@/domain/programs/contract';
 import { SERVICE_LABELS, SERVICES } from '@/lib/services';
+import { deviceTimeZone, timeZoneOptions } from '@/lib/timeZones';
 import { friendlyError, NewClientInput, useClients, useCreateClient } from './api';
 import { ClientsOverview } from './ClientsOverview';
 import { ClientsTable } from './ClientsTable';
@@ -102,7 +103,7 @@ function NewClientForm({ onDone }: { onDone: () => void }) {
   const create = useCreateClient();
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [services, setServices] = useState<ServiceKind[]>([]);
-  const defaultTz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  const defaultTz = deviceTimeZone();
   const timeZones = timeZoneOptions();
   const formRef = useRef<HTMLFormElement>(null);
 
@@ -183,20 +184,4 @@ function NewClientForm({ onDone }: { onDone: () => void }) {
       </form>
     </Card>
   );
-}
-
-type TimeZoneOption = { value: string; label: string; detail?: string };
-let timeZoneCache: TimeZoneOption[] | null = null;
-
-/** IANA zones with their current UTC offset, e.g. "America/Toronto" · "GMT-5". Built once per page load. */
-function timeZoneOptions(): TimeZoneOption[] {
-  if (timeZoneCache) return timeZoneCache;
-  const now = new Date();
-  timeZoneCache = Intl.supportedValuesOf('timeZone').map((zone) => {
-    const offset = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'shortOffset' })
-      .formatToParts(now)
-      .find((p) => p.type === 'timeZoneName')?.value;
-    return { value: zone, label: zone.replaceAll('_', ' '), ...(offset ? { detail: offset } : {}) };
-  });
-  return timeZoneCache;
 }

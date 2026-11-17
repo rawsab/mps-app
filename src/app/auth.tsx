@@ -14,6 +14,10 @@ export type Viewer = {
   avatarPath: string | null;
   avatarUrl: string | null;
   staffRole: 'admin' | 'coach' | null;
+  /** IANA zone: the client record's for clients (it decides their "today"), the profile's for staff. */
+  timezone: string;
+  /** Staff only: the meeting link shown on their sessions and the late-cancellation window. */
+  scheduling: { meetingUrl: string | null; lateCancelHours: number } | null;
   /** Null when the user is not a client, or is a disabled client (RLS hides the record). */
   client: { id: string; fullName: string; status: string } | null;
   services: ServiceKind[];
@@ -55,8 +59,8 @@ async function loadViewer(session: Session): Promise<Viewer> {
   const userId = session.user.id;
   const [role, client, profile] = await Promise.all([
     supabase.from('staff_roles').select('role').eq('auth_user_id', userId).maybeSingle(),
-    supabase.from('clients').select('id, full_name, status').eq('auth_user_id', userId).maybeSingle(),
-    supabase.from('profiles').select('display_name, date_of_birth, phone_number, avatar_path').eq('auth_user_id', userId).maybeSingle(),
+    supabase.from('clients').select('id, full_name, status, timezone').eq('auth_user_id', userId).maybeSingle(),
+    supabase.from('profiles').select('display_name, date_of_birth, phone_number, avatar_path, timezone, meeting_url, late_cancel_hours').eq('auth_user_id', userId).maybeSingle(),
   ]);
   for (const r of [role, client, profile]) if (r.error) throw r.error;
 
@@ -80,6 +84,8 @@ async function loadViewer(session: Session): Promise<Viewer> {
     // A photo outage should not prevent navigation or access to profile settings.
     avatarUrl: await photoUrl(profile.data?.avatar_path ?? null).catch(() => null),
     staffRole: (role.data?.role as Viewer['staffRole']) ?? null,
+    timezone: client.data?.timezone ?? profile.data?.timezone ?? 'UTC',
+    scheduling: role.data ? { meetingUrl: profile.data?.meeting_url ?? null, lateCancelHours: profile.data?.late_cancel_hours ?? 24 } : null,
     client: client.data ? { id: client.data.id, fullName: client.data.full_name, status: client.data.status } : null,
     services,
   };

@@ -2,9 +2,11 @@ import { useRef, useState, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useViewer, type Viewer } from '@/app/auth';
 import { Avatar } from '@/components/Avatar';
+import { ComboboxField } from '@/components/ComboboxField';
 import { Alert, Button, Card, PageHeader, Spinner, TextField } from '@/components/ui';
-import { changePhoto, saveProfile } from './api';
-import { localDate, profileSchema, validatePhoto } from './validation';
+import { deviceTimeZone, timeZoneOptions } from '@/lib/timeZones';
+import { changePhoto, saveProfile, saveSchedulingSettings, saveTimeZone } from './api';
+import { localDate, profileSchema, schedulingSchema, validatePhoto } from './validation';
 
 export function ProfileSettingsPage() {
   const viewer = useViewer();
@@ -20,7 +22,10 @@ function ProfileForm({ viewer }: { viewer: Viewer }) {
   const [phoneNumber, setPhoneNumber] = useState(viewer.phoneNumber ?? '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<{ error: boolean; text: string } | null>(null);
-  const [busy, setBusy] = useState<'profile' | 'photo' | null>(null);
+  const [busy, setBusy] = useState<'profile' | 'photo' | 'timezone' | 'sessions' | null>(null);
+  const [meetingUrl, setMeetingUrl] = useState(viewer.scheduling?.meetingUrl ?? '');
+  const [lateCancelHours, setLateCancelHours] = useState(String(viewer.scheduling?.lateCancelHours ?? 24));
+  const device = deviceTimeZone();
   const input = useRef<HTMLInputElement>(null);
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['viewer', viewer.userId] });
 
@@ -45,6 +50,39 @@ function ProfileForm({ viewer }: { viewer: Viewer }) {
     } finally { setBusy(null); }
   }
 
+  async function updateTimeZone(timeZone: string) {
+    setMessage(null);
+    setBusy('timezone');
+    try {
+      await saveTimeZone(timeZone);
+      await refresh();
+      setMessage({ error: false, text: `Time zone set to ${timeZone.replaceAll('_', ' ')}.` });
+    } catch (error) {
+      setMessage({ error: true, text: error instanceof Error ? error.message : 'Could not save your time zone. Please try again.' });
+    } finally { setBusy(null); }
+  }
+
+  async function submitSessions(event: FormEvent) {
+    event.preventDefault();
+    setMessage(null);
+    const parsed = schedulingSchema.safeParse({ meetingUrl, lateCancelHours });
+    if (!parsed.success) {
+      setErrors(Object.fromEntries(parsed.error.issues.map((issue) => [String(issue.path[0]), issue.message])));
+      return;
+    }
+    setErrors({});
+    setBusy('sessions');
+    try {
+      await saveSchedulingSettings({ meetingUrl, lateCancelHours });
+      await refresh();
+      setMeetingUrl(parsed.data.meetingUrl);
+      setLateCancelHours(String(parsed.data.lateCancelHours));
+      setMessage({ error: false, text: 'Session settings saved.' });
+    } catch (error) {
+      setMessage({ error: true, text: error instanceof Error ? error.message : 'Could not save your session settings. Please try again.' });
+    } finally { setBusy(null); }
+  }
+
   async function updatePhoto(file: File | null) {
     setMessage(null);
     setBusy('photo');
@@ -60,7 +98,7 @@ function ProfileForm({ viewer }: { viewer: Viewer }) {
 
   return (
     <div className="max-w-2xl">
-      <PageHeader title="Profile settings" subtitle="Manage your personal details and profile picture." />
+      <PageHeader title="Profile settings" subtitle="Manage your personal details, profile picture and time zone." />
       <div className="flex flex-col gap-5">
         <Alert visible={!!message} tone={message?.error ? 'error' : 'success'} onDismiss={() => setMessage(null)}>{message?.text}</Alert>
         <Card>
@@ -92,6 +130,37 @@ function ProfileForm({ viewer }: { viewer: Viewer }) {
             </fieldset>
           </form>
         </Card>
+        <Card>
+          <h2 className="mb-4 text-base font-semibold text-text">Time zone</h2>
+          <form onSubmit={(event) => { event.preventDefault(); void updateTimeZone(String(new FormData(event.currentTarget).get('timezone'))); }} className="space-y-5" noValidate>
+            <fieldset disabled={!!busy} className="min-w-0 space-y-5">
+              {/* Remounts after a save so the field shows the stored zone. */}
+              <ComboboxField key={viewer.timezone} label="Time zone" name="timezone" options={timeZoneOptions()} defaultValue={viewer.timezone}
+                hint={viewer.staffRole ? 'Sessions you schedule use this time zone. Clients see them in their own.' : 'Session times and your daily logs use this time zone.'} />
+              {device !== viewer.timezone ? (
+                <p className="text-sm text-muted">
+                  This device is set to {device.replaceAll('_', ' ')}.{' '}
+                  <button type="button" className="font-medium text-gold-fg underline underline-offset-2" onClick={() => void updateTimeZone(device)}>Use it</button>
+                </p>
+              ) : null}
+              <Button type="submit" busy={busy === 'timezone'}>Save time zone</Button>
+            </fieldset>
+          </form>
+        </Card>
+        {viewer.scheduling ? (
+          <Card>
+            <h2 className="mb-4 text-base font-semibold text-text">Personal training sessions</h2>
+            <form onSubmit={(event) => void submitSessions(event)} className="space-y-5" noValidate>
+              <fieldset disabled={!!busy} className="min-w-0 space-y-5">
+                <TextField label="Meeting link" type="url" inputMode="url" value={meetingUrl} onChange={(event) => setMeetingUrl(event.target.value)} maxLength={500}
+                  placeholder="https://meet.google.com/abc-defg-hij" error={errors.meetingUrl} hint="Shown to your clients on every session. Leave blank if you don’t have one yet." />
+                <TextField label="Late cancellation window (hours)" type="text" inputMode="numeric" value={lateCancelHours} onChange={(event) => setLateCancelHours(event.target.value)} maxLength={3}
+                  className="sm:max-w-xs" error={errors.lateCancelHours} hint="Client cancellations sent with less notice than this are marked late." />
+                <Button type="submit" busy={busy === 'sessions'}>Save session settings</Button>
+              </fieldset>
+            </form>
+          </Card>
+        ) : null}
       </div>
     </div>
   );

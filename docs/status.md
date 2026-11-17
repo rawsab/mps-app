@@ -226,11 +226,27 @@ Date: 2026-11-16
   - The production bundle was checked to contain none of the sample sessions.
   - No browser checks; the owner is checking the UI manually.
 
+## PT scheduling, phase 1 (2026-11-17)
+
+- **Decision 0037** specifies personal training scheduling, a recorded scope addition (PRD §3 excludes booking and billing; billing stays excluded).
+- **Migration 00030:**
+  - Patterns repeat every 1–4 weeks with per-day local times in the coach's time zone.
+  - One row per session, generated 84 days ahead and topped up hourly by pg_cron.
+  - "This session only" and "this and following" edits, one-off sessions, and cancel/reinstate.
+  - Client cancel/reschedule requests. A cancellation is late inside the coach's window (24 hours by default) when sent. A reschedule is free if accepted before the session starts and expires otherwise.
+  - Billing groundwork: attended and no-show sessions are frozen.
+- **Profile settings:** everyone has a Time zone card. A client's zone saves to the client record, and the card offers the device's zone when it differs. Staff also set a meeting link and the late cancellation window.
+- **Verification:**
+  - `023_pt_scheduling.test.sql`: 80 pgTAP assertions. They cover access for clients, coaches, unassigned coaches, anonymous users and disabled clients, recurrence including daylight saving and 2- and 4-week cycles, idempotent generation, both edit scopes, requests, expiry, frozen sessions, primary-coach changes and paused services.
+  - Full `pnpm test:db` passes.
+  - `pnpm verify` passes. The time zone list moved to `src/lib/timeZones.ts`.
+  - The migration was applied to the running local DB without a reset. No browser checks.
+
 ## Known limitations
 
 - **Programs:** program/revision tables, both coach editors, the client Training view and mesocycle session logging are implemented. Programs under an ended (but not archived) service still appear to the client (decision 0020, open question). Nutrition now has its own draft/publish/archive lifecycle, weekly spreadsheets, shared daily records, correction history and program-relative summaries (decision 0029). Import-batch and general audit tables remain pending; Client Home has saved-record nutrition tasks, while training task derivation remains pending.
 - **Activity feeds:** Training updates derive from latest record state, so a coach overwriting a client's only logged row can drop that workout from Reviews; general `audit_events` is still pending. Nutrition notifications use durable client/day activity, survive coach corrections and retain the separate before/after entry history (decision 0030). Feeds and unread counts poll every minute (no realtime).
-- **Scheduling:** not built. "Upcoming today" shows sample data in local development and an "isn't set up yet" message elsewhere (decision 0026).
+- **Scheduling:** the database layer is built (decision 0037). Coach and client screens are not, so "Upcoming today" still shows sample data in local development and an "isn't set up yet" message elsewhere (decision 0026). Requests don't reach Reviews yet, and nothing emails Matt.
 - **Invitations:** invite and recovery emails have only been verified against local Mailpit. Real Resend delivery is untested.
 - **Playwright:** not yet a project dependency. The browser smoke script lives outside the repo.
 - **No linting:** no ESLint or formatter is configured yet.

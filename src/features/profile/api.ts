@@ -1,5 +1,5 @@
 import { requireSupabase } from '@/lib/supabase';
-import { profileSchema, validatePhoto } from './validation';
+import { profileSchema, schedulingSchema, validatePhoto } from './validation';
 
 export const PROFILE_PHOTOS_BUCKET = 'profile-photos';
 export async function photoUrl(path: string | null): Promise<string | null> {
@@ -18,6 +18,19 @@ export async function saveProfile(userId: string, input: { displayName: string; 
   }).eq('auth_user_id', userId).select('auth_user_id').single();
   if (error) throw error;
   return data;
+}
+
+/** Clients: also moves the client record's zone, which decides their "today". */
+export async function saveTimeZone(timeZone: string) {
+  const { error } = await requireSupabase().rpc('set_my_timezone', { p_timezone: timeZone });
+  if (error) throw error.code === '22023' ? new Error('Choose a time zone from the list.') : error;
+}
+
+/** Staff only. */
+export async function saveSchedulingSettings(input: { meetingUrl: string; lateCancelHours: string }) {
+  const values = schedulingSchema.parse(input);
+  const { error } = await requireSupabase().rpc('save_scheduling_settings', { p_meeting_url: values.meetingUrl, p_late_cancel_hours: values.lateCancelHours });
+  if (error) throw error;
 }
 
 /** New paths avoid cached replacements. Keep the previous photo until its replacement is saved. */
