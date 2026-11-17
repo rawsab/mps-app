@@ -22,13 +22,10 @@ const ACCOUNTS: { group: string; people: { name: string; email: string; note: st
   {
     group: 'Clients',
     people: [
-      { name: 'Maya Chen', email: 'maya.chen@example.test', note: 'Mesocycle' },
-      { name: 'Grace Liu', email: 'grace.liu@example.test', note: 'Mesocycle' },
-      { name: 'Hannah Kowalski', email: 'hannah.kowalski@example.test', note: 'Mesocycle' },
+      { name: 'Maya Chen', email: 'maya.chen@example.test', note: 'Meso + nutrition' },
+      { name: 'Grace Liu', email: 'grace.liu@example.test', note: 'Meso + PT' },
       { name: 'Lucas Silva', email: 'lucas.silva@example.test', note: 'Mesocycle · invited' },
-      { name: 'Daniel Okafor', email: 'daniel.okafor@example.test', note: 'Personal training' },
-      { name: 'Aisha Rahman', email: 'aisha.rahman@example.test', note: 'Personal training' },
-      { name: 'Owen Fitzgerald', email: 'owen.fitzgerald@example.test', note: 'Active' },
+      { name: 'Daniel Okafor', email: 'daniel.okafor@example.test', note: 'PT + nutrition' },
       { name: 'Sofia Márquez', email: 'sofia.marquez@example.test', note: 'Disabled' },
       { name: 'Ryan Patel', email: 'ryan.patel@example.test', note: 'Disabled' },
     ],

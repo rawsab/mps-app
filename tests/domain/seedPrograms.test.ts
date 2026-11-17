@@ -28,14 +28,9 @@ describe('demo program seed', () => {
     expect(new Set(nodeIds(draft)).size).toBe(nodeIds(draft).length);
   });
 
-  it('published revisions pass the publish checks; drafts are ready unless deliberately unfinished', () => {
-    for (const { label, draft, publish } of revisions) {
-      const problems = validateForPublish(draft);
-      if (publish || label !== 'lucas/meso1 r1') expect(problems, label).toEqual([]);
-      else expect(problems.map((p) => p.message)).toEqual([
-        'Seated Calf Raise: set count is missing', 'Seated Calf Raise: no target',
-        'Cable Crunch: set count is missing', 'Cable Crunch: no target',
-      ]);
+  it('all coaching documents pass the publish checks', () => {
+    for (const { label, draft } of revisions) {
+      expect(validateForPublish(draft), label).toEqual([]);
     }
   });
 

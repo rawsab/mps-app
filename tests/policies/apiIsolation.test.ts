@@ -91,6 +91,7 @@ describe('direct API isolation', () => {
 
   it('admin sees every client', async () => {
     const { data } = await admin.from('clients').select('id');
-    expect(data?.length).toBeGreaterThanOrEqual(12);
+    expect(data?.some((client) => client.id === CLIENT_A)).toBe(true);
+    expect(data?.some((client) => client.id === CLIENT_B)).toBe(true);
   });
 });

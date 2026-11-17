@@ -1,65 +1,50 @@
-/**
- * Which demo client gets which program, and in what lifecycle state. Rendered to
- * supabase/seed/programs.sql by `pnpm seed:programs`; `tests/domain/seedPrograms.test.ts` fails if
- * the committed SQL is stale.
- *
- * Every document goes through the real write path (save_draft → publish_revision → remove_program)
- * as the seeded admin, so the database's contract and publish checks apply to the seed too.
- */
-import type { ProgramDraft, ServiceKind } from '@/domain/programs/contract';
+/** Demo training documents and their deterministic SQL renderer. */
+import type { ProgramDraft } from '@/domain/programs/contract';
 import { seedId } from './builders';
-import { graceMesocycle, hannahMesocycle, lucasMesocycleDraft, mayaMesocycle, mayaMesocycleRevision } from './mesocycles';
-import { aishaPlan, danielFirstPlan, danielPlan, gracePlan, noahPlanDraft, ryanPlan } from './personalTraining';
+import { graceFoundation, graceMesocycle, mayaFoundation, mayaMesocycle, mayaMesocycleRevision, sofiaMesocycle } from './mesocycles';
+import { danielFirstPlan, danielPlan, graceFirstPlan, gracePlan, ryanPlan } from './personalTraining';
+import { renderTrainingLogs } from './trainingLogs';
 
 export const SEED_ADMIN = '00000000-0000-4000-a000-000000000001';
+export const REFERENCE_DATE = '2026-11-17';
+export const demoClient = (n: number) => `10000000-0000-4000-b000-${String(n).padStart(12, '0')}`;
+export const programId = (key: string) => seedId(`program/${key}`);
 
 export type SeedProgram = {
   key: string;
   clientId: string;
-  service: Exclude<ServiceKind, 'nutrition'>;
-  createdAt: string;
-  /** In order. Each is saved as a new revision; `publish` freezes it before the next. */
+  service: 'mesocycle' | 'personal_training';
   revisions: { draft: ProgramDraft; publish: boolean }[];
-  archive?: boolean;
+  archivedDaysAgo?: number;
+  /** Day offsets within each programmed week, leaving space for rest days. */
+  workoutDays: number[];
 };
 
-const client = (n: number) => `10000000-0000-4000-b000-0000000000${String(n).padStart(2, '0')}`;
+function program(
+  key: string, client: number, draft: ProgramDraft, workoutDays: number[], archivedDaysAgo?: number, revision?: ProgramDraft,
+): SeedProgram {
+  if (draft.service === 'nutrition') throw new Error('Expected a training program');
+  const revisions = [{ draft, publish: true }];
+  if (revision) revisions.push({ draft: revision, publish: false });
+  return { key, clientId: demoClient(client), service: draft.service, workoutDays, revisions, archivedDaysAgo };
+}
 
-export const seedPrograms: SeedProgram[] = [
-  // Maya (client A): week 3 of a published block, with an unpublished revision in progress.
-  { key: 'maya/meso3', clientId: client(1), service: 'mesocycle', createdAt: '2026-10-28 15:10:00+00',
-    revisions: [{ draft: mayaMesocycle, publish: true }, { draft: mayaMesocycleRevision, publish: false }] },
-  // Daniel (client B): an archived first plan and the current one.
-  { key: 'daniel/aug', clientId: client(2), service: 'personal_training', createdAt: '2026-08-21 18:00:00+00',
-    revisions: [{ draft: danielFirstPlan, publish: true }], archive: true },
-  { key: 'daniel/nov', clientId: client(2), service: 'personal_training', createdAt: '2026-11-06 20:30:00+00',
-    revisions: [{ draft: danielPlan, publish: true }] },
-  { key: 'aisha/strength', clientId: client(5), service: 'personal_training', createdAt: '2026-11-05 17:45:00+00',
-    revisions: [{ draft: aishaPlan, publish: true }] },
-  // Lucas is invited but hasn't signed in; his first block is a draft that isn't ready yet.
-  { key: 'lucas/meso1', clientId: client(6), service: 'mesocycle', createdAt: '2026-11-15 16:20:00+00',
-    revisions: [{ draft: lucasMesocycleDraft, publish: false }] },
-  // Hannah's mesocycle service ended 2026-05-31; the published block remains as history.
-  { key: 'hannah/meso2', clientId: client(7), service: 'mesocycle', createdAt: '2026-04-30 14:00:00+00',
-    revisions: [{ draft: hannahMesocycle, publish: true }] },
-  // Noah is pending (no account); his plan is complete but held until he accepts.
-  { key: 'noah/start', clientId: client(8), service: 'personal_training', createdAt: '2026-11-15 21:00:00+00',
-    revisions: [{ draft: noahPlanDraft, publish: false }] },
-  // Grace (Priya's client): both services.
-  { key: 'grace/meso1', clientId: client(9), service: 'mesocycle', createdAt: '2026-10-15 19:30:00+00',
-    revisions: [{ draft: graceMesocycle, publish: true }] },
-  { key: 'grace/technique', clientId: client(9), service: 'personal_training', createdAt: '2026-11-04 19:30:00+00',
-    revisions: [{ draft: gracePlan, publish: true }] },
-  // Ryan's PT service ended 2026-04-30.
-  { key: 'ryan/return', clientId: client(12), service: 'personal_training', createdAt: '2026-04-10 15:00:00+00',
-    revisions: [{ draft: ryanPlan, publish: true }] },
+export const seedPrograms = [
+  program('maya/meso2', 1, mayaFoundation, [0, 2, 4, 5], 20),
+  program('maya/meso3', 1, mayaMesocycle, [0, 1, 2, 3, 4, 5], undefined, mayaMesocycleRevision),
+  program('daniel/aug', 2, danielFirstPlan, [3, 6], 16),
+  program('daniel/nov', 2, danielPlan, [3, 6]),
+  program('sofia/base', 3, sofiaMesocycle, [1, 4], 144),
+  program('grace/base', 9, graceFoundation, [0, 2, 4, 5], 25),
+  program('grace/meso1', 9, graceMesocycle, [0, 2, 4, 5]),
+  program('grace/technique-base', 9, graceFirstPlan, [5], 15),
+  program('grace/technique', 9, gracePlan, [5]),
+  program('ryan/return', 12, ryanPlan, [1, 4], 130),
 ];
-
-export const programId = (key: string) => seedId(`program/${key}`);
 
 export const SEED_SQL_PATH = new URL('../../supabase/seed/programs.sql', import.meta.url);
 
-/** JSON with one exercise per line: readable diffs without a multi-megabyte file. */
+/** Compact objects for exercise rows and readable nesting for the program structure. */
 function formatDocument(value: unknown, indent = ''): string {
   if (Array.isArray(value)) {
     if (value.length === 0) return '[]';
@@ -80,69 +65,94 @@ const literal = (text: string) => `'${text.replace(/'/g, "''")}'`;
 export function renderSeedSql(programs: SeedProgram[] = seedPrograms): string {
   const calls = programs.map((p) => {
     const revisions = p.revisions.map((r) => {
-      const json = formatDocument(r.draft);
+      const draft: ProgramDraft = {
+        ...r.draft,
+        weeks: r.draft.weeks.map(week => ({
+          ...week,
+          days: week.days.map((day, index) => {
+            const date = new Date(`${week.startDate}T00:00:00Z`);
+            date.setUTCDate(date.getUTCDate() + p.workoutDays[index]!);
+            return { ...day, scheduledDate: date.toISOString().slice(0, 10) };
+          }),
+        })),
+      };
+      const json = formatDocument(draft);
       if (json.includes('$doc$')) throw new Error(`${p.key}: document contains the SQL quote tag`);
       return `  (${r.publish}, $doc$${json}$doc$)`;
     });
     return [
       `-- ${p.key}`,
-      `select pg_temp.seed_program(${literal(programId(p.key))}, ${literal(p.clientId)}, ${literal(p.service)}, ${literal(p.createdAt)}, ${p.archive ?? false}, array[`,
+      `select pg_temp.seed_program(${literal(programId(p.key))}, ${literal(p.clientId)}, ${literal(p.service)}, ${p.archivedDaysAgo ?? 'null'}, array[`,
       revisions.join(',\n'),
       `]::pg_temp.seed_revision[]);`,
     ].join('\n');
   });
 
-  return `-- GENERATED by scripts/seed/programs.ts. Edit the TypeScript and run \`pnpm seed:programs\`.
--- LOCAL DEVELOPMENT DATA ONLY: demo programs for the fictional clients in seed.sql.
---
--- Documents go through the real write path as the seeded admin: save_draft validates each one
--- against the ProgramDraft contract and publish_revision applies the publish checks. Programs on
--- ended services were published while the service ran, so the service is reopened for that step.
+  return `-- GENERATED by scripts/seed/programs.ts. Edit the TypeScript and run \x60pnpm seed:programs\x60.
+-- LOCAL DEVELOPMENT DATA ONLY. The dates in documents are offsets from ${REFERENCE_DATE}.
 begin;
 
 select set_config('request.jwt.claims', json_build_object('sub', ${literal(SEED_ADMIN)}, 'role', 'authenticated')::text, true);
+create or replace function pg_temp.demo_today() returns date language sql stable as $$
+  select (created_at at time zone 'America/Toronto')::date + 140 from public.clients where id = '${demoClient(1)}'
+$$;
 
 create type pg_temp.seed_revision as (publish boolean, doc jsonb);
 
 create function pg_temp.seed_program(
-  p_id uuid, p_client uuid, p_service public.service_kind, p_created_at timestamptz, p_archive boolean,
+  p_id uuid, p_client uuid, p_service public.service_kind, p_archived_days_ago integer,
   p_revisions pg_temp.seed_revision[]
 ) returns void language plpgsql as $$
 declare
   enrollment public.service_enrollments;
   rev pg_temp.seed_revision;
-  saved jsonb;
-  draft_version integer;
+  draft_id uuid;
+  document jsonb;
+  problems jsonb;
+  shift integer := pg_temp.demo_today() - date '${REFERENCE_DATE}';
+  start_on date := ((p_revisions[1]).doc #>> '{weeks,0,startDate}')::date + shift;
+  prepared_at timestamptz := (start_on - 2 + time '16:00') at time zone 'America/Toronto';
+  archive_time timestamptz := (pg_temp.demo_today() - p_archived_days_ago + time '18:00') at time zone 'America/Toronto';
 begin
-  select * into strict enrollment from public.service_enrollments
-  where client_id = p_client and service = p_service order by starts_on desc limit 1;
-  if enrollment.status = 'ended' then
-    update public.service_enrollments set status = 'active', ends_on = null, archived_at = null where id = enrollment.id;
-  end if;
-
-  insert into public.programs (id, client_id, enrollment_id, service, created_by, created_at)
-  values (p_id, p_client, enrollment.id, p_service, ${literal(SEED_ADMIN)}, p_created_at);
+  if exists (select 1 from public.programs where id = p_id) then return; end if;
+  select * into strict enrollment from public.service_enrollments where client_id = p_client and service = p_service;
+  insert into public.programs (id, client_id, enrollment_id, service, created_by, created_at, updated_at)
+  values (p_id, p_client, enrollment.id, p_service, ${literal(SEED_ADMIN)}, prepared_at, prepared_at);
 
   foreach rev in array p_revisions loop
-    saved := public.save_draft(p_id, null, rev.doc);
-    draft_version := (saved ->> 'lockVersion')::integer;
+    -- Keep the same contract as the coach editor while rebasing both levels of the schedule.
+    select jsonb_set(rev.doc, '{weeks}', jsonb_agg(
+      week || jsonb_build_object('startDate', (week->>'startDate')::date + shift, 'days', (
+        select jsonb_agg(day || jsonb_build_object('scheduledDate', (day->>'scheduledDate')::date + shift) order by d)
+        from jsonb_array_elements(week->'days') with ordinality as days(day, d)
+      )) order by w))
+    into document from jsonb_array_elements(rev.doc->'weeks') with ordinality as weeks(week, w);
+    perform public.save_draft(p_id, null, document);
+    select id into strict draft_id from public.program_revisions where program_id = p_id and status = 'draft';
     if rev.publish then
-      perform public.publish_revision(p_id, draft_version);
-      draft_version := null;
+      problems := private.publish_problems(draft_id);
+      if problems <> '[]'::jsonb then raise exception 'Demo program %: %', p_id, problems; end if;
+      -- The publish RPC stamps the present time. Publish the validated draft with its historical date.
+      update public.program_revisions set status = 'published', created_at = prepared_at,
+        published_at = prepared_at + interval '1 day', published_by = ${literal(SEED_ADMIN)}
+      where id = draft_id;
+      update public.programs set current_revision_id = draft_id where id = p_id;
     end if;
   end loop;
-
-  if p_archive then
-    perform public.remove_program(p_id, draft_version, true);
-  end if;
-  if enrollment.status = 'ended' then
-    update public.service_enrollments set status = 'ended', ends_on = enrollment.ends_on, archived_at = enrollment.archived_at
-    where id = enrollment.id;
+  if archive_time is not null then
+    update public.programs set archived_at = archive_time where id = p_id;
+  else
+    perform public.set_current_program(enrollment.id, p_id);
   end if;
 end $$;
 
 ${calls.join('\n\n')}
 
+${renderTrainingLogs(programs)}
+
+drop function pg_temp.seed_program(uuid, uuid, public.service_kind, integer, pg_temp.seed_revision[]);
+drop type pg_temp.seed_revision;
+drop function pg_temp.demo_today();
 commit;
 `;
 }

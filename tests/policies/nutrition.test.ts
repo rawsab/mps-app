@@ -7,10 +7,16 @@ import { NutritionProgramSnapshot } from '@/domain/nutritionProgram';
 import { ActivitySchema, ReviewSchema } from '@/features/activity/api';
 import { z } from 'zod';
 
-const config = execSync('pnpm exec supabase status -o env', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
-const get = (key: string) => new RegExp(`^${key}="?([^"\\n]+)"?`, 'm').exec(config)?.[1] ?? '';
-const url = get('API_URL');
-const key = get('PUBLISHABLE_KEY') || get('ANON_KEY');
+function localConfig() {
+  if (process.env.SUPABASE_TEST_URL && process.env.SUPABASE_TEST_PUBLISHABLE_KEY) {
+    return { url: process.env.SUPABASE_TEST_URL, key: process.env.SUPABASE_TEST_PUBLISHABLE_KEY };
+  }
+  const config = execSync('pnpm exec supabase status -o env', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  const get = (key: string) => new RegExp(`^${key}="?([^"\\n]+)"?`, 'm').exec(config)?.[1] ?? '';
+  return { url: get('API_URL'), key: get('PUBLISHABLE_KEY') || get('ANON_KEY') };
+}
+
+const { url, key } = localConfig();
 const clientA = '10000000-0000-4000-b000-000000000001';
 async function signIn(email: string) {
   const client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });

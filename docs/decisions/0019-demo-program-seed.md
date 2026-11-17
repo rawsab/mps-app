@@ -2,6 +2,8 @@
 
 Date: 2026-11-16 · Status: requested by the owner
 
+The current demo roster, lifecycle examples, and seed commands are documented in [Local setup](../setup.md#demo-walkthrough). The original decision is recorded below.
+
 ## Decision (FR-04, FR-05, FR-06; NFR-07)
 
 - The local seed now includes realistic programs for the fictional clients. The source is TypeScript in `scripts/seed/` (builders, `mesocycles.ts`, `personalTraining.ts`, and the client catalog `programs.ts`). `pnpm seed:programs` renders it to `supabase/seed/programs.sql`, which `supabase db reset` applies after `seed.sql`. Edit the TypeScript, not the generated SQL. `tests/domain/seedPrograms.test.ts` fails if the SQL is stale.

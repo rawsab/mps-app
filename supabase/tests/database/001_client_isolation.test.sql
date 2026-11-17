@@ -84,8 +84,8 @@ select is((select display_name from public.profiles where auth_user_id = :user_a
 -- Client B --------------------------------------------------------------------
 select pg_temp.act_as(:user_b);
 select results_eq('select id from public.clients', array[:client_b::uuid], 'client B sees only their own client record');
-select results_eq('select service::text from public.service_enrollments', array['personal_training'],
-  'client B sees only personal training');
+select results_eq('select service::text from public.service_enrollments order by service::text', array['nutrition','personal_training'],
+  'client B sees their personal training and nutrition enrollments');
 select pg_temp.reset_role();
 
 -- Disabled client -------------------------------------------------------------
@@ -112,7 +112,7 @@ select pg_temp.reset_role();
 
 -- Admin -----------------------------------------------------------------------
 select pg_temp.act_as(:admin);
-select is((select count(*)::int from public.clients), 12, 'admin sees every client');
+select is((select count(*)::int from public.clients), 7, 'admin sees every client');
 select lives_ok($$insert into public.clients (email, full_name) values ('new.client@example.test', 'New Client (synthetic)')$$,
   'admin can create a client before invitation');
 select throws_ok($$insert into public.service_enrollments (client_id, service) values ('10000000-0000-4000-b000-000000000001', 'mesocycle')$$,

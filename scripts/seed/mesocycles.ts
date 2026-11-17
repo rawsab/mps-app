@@ -135,7 +135,7 @@ export const mayaMesocycle: ProgramDraft = mesocycle({
   title: 'Hypertrophy Mesocycle',
   theme: 'Balanced',
   coachNotes: mayaNotes,
-  startDate: '2026-11-02',
+  startDate: '2026-10-29',
   weeks: 5,
   progression: advancedProgression,
   days: mayaDays,
@@ -144,13 +144,13 @@ export const mayaMesocycle: ProgramDraft = mesocycle({
 
 /**
  * Revision 2, still a draft: week 2 feedback showed low side-delt stimulus and elbow discomfort on
- * the barbell skullcrusher. Weeks 3–4 get an extra lateral-raise set; weeks 3–5 swap the machine in.
+ * the barbell skullcrusher. Week 4 gets an extra lateral-raise set. Weeks 4–5 swap the machine in.
  * Node ids are kept, as an editor opening the published revision would.
  */
 export const mayaMesocycleRevision: ProgramDraft = (() => {
   const draft = structuredClone(mayaMesocycle);
-  draft.coachNotes += '\n\nWeek 3 changes: one more set on both lateral raise slots after low side-delt scores, and Machine Skullcrusher replaces Barbell Skullcrusher on the first Push day for the elbow.';
-  for (const week of draft.weeks.slice(2, 4)) {
+  draft.coachNotes += '\n\nWeek 4 changes: one more set on both lateral raise slots after low side-delt scores, and Machine Skullcrusher replaces Barbell Skullcrusher on the first Push day for the elbow.';
+  for (const week of draft.weeks.slice(3, 4)) {
     for (const day of week.days) {
       for (const ex of day.sections[0]!.exercises) {
         if (ex.name === 'Wall Lateral Raise' || ex.name === 'Leaning Lateral Raise') {
@@ -162,7 +162,7 @@ export const mayaMesocycleRevision: ProgramDraft = (() => {
       }
     }
   }
-  for (const week of draft.weeks.slice(2)) {
+  for (const week of draft.weeks.slice(3)) {
     const skull = week.days[2]!.sections[0]!.exercises.find((ex) => ex.name === 'Barbell Skullcrusher')!;
     skull.name = 'Machine Skullcrusher';
     skull.logicalKey = 'machine-skullcrusher';
@@ -171,184 +171,111 @@ export const mayaMesocycleRevision: ProgramDraft = (() => {
   return draft;
 })();
 
+const graceDays: MesoDay[] = [
+  {
+    focus: 'Lower · Glutes',
+    exercises: [
+      { name: 'Machine Hip Thrust', tier: 'primary', sets: 3, reps: [8, 12], notes: 'One-second squeeze at the top.' },
+      { name: 'Smith Machine Squat', tier: 'primary', sets: 3, reps: [8, 12], alternatives: ['Hack Squat'], notes: 'Feet slightly forward.' },
+      { name: '45° Back Extension', tier: 'primary', sets: 2, reps: [12, 15], notes: 'Round the upper back and drive with the glutes.' },
+      { name: 'Cable Glute Kickback', tier: 'accessory', sets: 2, reps: [12, 15], perSide: true },
+      { name: 'Seated Hip Abduction', tier: 'accessory', sets: 3, reps: [15, 20], dropSetFrom: 3 },
+      { name: 'Seated Calf Raise', tier: 'accessory', sets: 3, reps: [10, 15] },
+    ],
+  },
+  {
+    focus: 'Upper',
+    exercises: [
+      { name: 'Machine Chest Press', tier: 'primary', sets: 3, reps: [8, 12] },
+      { name: 'Neutral Grip Pulldown', tier: 'primary', sets: 3, reps: [10, 12] },
+      { name: 'Chest Supported Row', tier: 'primary', sets: 3, reps: [10, 12] },
+      { name: 'Dumbbell Shoulder Press', tier: 'primary', sets: 2, reps: [8, 12] },
+      { name: 'Cable Lateral Raise', tier: 'accessory', sets: 3, reps: [12, 15], perSide: true },
+      { name: 'EZ Bar Curl', tier: 'accessory', sets: 2, reps: [10, 12] },
+      { name: 'Rope Pushdown', tier: 'accessory', sets: 2, reps: [12, 15] },
+    ],
+  },
+  {
+    focus: 'Lower · Hamstrings',
+    exercises: [
+      { name: 'Dumbbell Romanian Deadlift', tier: 'primary', sets: 3, reps: [8, 10], notes: 'Three-second lowering; stop when the hips stop moving back.' },
+      { name: 'Bulgarian Split Squat', tier: 'primary', sets: 3, reps: [8, 12], perSide: true, notes: 'Lean forward slightly to bias the glutes.' },
+      { name: 'Seated Hamstring Curl', tier: 'primary', sets: 3, reps: [10, 15] },
+      { name: 'Leg Extension', tier: 'accessory', sets: 2, reps: [12, 15] },
+      { name: 'Cable Pull-Through', tier: 'accessory', sets: 2, reps: [12, 15] },
+      { name: 'Hanging Knee Raise', tier: 'accessory', sets: 2, reps: [10, 15], load: bodyweight },
+    ],
+  },
+  {
+    focus: 'Upper',
+    exercises: [
+      { name: 'Dumbbell Incline Press', tier: 'primary', sets: 3, reps: [8, 12] },
+      { name: 'Single Arm Cable Row', tier: 'primary', sets: 3, reps: [10, 12], perSide: true },
+      { name: 'Assisted Pull-up', tier: 'primary', sets: 3, reps: [6, 10] },
+      { name: 'Pec Deck', tier: 'accessory', sets: 2, reps: [12, 15] },
+      { name: 'Reverse Pec Deck', tier: 'accessory', sets: 2, reps: [15, 20] },
+      { name: 'Dumbbell Lateral Raise', tier: 'accessory', sets: 3, reps: [12, 20], dropSetFrom: 3 },
+      { name: 'Cable Overhead Extension', tier: 'accessory', sets: 2, reps: [12, 15] },
+    ],
+  },
+];
+
 export const graceMesocycle: ProgramDraft = mesocycle({
   key: 'grace/meso1',
   title: 'Hypertrophy Mesocycle',
   theme: 'Lower body emphasis',
   coachNotes: [
-    'Four-day upper/lower split with two lower days built around glutes and hamstrings. Upper days hold volume steady while lower days add sets each week.',
+    'Four-day upper/lower split with two lower days built around glutes and hamstrings. Add sets gradually as recovery allows.',
     '',
     'Log every set and fill in session feedback after each workout. Week 5 is a deload: half the sets, well away from failure.',
   ].join('\n'),
-  startDate: '2026-10-19',
+  startDate: '2026-10-23',
   weeks: 5,
   progression: advancedProgression,
   resources: feedbackGuide('grace/meso1'),
-  days: [
-    {
-      focus: 'Lower · Glutes',
-      exercises: [
-        { name: 'Machine Hip Thrust', tier: 'primary', sets: 3, reps: [8, 12], notes: 'One-second squeeze at the top.' },
-        { name: 'Smith Machine Squat', tier: 'primary', sets: 3, reps: [8, 12], alternatives: ['Hack Squat'], notes: 'Feet slightly forward.' },
-        { name: '45° Back Extension', tier: 'primary', sets: 2, reps: [12, 15], notes: 'Round the upper back and drive with the glutes.' },
-        { name: 'Cable Glute Kickback', tier: 'accessory', sets: 2, reps: [12, 15], perSide: true },
-        { name: 'Seated Hip Abduction', tier: 'accessory', sets: 3, reps: [15, 20], dropSetFrom: 3 },
-        { name: 'Seated Calf Raise', tier: 'accessory', sets: 3, reps: [10, 15] },
-      ],
-    },
-    {
-      focus: 'Upper',
-      exercises: [
-        { name: 'Machine Chest Press', tier: 'primary', sets: 3, reps: [8, 12] },
-        { name: 'Neutral Grip Pulldown', tier: 'primary', sets: 3, reps: [10, 12] },
-        { name: 'Chest Supported Row', tier: 'primary', sets: 3, reps: [10, 12] },
-        { name: 'Dumbbell Shoulder Press', tier: 'primary', sets: 2, reps: [8, 12] },
-        { name: 'Cable Lateral Raise', tier: 'accessory', sets: 3, reps: [12, 15], perSide: true },
-        { name: 'EZ Bar Curl', tier: 'accessory', sets: 2, reps: [10, 12] },
-        { name: 'Rope Pushdown', tier: 'accessory', sets: 2, reps: [12, 15] },
-      ],
-    },
-    {
-      focus: 'Lower · Hamstrings',
-      exercises: [
-        { name: 'Dumbbell Romanian Deadlift', tier: 'primary', sets: 3, reps: [8, 10], notes: 'Three-second lowering; stop when the hips stop moving back.' },
-        { name: 'Bulgarian Split Squat', tier: 'primary', sets: 3, reps: [8, 12], perSide: true, notes: 'Lean forward slightly to bias the glutes.' },
-        { name: 'Seated Hamstring Curl', tier: 'primary', sets: 3, reps: [10, 15] },
-        { name: 'Leg Extension', tier: 'accessory', sets: 2, reps: [12, 15] },
-        { name: 'Cable Pull-Through', tier: 'accessory', sets: 2, reps: [12, 15] },
-        { name: 'Hanging Knee Raise', tier: 'accessory', sets: 2, reps: [10, 15], load: bodyweight },
-      ],
-    },
-    {
-      focus: 'Upper',
-      exercises: [
-        { name: 'Dumbbell Incline Press', tier: 'primary', sets: 3, reps: [8, 12] },
-        { name: 'Single Arm Cable Row', tier: 'primary', sets: 3, reps: [10, 12], perSide: true },
-        { name: 'Assisted Pull-up', tier: 'primary', sets: 3, reps: [6, 10] },
-        { name: 'Pec Deck', tier: 'accessory', sets: 2, reps: [12, 15] },
-        { name: 'Reverse Pec Deck', tier: 'accessory', sets: 2, reps: [15, 20] },
-        { name: 'Dumbbell Lateral Raise', tier: 'accessory', sets: 3, reps: [12, 20], dropSetFrom: 3 },
-        { name: 'Cable Overhead Extension', tier: 'accessory', sets: 2, reps: [12, 15] },
-      ],
-    },
-  ],
+  days: graceDays,
 });
 
-/** Ended 2026-05-31; the service and its history stay for reference. */
-export const hannahMesocycle: ProgramDraft = mesocycle({
-  key: 'hannah/meso2',
-  title: 'Hypertrophy Mesocycle',
-  theme: 'Full body foundations',
-  coachNotes: 'Three full-body sessions a week with at least one rest day between them. This block practises judging RIR honestly: stop each set when you think you have the listed reps left. Week 4 is a deload.',
-  startDate: '2026-05-04',
+export const mayaFoundation = mesocycle({
+  key: 'maya/meso2',
+  title: 'Hypertrophy Base Block',
+  theme: 'Balanced',
+  coachNotes: 'Four training days. Use consistent machine settings and stop with two to three reps in reserve. Keep Saturday flexible around work.',
+  startDate: '2026-10-01',
   weeks: 4,
   progression: introProgression,
-  resources: feedbackGuide('hannah/meso2'),
-  days: [
-    {
-      focus: 'Full Body A',
-      exercises: [
-        { name: 'Goblet Squat', tier: 'primary', sets: 3, reps: [10, 12] },
-        { name: 'Dumbbell Bench Press', tier: 'primary', sets: 3, reps: [8, 12] },
-        { name: 'Lat Pulldown', tier: 'primary', sets: 3, reps: [10, 12] },
-        { name: 'Dumbbell Romanian Deadlift', tier: 'primary', sets: 2, reps: [10, 12] },
-        { name: 'Cable Lateral Raise', tier: 'accessory', sets: 2, reps: [12, 15], perSide: true },
-        { name: 'Cable Crunch', tier: 'accessory', sets: 2, reps: [12, 15] },
-      ],
-    },
-    {
-      focus: 'Full Body B',
-      exercises: [
-        { name: 'Leg Press', tier: 'primary', sets: 3, reps: [10, 15] },
-        { name: 'Seated Cable Row', tier: 'primary', sets: 3, reps: [10, 12] },
-        { name: 'Machine Shoulder Press', tier: 'primary', sets: 2, reps: [8, 12] },
-        { name: 'Lying Hamstring Curl', tier: 'accessory', sets: 2, reps: [10, 15] },
-        { name: 'Dumbbell Curl', tier: 'accessory', sets: 2, reps: [10, 12] },
-        { name: 'Cable Pushdown', tier: 'accessory', sets: 2, reps: [12, 15] },
-      ],
-    },
-    {
-      focus: 'Full Body C',
-      exercises: [
-        { name: 'Barbell Hip Thrust', tier: 'primary', sets: 3, reps: [8, 12] },
-        { name: 'Incline Machine Press', tier: 'primary', sets: 3, reps: [8, 12] },
-        { name: 'Chest Supported Row', tier: 'primary', sets: 3, reps: [10, 12] },
-        { name: 'Walking Lunge', tier: 'accessory', sets: 2, reps: [10, 12], perSide: true },
-        { name: 'Rope Facepull', tier: 'accessory', sets: 2, reps: [15, 20] },
-        { name: 'Seated Calf Raise', tier: 'accessory', sets: 2, reps: [12, 15] },
-      ],
-    },
-  ],
+  days: mayaDays.slice(0, 4).map(day => ({ ...day, exercises: day.exercises.slice(0, 5) })),
 });
 
-/**
- * Lucas hasn't accepted his invitation yet. Matt has built week 1 of a five-day split and is
- * still writing the Legs day, so the draft is deliberately not ready to publish.
- */
-export const lucasMesocycleDraft: ProgramDraft = mesocycle({
-  key: 'lucas/meso1',
-  title: 'Hypertrophy Mesocycle',
-  theme: 'Upper body emphasis',
-  coachNotes: 'First mesocycle. Five days: upper, lower, then push/pull/legs. Week 1 is written; weeks 2–5 will be duplicated from it once the Legs day is finished.',
-  startDate: '2026-11-23',
-  weeks: 5,
-  builtWeeks: 1,
+export const graceFoundation = mesocycle({
+  key: 'grace/base',
+  title: 'Lower Body Base Block',
+  theme: 'Lower body emphasis',
+  coachNotes: 'Build a repeatable squat and hinge before increasing weekly sets. Keep the same setup on the hip thrust every week.',
+  startDate: '2026-09-25',
+  weeks: 4,
   progression: introProgression,
-  resources: feedbackGuide('lucas/meso1'),
+  days: graceDays.map(day => ({ ...day, exercises: day.exercises.slice(0, 5) })),
+});
+
+export const sofiaMesocycle = mesocycle({
+  key: 'sofia/base',
+  title: 'Two-Day Gym Foundations',
+  theme: 'Full body',
+  coachNotes: 'Start with two gym sessions per week. Use the same machine setup each time and leave at least two reps in reserve.',
+  startDate: '2026-06-02',
+  weeks: 2,
+  progression: introProgression,
   days: [
-    {
-      focus: 'Upper',
-      exercises: [
-        { name: 'Barbell Bench Press', tier: 'primary', sets: 3, reps: [6, 10] },
-        { name: 'Chest Supported T-Bar Row', tier: 'primary', sets: 3, reps: [8, 12] },
-        { name: 'Seated Dumbbell Shoulder Press', tier: 'primary', sets: 2, reps: [8, 12] },
-        { name: 'Wide Grip Pulldown', tier: 'primary', sets: 2, reps: [10, 12] },
-        { name: 'Cable Lateral Raise', tier: 'accessory', sets: 3, reps: [12, 15], perSide: true },
-        { name: 'Preacher Curl', tier: 'accessory', sets: 2, reps: [10, 12] },
-        { name: 'Overhead Rope Extension', tier: 'accessory', sets: 2, reps: [12, 15] },
-      ],
-    },
-    {
-      focus: 'Lower',
-      exercises: [
-        { name: 'Hack Squat', tier: 'primary', sets: 3, reps: [8, 12] },
-        { name: 'Barbell Romanian Deadlift', tier: 'primary', sets: 3, reps: [8, 10] },
-        { name: 'Leg Extension', tier: 'accessory', sets: 2, reps: [12, 15] },
-        { name: 'Seated Hamstring Curl', tier: 'accessory', sets: 2, reps: [10, 15] },
-        { name: 'Standing Calf Raise', tier: 'accessory', sets: 3, reps: [10, 15] },
-      ],
-    },
-    {
-      focus: 'Push',
-      exercises: [
-        { name: 'Incline Smith Press', tier: 'primary', sets: 3, reps: [8, 12] },
-        { name: 'Machine Shoulder Press', tier: 'primary', sets: 2, reps: [8, 12] },
-        { name: 'Cable Chest Fly', tier: 'accessory', sets: 2, reps: [12, 15], alternatives: ['Pec Deck'] },
-        { name: 'Dumbbell Lateral Raise', tier: 'accessory', sets: 3, reps: [12, 20] },
-        { name: 'Cable Rope Tricep Extension', tier: 'accessory', sets: 2, reps: [12, 15] },
-        { name: 'Assisted Dip', tier: 'primary', sets: 2, reps: [8, 12] },
-      ],
-    },
-    {
-      focus: 'Pull',
-      exercises: [
-        { name: 'Assisted Chinup', tier: 'primary', sets: 3, reps: [6, 10] },
-        { name: 'Machine Row', tier: 'primary', sets: 3, reps: [8, 12] },
-        { name: 'Cable Lat Pullover', tier: 'accessory', sets: 2, reps: [12, 15] },
-        { name: 'Reverse Pec Deck', tier: 'accessory', sets: 3, reps: [15, 20] },
-        { name: 'Incline Curl', tier: 'accessory', sets: 2, reps: [10, 12] },
-        { name: 'Dumbbell Hammer Curl', tier: 'accessory', sets: 2, reps: [10, 12] },
-      ],
-    },
-    {
-      focus: 'Legs',
-      exercises: [
-        { name: 'Silver Leg Press', tier: 'primary', sets: 3, reps: [10, 15], alternatives: ['Smith Machine Squat'] },
-        { name: 'Lying Hamstring Curl', tier: 'primary', sets: 3, reps: [10, 15] },
-        { name: 'Elevated Reverse Lunge', tier: 'accessory', sets: 2, reps: [8, 12], perSide: true },
-        { name: 'Seated Calf Raise', unfinished: true },
-        { name: 'Cable Crunch', unfinished: true },
-      ],
-    },
+    { focus: 'Full Body A', exercises: [
+      { name: 'Goblet Squat', tier: 'primary', sets: 2, reps: [8, 12] },
+      { name: 'Dumbbell Bench Press', tier: 'primary', sets: 2, reps: [8, 12] },
+      { name: 'Lat Pulldown', tier: 'accessory', sets: 2, reps: [10, 12] },
+    ] },
+    { focus: 'Full Body B', exercises: [
+      { name: 'Leg Press', tier: 'primary', sets: 2, reps: [10, 12] },
+      { name: 'Seated Cable Row', tier: 'primary', sets: 2, reps: [10, 12] },
+      { name: 'Seated Hamstring Curl', tier: 'accessory', sets: 2, reps: [10, 15] },
+    ] },
   ],
 });

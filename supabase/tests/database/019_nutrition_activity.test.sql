@@ -17,6 +17,8 @@ grant execute on all functions in schema pg_temp to authenticated;
 \set admin '''00000000-0000-4000-a000-000000000001'''
 \set other '''00000000-0000-4000-a000-000000000003'''
 \set p '''8a000000-0000-4000-a000-000000000001'''
+-- Isolate the feed from the demo's other notification types.
+truncate public.meeting_requests, public.service_requests cascade;
 truncate public.nutrition_daily_activity cascade;
 truncate public.training_sessions cascade;
 delete from public.staff_activity_reads;

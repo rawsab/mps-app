@@ -3,10 +3,16 @@ import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { execSync } from 'node:child_process';
 import { describe, expect, it } from 'vitest';
 
-const config = execSync('pnpm exec supabase status -o env', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
-const get = (key: string) => new RegExp(`^${key}="?([^"\\n]+)"?`, 'm').exec(config)?.[1] ?? '';
-const url = get('API_URL');
-const key = get('PUBLISHABLE_KEY') || get('ANON_KEY');
+function localConfig() {
+  if (process.env.SUPABASE_TEST_URL && process.env.SUPABASE_TEST_PUBLISHABLE_KEY) {
+    return { url: process.env.SUPABASE_TEST_URL, key: process.env.SUPABASE_TEST_PUBLISHABLE_KEY };
+  }
+  const config = execSync('pnpm exec supabase status -o env', { encoding: 'utf8', stdio: ['ignore', 'pipe', 'ignore'] });
+  const get = (key: string) => new RegExp(`^${key}="?([^"\\n]+)"?`, 'm').exec(config)?.[1] ?? '';
+  return { url: get('API_URL'), key: get('PUBLISHABLE_KEY') || get('ANON_KEY') };
+}
+
+const { url, key } = localConfig();
 const bucket = 'profile-photos';
 const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aX1kAAAAASUVORK5CYII=', 'base64');
 

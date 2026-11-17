@@ -38,6 +38,8 @@ grant execute on all functions in schema pg_temp to anon, authenticated;
 
 -- Isolate the training-only fixture from nutrition activity created during local use.
 -- This transaction is rolled back; development records are preserved.
+-- Isolate the feed from the demo's other notification types.
+truncate public.meeting_requests, public.service_requests cascade;
 truncate public.nutrition_daily_activity cascade;
 truncate public.programs cascade;
 -- Read state from local use would otherwise hide unread items.

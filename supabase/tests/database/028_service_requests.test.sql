@@ -15,7 +15,7 @@ begin
 end $$;
 grant execute on all functions in schema pg_temp to authenticated;
 
--- Maya (client A): mesocycle and nutrition, coach Priya assigned. Daniel (client B): PT only, not Priya's.
+-- Maya (client A): mesocycle and nutrition, coach Priya assigned. Daniel (client B): PT and nutrition, not Priya's.
 \set coach       '''00000000-0000-4000-a000-000000000002'''
 \set coach_other '''00000000-0000-4000-a000-000000000003'''
 \set user_a      '''00000000-0000-4000-a000-000000000011'''
