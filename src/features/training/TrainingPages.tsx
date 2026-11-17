@@ -23,7 +23,7 @@ export function TrainingPage() {
     <div>
       <PageHeader title="Training" />
       {programs.isPending ? <Spinner label="Loading programs" /> : null}
-      {programs.error ? <Alert title="Could not load your programs">{trainingErrorMessage(programs.error)}</Alert> : null}
+      <Alert visible={!!programs.error} title="Could not load your programs">{trainingErrorMessage(programs.error)}</Alert>
       {programs.data?.length === 0 ? (
         <EmptyState title="No program yet">Your coach hasn’t published a program for you. It will appear here once they do.</EmptyState>
       ) : null}
@@ -94,8 +94,8 @@ export function TrainingProgramView({ programId, backTo, backLabel, staff = fals
           <span className="block">{SERVICE_LABELS[service]} · updated {formatDate(publishedAt)}</span>
         </>}
       />
-      {staff ? <div className="mb-4"><Alert tone="note" title="Client log">You’re viewing the published program as the client sees it. Changes you make are saved to the client’s record and marked as coach edits.</Alert></div> : null}
-      {archivedAt ? <div className="mb-4"><Alert tone="info" title="Archived program">Your coach archived this program on {formatDate(archivedAt)}. It’s kept here for reference.</Alert></div> : null}
+      <Alert visible={!!staff} className="mb-4" tone="note" title="Client log">You’re viewing the published program as the client sees it. Changes you make are saved to the client’s record and marked as coach edits.</Alert>
+      <Alert visible={!!archivedAt} className="mb-4" tone="info" title="Archived program">Your coach archived this program on {archivedAt ? formatDate(archivedAt) : ''}. It’s kept here for reference.</Alert>
       {doc.coachNotes.trim() ? <Notes title="Program notes" body={doc.coachNotes} /> : null}
 
       {located ? (

@@ -78,8 +78,8 @@ export function MoveGridItemDialog({ target, onClose }: { target: GridMoveTarget
         </SelectField>
         {!sections.length ? <p className="text-sm text-muted">Add a section at the destination first using Add… in Grid mode.</p> : null}
       </> : null}
-      {!exists ? <Alert>This item no longer exists. Close this dialog and select it again.</Alert> : null}
-      {error ? <Alert>{error}</Alert> : null}
+      <Alert visible={!exists}>This item no longer exists. Close this dialog and select it again.</Alert>
+      <Alert visible={!!error}>{error}</Alert>
     </form>
   </Dialog>;
 }

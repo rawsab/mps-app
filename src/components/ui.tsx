@@ -1,5 +1,6 @@
 import type { ComponentPropsWithRef, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { useId } from 'react';
+import { NoticePresence } from './NoticePresence';
 
 type ButtonProps = ComponentPropsWithRef<'button'> & { variant?: 'primary' | 'secondary' | 'ghost' | 'danger'; busy?: boolean };
 
@@ -110,7 +111,14 @@ export function SelectField({ label, children, className = '', ...rest }: Select
   );
 }
 
-export function Alert({ tone = 'error', title, children, onDismiss }: { tone?: 'error' | 'info' | 'note' | 'success'; title?: string; children: ReactNode; onDismiss?: () => void }) {
+type AlertProps = { tone?: 'error' | 'info' | 'note' | 'success'; title?: string; children: ReactNode; onDismiss?: () => void; visible?: boolean; className?: string };
+
+/** Keep conditional alerts mounted with `visible` so cleared messages can animate out. */
+export function Alert({ visible = true, className, ...props }: AlertProps) {
+  return <NoticePresence visible={visible} className={className}><AlertBody {...props} /></NoticePresence>;
+}
+
+function AlertBody({ tone = 'error', title, children, onDismiss }: AlertProps) {
   const styles = {
     error: 'border-danger/50 bg-danger/10 text-danger',
     info: 'border-gold/40 bg-gold/10 text-text',
@@ -164,13 +172,16 @@ export function EmptyState({ title, children, action }: { title: string; childre
   );
 }
 
-export function PageHeader({ title, subtitle, actions }: { title: string; subtitle?: ReactNode; actions?: ReactNode }) {
+export function PageHeader({ title, subtitle, actions, leading }: { title: string; subtitle?: ReactNode; actions?: ReactNode; leading?: ReactNode }) {
   return (
     // min-h-11 matches a header button, so the title doesn't shift when an action hides.
     <header className="mb-6 flex min-h-11 flex-wrap items-end justify-between gap-3">
-      <div className="min-w-0">
-        <h1 className="break-words text-[1.75rem] font-medium leading-tight tracking-[-0.025em] text-text sm:text-[2rem]">{title}</h1>
-        {subtitle ? <p className="mt-1 text-sm text-muted">{subtitle}</p> : null}
+      <div className="flex min-w-0 items-center gap-4">
+        {leading}
+        <div className="min-w-0">
+          <h1 className="break-words text-[1.75rem] font-medium leading-tight tracking-[-0.025em] text-text sm:text-[2rem]">{title}</h1>
+          {subtitle ? <p className="mt-1 text-sm text-muted">{subtitle}</p> : null}
+        </div>
       </div>
       {actions}
     </header>

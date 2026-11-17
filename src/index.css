@@ -396,29 +396,34 @@ details[open] > .disclosure-summary > .disclosure-chevron {
  * Dismissible notice: unfolds and fades in on mount, folds away on dismiss. The negative margin
  * absorbs the parent's gap so content below glides instead of jumping when it unmounts.
  */
-@keyframes notice-in {
-  from {
-    grid-template-rows: 0fr;
-    opacity: 0;
-    margin-block-end: calc(-1 * var(--notice-gap, 0px));
-  }
-}
 .notice-motion {
   display: grid;
   grid-template-rows: 1fr;
-  animation: notice-in 320ms var(--ease-ui) both;
+  opacity: 1;
   transition:
     grid-template-rows 320ms var(--ease-ui),
+    margin-block-start 320ms var(--ease-ui),
     margin-block-end 320ms var(--ease-ui),
     opacity 220ms 80ms ease-out;
 }
+/* Native entry transitions also reverse smoothly if a request clears a message immediately. */
+@starting-style {
+  .notice-motion {
+    grid-template-rows: 0fr;
+    opacity: 0;
+    margin-block-start: 0;
+    margin-block-end: calc(-1 * var(--notice-gap, 0px));
+  }
+}
 .notice-motion[data-leaving] {
   grid-template-rows: 0fr;
+  margin-block-start: 0;
   opacity: 0;
   margin-block-end: calc(-1 * var(--notice-gap, 0px));
   transition:
     opacity 160ms ease-out,
     grid-template-rows 280ms 100ms var(--ease-ui),
+    margin-block-start 280ms 100ms var(--ease-ui),
     margin-block-end 280ms 100ms var(--ease-ui);
 }
 @media (prefers-reduced-motion: reduce) {

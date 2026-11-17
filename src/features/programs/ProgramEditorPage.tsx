@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Link, useBlocker, useParams, useSearchParams } from 'react-router';
 import { DismissibleNotice } from '@/components/DismissibleNotice';
+import { DraftSaveIndicator as SaveIndicator } from '@/components/DraftSaveIndicator';
 import { CautionIcon, SectionIcon, SpreadsheetIcon } from '@/components/icons';
 import { scrollBehavior } from './useWeekMotion';
 import { Dialog } from '@/components/Dialog';
@@ -14,7 +15,7 @@ import { useProgram } from './api';
 import { GridView } from './GridView';
 import { publishDestination, rejectedDestination } from './programNavigation';
 import { ProgramDetailsFields, ProgramView } from './ProgramView';
-import { DraftEditorContext, useDraftEditor, type DraftEditor, type SaveState } from './useDraftEditor';
+import { DraftEditorContext, useDraftEditor, type DraftEditor } from './useDraftEditor';
 
 type View = 'program' | 'grid';
 
@@ -94,12 +95,12 @@ function Editor({ program, clientName }: { program: NonNullable<ReturnType<typeo
   const rejectedCount = Object.keys(state.rejected).length;
   const reviewProblems = [...problems, ...Object.entries(state.rejected).map(([key, edit]) => ({ path: `rejected:${key}`, message: edit.message }))];
   const archived = program.archived_at !== null;
-  const revisionLabel =
+  const programStatus =
     state.baseStatus === 'draft'
-      ? `Draft of revision ${state.revisionNumber}`
+      ? 'Draft · staff only'
       : state.baseStatus === 'published'
-        ? `Revision ${state.revisionNumber} is live. Edits start a new draft.`
-        : 'New program, not yet saved';
+        ? 'Live'
+        : 'New program';
 
   return (
     <DraftEditorContext.Provider value={editor}>
@@ -122,7 +123,7 @@ function Editor({ program, clientName }: { program: NonNullable<ReturnType<typeo
               {program.service === 'mesocycle' ? <span className="break-words text-base">{state.draft.programTheme?.trim() || 'Program Theme'}</span> : null}
               <span className="inline-flex flex-wrap items-center gap-2">
               <Badge>{SERVICE_SHORT_LABELS[program.service]}</Badge>
-              <span>{revisionLabel}</span>
+              <span>{programStatus}</span>
               </span>
             </span>
           }
@@ -263,84 +264,52 @@ function Editor({ program, clientName }: { program: NonNullable<ReturnType<typeo
   );
 }
 
-const SAVE_LABELS: Record<Exclude<SaveState, 'loading'>, string> = {
-  saved: 'All changes saved',
-  unsaved: 'Unsaved changes',
-  saving: 'Saving…',
-  error: 'Not saved',
-  conflict: 'Conflict',
-};
-
-function SaveIndicator({ state, onRetry }: { state: SaveState; onRetry: () => void }) {
-  if (state === 'loading') return null;
-  const tone = state === 'error' || state === 'conflict' ? 'text-danger' : state === 'saved' ? 'text-muted' : 'text-text';
-  return (
-    <span role="status" aria-live="polite" className={`inline-flex items-center gap-2 text-sm ${tone}`}>
-      {state === 'saving' ? <Spinner small /> : <span aria-hidden className={`size-2 rounded-full ${state === 'saved' ? 'bg-success' : state === 'unsaved' ? 'bg-gold' : 'bg-danger'}`} />}
-      {SAVE_LABELS[state]}
-      {state === 'error' ? (
-        <button type="button" onClick={onRetry} className="link min-h-11 text-gold-fg">
-          Retry
-        </button>
-      ) : null}
-    </span>
-  );
-}
-
 function Banners({ editor, archived, rejectedCount }: { editor: DraftEditor; archived: boolean; rejectedCount: number }) {
   const { state } = editor;
   return (
     <>
-      {archived ? <Alert tone="info" title="Archived">This program is archived. Its history is kept, and it can no longer be edited or published.</Alert> : null}
-      {state.recovery ? (
-        <Alert tone="info" title="Unsaved edits found on this device">
-          <p>From {formatDate(state.recovery.at)}. They were never saved to the server.</p>
-          <div className="mt-2 flex flex-wrap gap-2">
-            <Button className="min-h-10" onClick={() => void editor.restoreRecovery()}>
-              Restore them
-            </Button>
-            <Button className="min-h-10" variant="secondary" onClick={editor.discardRecovery}>
-              Discard
-            </Button>
-          </div>
-        </Alert>
-      ) : null}
-      {state.saveState === 'conflict' ? (
-        <Alert title="This draft changed somewhere else">
-          <p>
-            Another editor saved {state.conflictVersion ? `version ${state.conflictVersion}` : 'or published'} after you opened it. Nothing was overwritten, and your
-            edits are still here.
-          </p>
-          {state.error ? <p className="mt-1">{state.error}</p> : null}
-          <div className="mt-2 flex flex-wrap gap-2">
-            <Button className="min-h-10" onClick={() => void editor.resolveConflict('rebase')}>
-              Apply my edits to the latest
-            </Button>
-            <Button className="min-h-10" variant="secondary" onClick={() => void editor.resolveConflict('overwrite')}>
-              Replace theirs with mine
-            </Button>
-            <Button className="min-h-10" variant="danger" onClick={() => void editor.resolveConflict('discard')}>
-              Discard mine
-            </Button>
-          </div>
-        </Alert>
-      ) : null}
-      {state.saveState === 'error' && state.error ? (
-        <Alert title="Not saved">
-          {state.error}{' '}
-          <button type="button" className="link font-medium" onClick={() => void editor.save()}>
-            Retry now
-          </button>
-        </Alert>
-      ) : null}
-      {state.saveState !== 'error' && state.saveState !== 'conflict' && state.error ? <Alert title="Not published">{state.error}</Alert> : null}
+      <Alert visible={!!archived} tone="info" title="Archived">This program is archived. Its history is kept, and it can no longer be edited or published.</Alert>
+      <Alert visible={!!state.recovery} tone="info" title="Unsaved edits found on this device">
+        <p>From {state.recovery ? formatDate(state.recovery.at) : ''}. They were never saved to the server.</p>
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Button className="min-h-10" onClick={() => void editor.restoreRecovery()}>
+            Restore them
+          </Button>
+          <Button className="min-h-10" variant="secondary" onClick={editor.discardRecovery}>
+            Discard
+          </Button>
+        </div>
+      </Alert>
+      <Alert visible={state.saveState === 'conflict'} title="This draft changed somewhere else">
+        <p>
+          Another editor changed or published this program after you opened it. Nothing was overwritten, and your
+          edits are still here.
+        </p>
+        {state.error ? <p className="mt-1">{state.error}</p> : null}
+        <div className="mt-2 flex flex-wrap gap-2">
+          <Button className="min-h-10" onClick={() => void editor.resolveConflict('rebase')}>
+            Apply my edits to the latest
+          </Button>
+          <Button className="min-h-10" variant="secondary" onClick={() => void editor.resolveConflict('overwrite')}>
+            Replace theirs with mine
+          </Button>
+          <Button className="min-h-10" variant="danger" onClick={() => void editor.resolveConflict('discard')}>
+            Discard mine
+          </Button>
+        </div>
+      </Alert>
+      <Alert visible={state.saveState === 'error' && !!state.error} title="Not saved">
+        {state.error}{' '}
+        <button type="button" className="link font-medium" onClick={() => void editor.save()}>
+          Retry now
+        </button>
+      </Alert>
+      <Alert visible={!!(state.saveState !== 'error' && state.saveState !== 'conflict' && state.error)} title="Not published">{state.error}</Alert>
       <DismissibleNotice message={state.publishedNotice} className="[--notice-gap:1.25rem]" />
-      {rejectedCount > 0 ? (
-        <Alert tone="info">
-          {rejectedCount} {rejectedCount === 1 ? 'edit was' : 'edits were'} not accepted and {rejectedCount === 1 ? 'is' : 'are'} marked in red. Fix or press Escape in the field to
-          discard.
-        </Alert>
-      ) : null}
+      <Alert visible={rejectedCount > 0} tone="info">
+        {rejectedCount} {rejectedCount === 1 ? 'edit was' : 'edits were'} not accepted and {rejectedCount === 1 ? 'is' : 'are'} marked in red. Fix or press Escape in the field to
+        discard.
+      </Alert>
     </>
   );
 }
@@ -352,7 +321,7 @@ function ReadinessPanel({ problems, fromServer, onNavigate }: { problems: { path
         Ready to publish?
       </h2>
       {problems.length === 0 ? (
-        <p className="mt-1 text-sm text-muted">Yes. Publishing makes this draft the client’s current program; their completed sessions keep the revision they used.</p>
+        <p className="mt-1 text-sm text-muted">Yes. Publishing makes this draft the client’s current program. Their completed workout history is preserved.</p>
       ) : (
         <>
           <p className="mt-1 text-sm text-muted">{fromServer ? 'The server refused to publish:' : 'Not yet. Fix these first:'}</p>

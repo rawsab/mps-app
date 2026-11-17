@@ -70,7 +70,7 @@ function ToReviewPanel() {
         </h2>
         <Link to="/coach/reviews" className="-my-3 inline-flex min-h-11 items-center text-sm text-gold-fg"><span className="link">View all</span></Link>
       </div>
-      {unread.error || latest.error ? <Alert title="Could not load reviews">{friendlyError(unread.error ?? latest.error)}</Alert> : null}
+      <Alert visible={!!(unread.error || latest.error)} title="Could not load reviews">{friendlyError(unread.error ?? latest.error)}</Alert>
       {latest.isPending ? <Spinner label="Loading reviews" /> : null}
       {latest.data?.length === 0 ? (
         <div role="status" className="flex items-center gap-3 py-1">
@@ -129,7 +129,7 @@ function UpcomingSessionsPanel() {
           ))}
         </ul>
       ) : null}
-      {today.length > visible.length ? <p className="mt-1 text-xs text-muted">+{today.length - visible.length} more today</p> : null}
+      {today.length > visible.length ? <p className="mb-2 mt-2 text-xs text-muted">+{today.length - visible.length} more today</p> : null}
     </section>
   );
 }

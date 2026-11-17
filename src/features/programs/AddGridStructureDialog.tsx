@@ -71,7 +71,7 @@ export function AddGridStructureDialog({ currentRow, initialWeekId, initialKind 
         {kind === 'section' ? 'Section name (optional)' : 'Focus (optional)'}
         <input value={name} onChange={(e) => setLabel(e.target.value)} placeholder={kind === 'day' ? 'Legs, Pull, Push…' : undefined} maxLength={120} className={inputClass} />
       </label> : <p className="text-sm text-muted">Creates {weekName(editor.draft.weeks.length)}. Weeks and days are numbered automatically.</p>}
-      {error ? <Alert>{error}</Alert> : null}
+      <Alert visible={!!error}>{error}</Alert>
     </form>
   </Dialog>;
 }

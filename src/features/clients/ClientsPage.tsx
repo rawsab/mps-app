@@ -68,7 +68,7 @@ export function ClientsPage() {
         </div>
       </div>
       {clients.isPending ? <Spinner label="Loading clients" /> : null}
-      {clients.error ? <Alert title="Could not load clients">{friendlyError(clients.error)}</Alert> : null}
+      <Alert visible={!!clients.error} title="Could not load clients">{friendlyError(clients.error)}</Alert>
       {clients.data && clients.data.length === 0 ? (
         <EmptyState title="No clients yet">
           {isAdmin
@@ -171,7 +171,7 @@ function NewClientForm({ onDone }: { onDone: () => void }) {
           error={errors.notes}
           hint="Private to staff. The client never sees these."
         />
-        {create.error ? <Alert title="Client not created">{friendlyError(create.error)}</Alert> : null}
+        <Alert visible={!!create.error} title="Client not created">{friendlyError(create.error)}</Alert>
         <div className="flex gap-2">
           <Button type="submit" busy={create.isPending}>
             Create client

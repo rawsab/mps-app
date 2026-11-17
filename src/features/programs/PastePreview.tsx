@@ -30,14 +30,14 @@ export function PastePreview({ columns = GRID_COLUMNS, text, onTextChange, plan,
         <textarea id={id} value={text} onChange={(e) => onTextChange(e.target.value)} rows={4} spellCheck={false}
           className="mt-1 w-full rounded-card border border-line bg-ink p-3 font-mono text-sm focus:border-gold focus:outline-none" />
       </div>
-      {!plan ? <Alert title="Paste destination is no longer available">Cancel and select a cell again.</Alert> : plan.errors.length > 0 ? (
-        <Alert title="Paste needs correction">
+      <Alert visible={!plan} title="Paste destination is no longer available">Cancel and select a cell again.</Alert>
+      <Alert visible={!!plan?.errors.length} title="Paste needs correction">
           <p>No cells will change. Correct the pasted text above, or cancel and choose another destination.</p>
-          <ul className="mt-2 list-disc pl-4">{plan.errors.map((error, i) => <li key={i}>
+          <ul className="mt-2 list-disc pl-4">{plan?.errors.map((error, i) => <li key={i}>
             {location(error.exerciseId)}{error.column ? ` · ${columnLabel(error.column, columns)}` : ''}: {error.message}
           </li>)}</ul>
-        </Alert>
-      ) : plan.changes.length === 0 ? <p className="text-sm text-muted">This paste makes no changes.</p> : (
+      </Alert>
+      {!valid ? null : plan.changes.length === 0 ? <p className="text-sm text-muted">This paste makes no changes.</p> : (
         <div>
           <p className="mb-3 text-sm text-muted">{plan.changes.length} cell changes across {new Set(plan.changes.map((change) => change.exerciseId)).size} exercises</p>
           <table className="w-full table-fixed text-left text-sm">

@@ -104,7 +104,7 @@ export function SignInPage() {
       <form onSubmit={submit} noValidate className="grid gap-4">
         <TextField label="Email" name="email" type="email" autoComplete="email" required />
         <TextField label="Password" name="password" type="password" autoComplete="current-password" required />
-        {error ? <Alert>{error}</Alert> : null}
+        <Alert visible={!!error}>{error}</Alert>
         <Button type="submit" busy={busy}>
           Sign in
         </Button>
@@ -148,7 +148,7 @@ export function ForgotPasswordPage() {
       ) : (
         <form onSubmit={submit} noValidate className="grid gap-4">
           <TextField label="Email" name="email" type="email" autoComplete="email" />
-          {error ? <Alert>{error}</Alert> : null}
+          <Alert visible={!!error}>{error}</Alert>
           <Button type="submit" busy={busy}>
             Send reset link
           </Button>
@@ -205,7 +205,7 @@ export function AuthCallbackPage() {
       <form onSubmit={submit} noValidate className="grid gap-4">
         <TextField label="New password" name="password" type="password" autoComplete="new-password" hint="At least 10 characters." />
         <TextField label="Confirm password" name="confirm" type="password" autoComplete="new-password" />
-        {error ? <Alert>{error}</Alert> : null}
+        <Alert visible={!!error}>{error}</Alert>
         <Button type="submit" busy={busy}>
           Save password
         </Button>

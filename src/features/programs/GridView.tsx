@@ -537,7 +537,7 @@ function WeekGrid({ rows, weekId, label, readOnly, addedId, onAdded, onMove, onA
       {cellMenu && menuRow && !readOnly ? <GridCellMenu key={`${cellMenu.point.exerciseId}:${cellMenu.point.column}:${cellMenu.x}:${cellMenu.y}`}
         x={cellMenu.x} y={cellMenu.y} label={menuRow.dayLabel} hasDay={!!menuRow.dayId} hasWeek={!!menuRow.weekId} canInsert={cellMenu.point.column !== 0 || !!menuRow.dayId}
         onAction={runCellAction} onClose={closeCellMenu} /> : null}
-      {removal ? <Dialog title={`Remove ${removal.label}?`} description="This removes the item and all its exercises from this draft. Published revisions and client history are kept."
+      {removal ? <Dialog title={`Remove ${removal.label}?`} description="This removes the item and all its exercises from this draft. Published programs and client history are kept."
         onClose={() => setRemoval(null)} footer={<>
           <Button variant="secondary" onClick={() => setRemoval(null)}>Keep it</Button>
           <Button variant="danger" onClick={() => {

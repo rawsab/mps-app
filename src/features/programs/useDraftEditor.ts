@@ -336,8 +336,8 @@ export function useDraftEditor(program: { id: string; service: ServiceKind }) {
       return;
     }
     try {
-      const result = await publishProgram(program.id, s.lockVersion);
-      send({ type: 'publishDone', notice: `Revision ${result.revisionNumber} is published. The client sees it now.`, problems: null, error: null });
+      await publishProgram(program.id, s.lockVersion);
+      send({ type: 'publishDone', notice: 'Program published. The client can see it now.', problems: null, error: null });
       await load();
     } catch (err) {
       if (err instanceof NotReadyError) send({ type: 'publishDone', notice: null, problems: err.problems, error: null });

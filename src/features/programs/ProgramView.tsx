@@ -172,7 +172,7 @@ export function ProgramView({ readOnly = false }: { readOnly?: boolean }) {
       {removal ? (
         <Dialog
           title={`Remove ${removal.what}?`}
-          description="It is removed from this draft only. Published revisions and client history are unchanged."
+          description="It is removed from this draft only. Published programs and client history are unchanged."
           onClose={() => setRemoval(null)}
           footer={
             <>
