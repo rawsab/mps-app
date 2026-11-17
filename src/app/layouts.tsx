@@ -38,10 +38,10 @@ function RouteContent() {
   );
 }
 
-function TopBar({ children, leading, className = '' }: { children?: ReactNode; leading?: ReactNode; className?: string }) {
+function TopBar({ children, leading, className = '', contentWidth = 'max-w-5xl' }: { children?: ReactNode; leading?: ReactNode; className?: string; contentWidth?: string }) {
   return (
     <header className={`sticky top-0 z-10 border-b border-line bg-ink/90 backdrop-blur-md ${className}`}>
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4">
+      <div className={`mx-auto flex ${contentWidth} items-center justify-between gap-3 px-4`}>
         <div className="flex min-w-0 items-center gap-1">
           {leading}
           <img src="/logo/mps-full-logo.png" alt="Modern Physique Systems" className="brand-logo my-3 h-8 w-auto max-w-[45vw] sm:max-w-none" />
@@ -89,7 +89,7 @@ export function ClientLayout() {
   return (
     <div className="flex min-h-dvh flex-col pb-24 sm:pb-0">
       <SkipLink />
-      <TopBar>
+      <TopBar contentWidth="max-w-[70rem]">
         <nav aria-label="Main" className="mr-2 hidden items-stretch sm:flex">
           {items.map((i) => (
             <NavLink key={i.to} to={i.to} className={navWord}>
@@ -99,10 +99,10 @@ export function ClientLayout() {
         </nav>
         <ProfileLink />
       </TopBar>
-      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-3xl flex-1 scroll-mt-20 px-4 py-8">
+      <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-[70rem] flex-1 scroll-mt-20 px-4 py-8">
         <RouteContent />
       </main>
-      <LegalFooter className="mx-auto mt-8 w-full max-w-3xl px-4 pb-8" />
+      <LegalFooter className="mx-auto mt-8 w-full max-w-[70rem] px-4 pb-8" />
       <nav
         aria-label="Main"
         className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-ink/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md sm:hidden"
