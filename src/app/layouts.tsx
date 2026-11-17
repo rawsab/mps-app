@@ -1,6 +1,17 @@
-import type { ReactNode } from 'react';
+import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation } from 'react-router';
-import { ClientsIcon, HomeIcon, NutritionIcon, ProgressIcon, ReviewsIcon, TemplatesIcon, TrainingIcon } from '@/components/icons';
+import {
+  ClientsIcon,
+  HomeIcon,
+  MenuIcon,
+  NutritionIcon,
+  ProgressIcon,
+  ReviewsIcon,
+  SidebarIcon,
+  SignOutIcon,
+  TemplatesIcon,
+  TrainingIcon,
+} from '@/components/icons';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { clientSections } from '@/lib/services';
 import { signOut, useViewer } from './auth';
@@ -24,11 +35,14 @@ function RouteContent() {
   );
 }
 
-function TopBar({ children }: { children?: ReactNode }) {
+function TopBar({ children, leading, className = '' }: { children?: ReactNode; leading?: ReactNode; className?: string }) {
   return (
-    <header className="sticky top-0 z-10 border-b border-line bg-ink/90 backdrop-blur-md">
+    <header className={`sticky top-0 z-10 border-b border-line bg-ink/90 backdrop-blur-md ${className}`}>
       <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4">
-        <img src="/logo/mps-full-logo.png" alt="Modern Physique Systems" className="brand-logo my-3 h-8 w-auto max-w-[45vw] sm:max-w-none" />
+        <div className="flex min-w-0 items-center gap-1">
+          {leading}
+          <img src="/logo/mps-full-logo.png" alt="Modern Physique Systems" className="brand-logo my-3 h-8 w-auto max-w-[45vw] sm:max-w-none" />
+        </div>
         <div className="flex items-center gap-1 self-stretch">
           {children}
           <ThemeToggle />
@@ -95,33 +109,203 @@ export function ClientLayout() {
   );
 }
 
-/** Matt's workspace: Clients, Templates, Reviews. */
-export function CoachLayout() {
-  const items: NavItem[] = [
-    { to: '/coach/clients', label: 'Clients', icon: <ClientsIcon /> },
-    { to: '/coach/templates', label: 'Templates', icon: <TemplatesIcon /> },
-    { to: '/coach/reviews', label: 'Reviews', icon: <ReviewsIcon /> },
-  ];
+const COACH_ITEMS: NavItem[] = [
+  { to: '/coach/clients', label: 'Clients', icon: <ClientsIcon /> },
+  { to: '/coach/templates', label: 'Templates', icon: <TemplatesIcon /> },
+  { to: '/coach/reviews', label: 'Reviews', icon: <ReviewsIcon /> },
+];
+
+const SIDEBAR_STORAGE_KEY = 'mps.coachSidebar.collapsed';
+const SIDEBAR_WIDTH_STORAGE_KEY = 'mps.coachSidebar.width';
+const SIDEBAR_WIDTH = { min: 192, default: 224, max: 360 };
+
+const clampSidebarWidth = (width: number) => Math.round(Math.min(SIDEBAR_WIDTH.max, Math.max(SIDEBAR_WIDTH.min, width)));
+
+function readSidebarCollapsed() {
+  try { return localStorage.getItem(SIDEBAR_STORAGE_KEY) === 'true'; } catch { return false; }
+}
+
+function readSidebarWidth() {
+  try {
+    const stored = Number(localStorage.getItem(SIDEBAR_WIDTH_STORAGE_KEY));
+    return stored ? clampSidebarWidth(stored) : SIDEBAR_WIDTH.default;
+  } catch { return SIDEBAR_WIDTH.default; }
+}
+
+/** Drag (pointer), arrow keys (keyboard) or double-click (reset) to size the expanded sidebar. */
+function SidebarResizeHandle({ width, onResize, onDragging }: { width: number; onResize: (width: number) => void; onDragging: (dragging: boolean) => void }) {
+  const start = useRef<{ x: number; width: number } | null>(null);
+  const end = () => { start.current = null; onDragging(false); };
   return (
-    <div className="min-h-dvh">
-      <SkipLink />
-      <TopBar />
-      <div className="mx-auto max-w-5xl px-4">
-        {/* Words sit 12px in; pull them back so their text lines up with the page edge. */}
-        <div className="border-b border-line">
-          <nav aria-label="Coach" className="-mx-3 flex overflow-x-auto">
-            {items.map((i) => (
-              <NavLink key={i.to} to={i.to} className={navWord}>
-                {i.icon}
-                {i.label}
-              </NavLink>
-            ))}
-          </nav>
+    <div
+      role="separator"
+      aria-orientation="vertical"
+      aria-label="Resize sidebar"
+      aria-valuenow={width}
+      aria-valuemin={SIDEBAR_WIDTH.min}
+      aria-valuemax={SIDEBAR_WIDTH.max}
+      tabIndex={0}
+      title="Drag to resize · double-click to reset"
+      onDoubleClick={() => onResize(SIDEBAR_WIDTH.default)}
+      onPointerDown={(e) => {
+        e.preventDefault();
+        e.currentTarget.setPointerCapture(e.pointerId);
+        start.current = { x: e.clientX, width };
+        onDragging(true);
+      }}
+      onPointerMove={(e) => { if (start.current) onResize(start.current.width + e.clientX - start.current.x); }}
+      onPointerUp={end}
+      onPointerCancel={end}
+      onKeyDown={(e) => {
+        if (e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+        e.preventDefault();
+        onResize(width + (e.key === 'ArrowRight' ? 16 : -16));
+      }}
+      className="group/resize absolute -right-1.5 top-0 z-[1] flex h-full w-3 cursor-col-resize touch-none justify-center focus:outline-none"
+    >
+      <span aria-hidden className="h-full w-0.5 bg-transparent transition-colors group-hover/resize:bg-gold group-focus-visible/resize:bg-gold" />
+    </div>
+  );
+}
+
+const sidebarControl = 'btn-motion inline-flex size-11 shrink-0 items-center justify-center rounded-card text-muted hover:bg-surface-raised hover:text-text';
+
+/** Sidebar and drawer links. Collapsed, the label stays as the accessible name and a hover title. */
+function CoachNavLinks({ collapsed = false, onNavigate }: { collapsed?: boolean; onNavigate?: () => void }) {
+  return (
+    <ul className="flex flex-col gap-1">
+      {COACH_ITEMS.map((i) => (
+        <li key={i.to}>
+          <NavLink
+            to={i.to}
+            onClick={onNavigate}
+            title={collapsed ? i.label : undefined}
+            className={({ isActive }) =>
+              `flex min-h-11 items-center gap-3 rounded-card text-sm transition-colors ${collapsed ? 'justify-center' : 'px-3'} ${isActive ? 'bg-surface-raised font-medium text-text' : 'text-muted hover:bg-surface-raised hover:text-text'}`
+            }
+          >
+            {({ isActive }) => (
+              <>
+                <span className={isActive ? 'text-gold-fg' : undefined}>{i.icon}</span>
+                <span className={collapsed ? 'sr-only' : undefined}>{i.label}</span>
+              </>
+            )}
+          </NavLink>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** Below lg the sidebar becomes a modal drawer on the native <dialog>: Escape, focus trap and focus return come with it. */
+function CoachDrawer({ onClose }: { onClose: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+
+  useEffect(() => {
+    const dialog = ref.current;
+    if (dialog && !dialog.open) dialog.showModal();
+    // Widening past lg swaps the drawer for the sidebar.
+    const wide = window.matchMedia('(min-width: 64rem)');
+    const closeIfWide = () => { if (wide.matches) dialog?.close(); };
+    wide.addEventListener('change', closeIfWide);
+    return () => wide.removeEventListener('change', closeIfWide);
+  }, []);
+
+  return (
+    <dialog
+      ref={ref}
+      aria-label="Coach navigation"
+      onClose={onClose}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) ref.current?.close();
+      }}
+      className="drawer m-0 h-dvh max-h-none w-72 max-w-[85vw] border-r border-line bg-ink p-0 text-text backdrop:bg-ink/75"
+    >
+      <div className="flex h-full flex-col gap-4 p-3">
+        <div className="flex items-center justify-between gap-2 pl-2">
+          <img src="/logo/mps-full-logo.png" alt="Modern Physique Systems" className="brand-logo h-7 w-auto" />
+          <button type="button" onClick={() => ref.current?.close()} aria-label="Close navigation" className={sidebarControl}>
+            <svg aria-hidden viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+              <path d="m4 4 8 8M12 4l-8 8" />
+            </svg>
+          </button>
         </div>
-        <main id="main-content" tabIndex={-1} className="scroll-mt-20 py-8">
+        <nav aria-label="Coach">
+          <CoachNavLinks onNavigate={() => ref.current?.close()} />
+        </nav>
+      </div>
+    </dialog>
+  );
+}
+
+/** Matt's workspace: Clients, Templates, Reviews in a collapsible sidebar (lg+) or a drawer (below). */
+export function CoachLayout() {
+  const [collapsed, setCollapsed] = useState(readSidebarCollapsed);
+  const [width, setWidth] = useState(readSidebarWidth);
+  const [resizing, setResizing] = useState(false);
+  const [drawerOpen, setDrawerOpen] = useState(false);
+
+  const resize = (next: number) => {
+    const clamped = clampSidebarWidth(next);
+    setWidth(clamped);
+    try { localStorage.setItem(SIDEBAR_WIDTH_STORAGE_KEY, String(clamped)); } catch { /* Storage unavailable: the width lasts for this visit. */ }
+  };
+
+  const toggleCollapsed = () => {
+    const next = !collapsed;
+    setCollapsed(next);
+    try { localStorage.setItem(SIDEBAR_STORAGE_KEY, String(next)); } catch { /* Storage unavailable: the choice lasts for this visit. */ }
+  };
+
+  return (
+    <div className="min-h-dvh lg:flex">
+      <SkipLink />
+      <aside
+        style={collapsed ? undefined : { width }}
+        // The width eases when collapsing, but follows the pointer directly while dragging.
+        className={`sticky top-0 hidden h-dvh shrink-0 flex-col gap-4 border-r border-line bg-ink py-3 lg:flex ${resizing ? 'select-none' : 'transition-[width] duration-200'} ${collapsed ? 'w-[4.5rem] px-3.5' : 'px-3'}`}
+      >
+        {collapsed ? null : <SidebarResizeHandle width={width} onResize={resize} onDragging={setResizing} />}
+        <div className={`flex min-h-11 items-center ${collapsed ? 'justify-center' : 'pl-2'}`}>
+          {collapsed ? (
+            <img src="/logo/mps-logo-gold.png" alt="Modern Physique Systems" className="brand-logo w-10" />
+          ) : (
+            <img src="/logo/mps-full-logo.png" alt="Modern Physique Systems" className="brand-logo h-7 w-auto" />
+          )}
+        </div>
+        <nav aria-label="Coach" className="min-h-0 flex-1 overflow-y-auto">
+          <CoachNavLinks collapsed={collapsed} />
+        </nav>
+        <div className={`flex gap-1 border-t border-line pt-3 ${collapsed ? 'flex-col items-center' : 'items-center'}`}>
+          <ThemeToggle />
+          <button type="button" onClick={() => void signOut()} aria-label="Sign out" title="Sign out" className={sidebarControl}>
+            <SignOutIcon />
+          </button>
+          <button
+            type="button"
+            onClick={toggleCollapsed}
+            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+            className={`${sidebarControl} ${collapsed ? '' : 'ml-auto'}`}
+          >
+            <SidebarIcon />
+          </button>
+        </div>
+      </aside>
+      <div className="min-w-0 flex-1">
+        <TopBar
+          className="lg:hidden"
+          leading={
+            <button type="button" onClick={() => setDrawerOpen(true)} aria-label="Open navigation" className={`${sidebarControl} -ml-2`}>
+              <MenuIcon />
+            </button>
+          }
+        />
+        <main id="main-content" tabIndex={-1} className="mx-auto max-w-5xl scroll-mt-20 px-4 py-8 lg:scroll-mt-4 lg:px-8 lg:pt-12">
           <RouteContent />
         </main>
       </div>
+      {drawerOpen ? <CoachDrawer onClose={() => setDrawerOpen(false)} /> : null}
     </div>
   );
 }

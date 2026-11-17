@@ -67,6 +67,25 @@ export const ReviewsIcon = () => (
   </Icon>
 );
 
+export const MenuIcon = () => (
+  <Icon>
+    <path d="M4 7h16M4 12h16M4 17h16" />
+  </Icon>
+);
+
+export const SidebarIcon = () => (
+  <Icon>
+    <rect x="3" y="4" width="18" height="16" rx="2" />
+    <path d="M9 4v16" />
+  </Icon>
+);
+
+export const SignOutIcon = () => (
+  <Icon>
+    <path d="M14 4H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h8M10 12h10m-3-3 3 3-3 3" />
+  </Icon>
+);
+
 /** Inline action glyphs, sized to sit beside button text. */
 export const CopyIcon = () => (
   <Icon className="size-4 shrink-0">

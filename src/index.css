@@ -270,6 +270,19 @@ html[data-theme='light'] .brand-logo {
   animation: scrim-in 180ms ease-out both;
 }
 
+/* The coach's navigation drawer slides in from the left edge over the same scrim. */
+@keyframes drawer-in {
+  from {
+    transform: translateX(-100%);
+  }
+}
+.drawer[open] {
+  animation: drawer-in 240ms var(--ease-enter) both;
+}
+.drawer[open]::backdrop {
+  animation: scrim-in 180ms ease-out both;
+}
+
 /*
  * Hatched chart bar: diagonal lines over a fill that fades out downwards, inside an outline, all in
  * --bar. The whole bar is translucent rather than each layer, so layers don't brighten where they cross.
