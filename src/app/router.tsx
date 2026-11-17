@@ -4,6 +4,7 @@ import { ClientDetailPage } from '@/features/clients/ClientDetailPage';
 import { ClientsPage } from '@/features/clients/ClientsPage';
 import { ProgramEditorPage } from '@/features/programs/ProgramEditorPage';
 import { ClientHomePage, ClientSectionPage, CoachPlaceholderPage } from '@/features/home/ClientPages';
+import { CoachTrainingLogPage, TrainingPage, TrainingProgramPage } from '@/features/training/TrainingPages';
 import { HomeRedirect, RequireClient, RequireSignedIn, RequireStaff } from './guards';
 import { ClientLayout, CoachLayout } from './layouts';
 
@@ -24,7 +25,10 @@ export const router = createBrowserRouter([
               { path: '/home', element: <ClientHomePage /> },
               {
                 element: <RequireClient section="training" />,
-                children: [{ path: '/training', element: <ClientSectionPage title="Training" body="Your assigned programs and workout logging will appear here once your coach publishes a program." /> }],
+                children: [
+                  { path: '/training', element: <TrainingPage /> },
+                  { path: '/training/:programId', element: <TrainingProgramPage /> },
+                ],
               },
               {
                 element: <RequireClient section="nutrition" />,
@@ -48,6 +52,7 @@ export const router = createBrowserRouter([
               { path: '/coach/clients', element: <ClientsPage /> },
               { path: '/coach/clients/:clientId', element: <ClientDetailPage /> },
               { path: '/coach/clients/:clientId/programs/:programId', element: <ProgramEditorPage /> },
+              { path: '/coach/clients/:clientId/programs/:programId/log', element: <CoachTrainingLogPage /> },
               { path: '/coach/templates', element: <CoachPlaceholderPage title="Templates" body="Reusable program templates arrive with the program model in M3." /> },
               { path: '/coach/reviews', element: <CoachPlaceholderPage title="Reviews" body="Recent logs and check-ins appear here from M4 onward." /> },
             ],
