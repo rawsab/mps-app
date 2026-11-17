@@ -228,8 +228,8 @@ Date: 2026-11-16
 
 ## Known limitations
 
-- **Programs:** program/revision tables, both coach editors, the client Training view and mesocycle session logging are implemented. Programs under an ended (but not archived) service still appear to the client (decision 0020, open question). Nutrition, import-batch and audit tables are still pending. Client Home shows honest empty states, not metrics.
-- **Activity feeds:** Recent updates and Reviews derive from the latest state of each record, so edits show who changed something last but not earlier values, and a coach overwriting a client's only logged row drops that session from Reviews. Both are fixed by `audit_events`. Unread counts poll every minute (no realtime).
+- **Programs:** program/revision tables, both coach editors, the client Training view and mesocycle session logging are implemented. Programs under an ended (but not archived) service still appear to the client (decision 0020, open question). Nutrition now has its own draft/publish/archive lifecycle, weekly spreadsheets, shared daily records, correction history and program-relative summaries (decision 0029). Import-batch and general audit tables remain pending; Client Home has saved-record nutrition tasks, while training task derivation remains pending.
+- **Activity feeds:** Training updates derive from latest record state, so a coach overwriting a client's only logged row can drop that workout from Reviews; general `audit_events` is still pending. Nutrition notifications use durable client/day activity, survive coach corrections and retain the separate before/after entry history (decision 0030). Feeds and unread counts poll every minute (no realtime).
 - **Scheduling:** not built. "Upcoming today" shows sample data in local development and an "isn't set up yet" message elsewhere (decision 0026).
 - **Invitations:** invite and recovery emails have only been verified against local Mailpit. Real Resend delivery is untested.
 - **Playwright:** not yet a project dependency. The browser smoke script lives outside the repo.
@@ -259,4 +259,86 @@ Date: 2026-11-16
 
 ## Backlog (owner requests, not scheduled)
 
+- **Calendar view and sidebar navigation:** implement a calendar view in a later increment and add a new **Calendar** option to the sidebar.
 - **Upcoming today — "starts soon" cue** (decision 0026): on the clients page, under a session's time (e.g. "7:00 AM"), show small red text "in X minutes" when it starts in 30 minutes or less. Needs a timer so it updates while the page is open (and disappears once the session starts), plus a unit test for the 30-minute boundary. Use the danger token, not a hard-coded red.
+
+## Profile settings and pictures (2026-11-17)
+
+- Clients and coaches can save preferred name, optional birthday and phone number, see their sign-in email, and upload/change/remove a private profile picture (decision 0027). Missing/broken pictures use a silhouette.
+- Settings opens from the client header or coach sidebar, including collapsed sidebar and mobile drawer. Local migration 00022 is applied; client pages and notification photos remain the next increment.
+- Typecheck, 251 unit tests, build, 22 profile database assertions and two Storage API flows passed. The full database run found two existing enrollment seed mismatches; no reset or browser automation.
+- Manual check: in each role, open settings from the avatar, save/clear personal details and reload, upload/replace/remove a picture, and check desktop/mobile navigation in both themes.
+- Verification preference reaffirmed: minimize automated testing and use user-run local/manual UI checks where practical.
+
+## Shared banner motion (2026-11-17)
+
+- Alerts now share entrance and exit transitions, retaining the last visible content while folding away. Transient banners use a visibility prop so clearing request state can animate their removal. Reduced-motion preferences are respected.
+- Profile feedback is dismissible and uses the same behavior as program, client, activity, and authentication feedback. Typecheck passed; manual verification: save/dismiss profile feedback, save again during its exit, and check a form error appearing and clearing. No browser automation or test suite run for this change.
+
+## Client detail profile picture (2026-11-17)
+
+- The coach-facing client header shows a circular profile picture to the left of the name and email, with the shared missing/broken-photo placeholder. Signed picture URLs refresh while the page remains active.
+- Local migration 00023 allows assigned coaches and administrators to read a client's currently referenced photo. Other users and unreferenced files remain protected; photo writes remain owner-only.
+- Manual check: open a client with a picture and one without, then check the header on a narrow screen.
+
+## Nutritional Programming (2026-11-17)
+
+- FR-09/FR-10, decision 0028: coach target assignment, separate dated weight/calorie entries, recent/older history, attributed coach corrections, coverage-aware weight averages and calorie balances are implemented. Nutrition uses its own data model rather than workout drafts.
+- Client Home derives nutrition tasks from saved records; Progress displays the same nutrition summaries. New targets preserve earlier goal periods. Daily edits have version conflict protection and idempotent retries.
+- Local migration 00024 is applied without a database reset. Typecheck, 258 unit tests, production build, 45 nutrition database assertions and 4 nutrition HTTP checks passed. The existing bundle-size warning remains. No browser automation or screenshot analysis.
+- Manual UI checklist and boundaries (imports, prediction formula, nutrition in Reviews) are in decision 0028.
+
+## Notification profile pictures (2026-11-17)
+
+- Reviews, the clients-page latest unread notifications, client Recent updates and full activity history now show the client's profile picture instead of a service icon. Shared client/photo queries reuse cached results across rows and refresh signed URLs; missing or broken pictures use the existing silhouette.
+- Typecheck passed. Manual check: view Reviews and To review with clients who have photos and clients without photos, then check Recent updates on a client page. No browser automation or screenshots.
+
+## Nutritional program lifecycle and Spreadsheet (2026-11-17)
+
+- Owner-approved changes in decision 0029: multiple nutritional programs, Program Style titles, Start Date, four weeks by default, coach baseline fields and an automatic starting prediction. Nutrition now uses the same Programs rows, lifecycle badges, filters and removal menu as training. Creation buttons use New Mesocycle Program / New Nutritional Program.
+- Coach and client Spreadsheet views show weekly dated tables with editable weight and previous-day calorie fields. Connected Weekly Caloric Values / Weekly Weight Values sit beside each sheet on wide screens and stack below on smaller screens. Calculated cells are read-only; daily edits save on blur and bounded rectangular paste saves atomically.
+- Rolling averages appear after three weigh-ins. Weekly changes compare weekly averages; Week 1 compares its average against its first weigh-in. Mesocycle totals use available weeks, and average weekly change divides by weeks with sufficient data. Coverage and estimated predictions are explicit.
+- Publishing preserves immutable baseline revisions; overlapping dates warn without blocking, and actuals are shared by client/date. Existing targets were copied into published program baselines without moving or duplicating actuals. Correction attribution/history, stale-edit checks, retries, and unsaved-navigation warnings are retained.
+- Local migration 00025 is applied without a database reset. Verification: typecheck, 267 unit tests, build, 106 nutrition database assertions and 5 HTTP checks pass. Existing bundle-size warning remains. No browser automation or screenshots; manual checklist is in decision 0029.
+
+## Daily nutrition first, with coach notifications (2026-11-17)
+
+- Client Nutrition now opens the current program with today's weight and yesterday's calories consumed/output at the top. A single atomic save updates the shared daily records, with saved circle-and-tick indicators and green completion feedback. Stats and editable spreadsheets remain below. Home completion requires all three saved values.
+- Nutrition saves appear in Reviews, To review, unread counts, Recent updates and activity history with client photos. There is one stable notification per client/day; meaningful client corrections revive unread state, while retries, identical saves and coach corrections do not. Notifications open the matching spreadsheet day and preserve the return destination.
+- Local migration 00026 is applied without a reset. Verification: typecheck, 269 unit tests, build, 78 targeted database assertions and 6 HTTP checks pass. Existing bundle-size warning remains. No commands were skipped awaiting approval. Browser/UI verification remains manual; see decision 0030.
+
+## Nutrition grid parity and weekly summary layout (2026-11-17)
+
+- Decision 0031: nutrition and mesocycle grids share the exact scroll-gradient component and pointer drag-selection hook. Nutrition adds rectangular selection/copy/cut, protected clears, keyboard navigation/editing, paste review, per-week Undo/Redo and a cell context menu. Date and computed cells remain read-only.
+- Weekly calorie/weight summaries now fill a connected panel matching the main spreadsheet frame's height on wide screens, with icons in both headings. The explanation beneath the spreadsheets is more transparent.
+- Local migration 00027 enables versioned null weights for safe clearing/restoring, retaining audit, retry and isolation guarantees. Missing weights do not become zero or count toward averages/completion. Client clears update their existing daily notification.
+- Verification: typecheck, 274 unit tests, build, 120 targeted database assertions and 6 nutrition HTTP checks. No browser automation/screenshots; manual checklist is in decision 0031. Existing bundle-size warning remains. No commands were skipped awaiting approval.
+
+## Nutrition draft autosave (2026-11-17)
+
+- Decision 0032: removed the manual Save draft step. Nutrition program details autosave one second after editing, matching mesocycle and personal training. All editors share the existing save-status indicator.
+- Typing stays enabled during a save; older save responses preserve newer edits and the next save uses the advanced lock version. Errors keep edits and expose retry/reload actions. Publish remains explicit and waits for autosave; clients continue seeing the last published revision until then.
+- Typecheck, existing unit suite and production build checked. No database changes or browser automation; manual interaction checklist is in decision 0032.
+
+## Coach nutrition entry editing and attribution (2026-11-17)
+
+- Decision 0033: fixed the working-draft restriction that blocked coach daily-entry editing. Assigned staff can edit today's/past input cells directly in the main program sheet; corrections save immediately to the shared client/date records, independently of publishing program details.
+- Coach and client sheets show a subtle gold tint, corner marker and Edited by coach tooltip on affected cells. Calorie intake/output attribution is field-specific and survives changes to the companion cell; client changes clear only the changed field's marker.
+- Local migration 00028 is applied without a reset. Verification: typecheck, 275 unit tests, build, 149 targeted database assertions and 6 HTTP checks. The notification fixture now isolates itself from existing overlapping development programs within its rolled-back transaction. No browser automation/screenshots; manual checklist is in decision 0033. Existing bundle-size warning remains. No commands skipped awaiting approval.
+
+## Plain program status labels (2026-11-17)
+
+- Removed user-facing revision numbers and terminology across personal training, mesocycle and nutrition: Programs pills show Live, editor status uses Live / Draft, and publish, removal and conflict copy describes programs and preserved history in plain language. Internal revision storage and locking are unchanged.
+- Typecheck checked; manually confirm program pills, editor headings and publish feedback. No browser automation or screenshots.
+
+- Nutrition program weight units (FR-09/10, decision 0034): added autosaved lb/kg selection under coach Program details. Daily entry, spreadsheet inputs, averages and predictions use the selected unit; existing measurements convert without rewriting history. Migration 29 applied locally. Typecheck, 278 unit tests, build and 99 targeted database assertions passed; manual UI checks pending.
+
+- Nutrition trends (FR-09/10, decision 0035): added shared coach/client line chart below mesocycle stats, with 7/30-day ranges, weight/intake/output/balance selector, point markers, gold gradient, axes and matching cursor tooltip. Respects program units and activity dates; fewer than two points shows the requested empty message. Typecheck, 281 unit tests and build passed; manual visual checks pending.
+
+## Commit and push verification (2026-11-17)
+
+- Nutrition Publish is disabled when program details match the live program, including reverted edits; valid unpublished details enable publication. Daily actual edits remain independently saved.
+- Client content width is now 1,120px, with header/footer edges aligned and existing mobile padding/profile form width retained.
+- Owner clarified that future nutrition dates remain read-only; confirmed past-day and empty-cell editing works. Browser inspection was explicitly authorized for that investigation.
+- Final checks: typecheck, 282 unit tests and production build passed. Full local database suite passes all 540 assertions after isolating legacy training activity fixtures from nutrition data, selecting a single enrollment deterministically, and comparing exact authorized enrollment IDs instead of seed-dependent counts. Fixture cleanup runs inside rolled-back transactions and does not reset development data.
+- Eight profile/nutrition HTTP boundary checks also passed. Existing Vite bundle-size warning remains. No commands skipped awaiting approval.
