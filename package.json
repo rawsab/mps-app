@@ -19,6 +19,7 @@
     "db:stop": "supabase stop",
     "db:reset": "supabase db reset",
     "spike:import": "tsx scripts/import-spike.ts",
+    "seed:programs": "tsx scripts/seed-programs.ts",
     "verify": "pnpm typecheck && pnpm test && pnpm build"
   },
   "dependencies": {
