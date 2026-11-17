@@ -39,6 +39,7 @@ function personalTrainingDraft(): ProgramDraft {
     schemaVersion: 1,
     service: 'personal_training',
     title: 'Strength foundations',
+    programTheme: '',
     coachNotes: '',
     sharedSections: [],
     resources: [{ id: id(), title: 'Breathing', body: 'Brace before each rep.', url: 'https://example.test/brace' }],
@@ -48,6 +49,7 @@ function personalTrainingDraft(): ProgramDraft {
         index: 1,
         label: 'Week 1',
         startDate: null,
+        useSections: false,
         days: [
           {
             id: id(),
@@ -72,7 +74,7 @@ function personalTrainingDraft(): ProgramDraft {
               {
                 id: id(),
                 kind: 'main',
-                title: '',
+                title: 'Main',
                 instructions: '',
                 exercises: [
                   {
@@ -147,7 +149,7 @@ describe('program drafts over HTTP', () => {
     const res = await admin.rpc('publish_revision', { p_program_id: programId, p_expected_version: 3 });
     expect(res.status).toBe(422);
     expect(JSON.parse(res.error!.details)).toEqual(validateForPublish(incomplete));
-    expect((await b.from('programs').select('id')).data).toEqual([]);
+    expect((await b.from('programs').select('id').eq('id', programId)).data).toEqual([]);
   });
 
   it('publishes atomically and the client reads only the published revision', async () => {
@@ -155,7 +157,7 @@ describe('program drafts over HTTP', () => {
     expect((await admin.rpc('save_draft', { p_program_id: programId, p_expected_version: 3, p_draft: draft })).error).toBeNull();
     const published = await admin.rpc('publish_revision', { p_program_id: programId, p_expected_version: 4 });
     expect(published.error).toBeNull();
-    const revisions = await b.from('program_revisions').select('id, title, status');
+    const revisions = await b.from('program_revisions').select('id, title, status').eq('program_id', programId);
     expect(revisions.data).toEqual([{ id: published.data.revisionId, title: 'Strength foundations', status: 'published' }]);
     const sets = await b.from('prescribed_sets').select('rpe_min, rpe_max').eq('revision_id', published.data.revisionId).order('position');
     expect(sets.data).toContainEqual({ rpe_min: 6, rpe_max: 7 });

@@ -110,16 +110,26 @@ export function SelectField({ label, children, className = '', ...rest }: Select
   );
 }
 
-export function Alert({ tone = 'error', title, children }: { tone?: 'error' | 'info' | 'success'; title?: string; children: ReactNode }) {
+export function Alert({ tone = 'error', title, children, onDismiss }: { tone?: 'error' | 'info' | 'success'; title?: string; children: ReactNode; onDismiss?: () => void }) {
   const styles = {
     error: 'border-danger/50 bg-danger/10 text-danger',
     info: 'border-gold/40 bg-gold/10 text-text',
     success: 'border-success/50 bg-success/10 text-success',
   }[tone];
   return (
-    <div role={tone === 'error' ? 'alert' : 'status'} className={`rounded-card border px-3 py-2.5 text-sm ${styles}`}>
-      {title ? <p className="font-semibold">{title}</p> : null}
-      <div>{children}</div>
+    <div role={tone === 'error' ? 'alert' : 'status'} className={`flex items-start gap-2 rounded-card border px-3 py-2.5 text-sm ${styles}`}>
+      <div className="min-w-0 flex-1">
+        {title ? <p className="font-semibold">{title}</p> : null}
+        <div>{children}</div>
+      </div>
+      {onDismiss ? (
+        <button type="button" onClick={onDismiss} aria-label="Dismiss"
+          className="-my-1.5 -mr-1.5 inline-flex size-8 shrink-0 items-center justify-center rounded-card opacity-80 hover:bg-current/10 hover:opacity-100">
+          <svg aria-hidden viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
+            <path d="m4 4 8 8M12 4l-8 8" />
+          </svg>
+        </button>
+      ) : null}
     </div>
   );
 }
@@ -151,7 +161,7 @@ export function PageHeader({ title, subtitle, actions }: { title: string; subtit
     // min-h-11 matches a header button, so the title doesn't shift when an action hides.
     <header className="mb-6 flex min-h-11 flex-wrap items-end justify-between gap-3">
       <div className="min-w-0">
-        <h1 className="text-[1.75rem] font-medium leading-tight tracking-[-0.025em] text-text sm:text-[2rem]">{title}</h1>
+        <h1 className="break-words text-[1.75rem] font-medium leading-tight tracking-[-0.025em] text-text sm:text-[2rem]">{title}</h1>
         {subtitle ? <p className="mt-1 text-sm text-muted">{subtitle}</p> : null}
       </div>
       {actions}

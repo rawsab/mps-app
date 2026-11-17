@@ -7,6 +7,10 @@ import { signOut, useViewer } from './auth';
 
 type NavItem = { to: string; label: string; icon: ReactNode };
 
+function SkipLink() {
+  return <a href="#main-content" className="sr-only focus:not-sr-only focus:fixed focus:left-4 focus:top-3 focus:z-50 focus:rounded-card focus:bg-surface focus:px-4 focus:py-3 focus:text-text">Skip to content</a>;
+}
+
 const navWord = ({ isActive }: { isActive: boolean }) =>
   `nav-word flex min-h-12 items-center gap-2 px-3 text-sm ${isActive ? 'text-text' : 'text-muted hover:text-text'}`;
 
@@ -54,6 +58,7 @@ export function ClientLayout() {
 
   return (
     <div className="min-h-dvh pb-24 sm:pb-0">
+      <SkipLink />
       <TopBar>
         <nav aria-label="Main" className="mr-2 hidden items-stretch sm:flex">
           {items.map((i) => (
@@ -63,7 +68,7 @@ export function ClientLayout() {
           ))}
         </nav>
       </TopBar>
-      <main className="mx-auto max-w-3xl px-4 py-8">
+      <main id="main-content" tabIndex={-1} className="mx-auto max-w-3xl scroll-mt-20 px-4 py-8">
         <RouteContent />
       </main>
       <nav
@@ -99,6 +104,7 @@ export function CoachLayout() {
   ];
   return (
     <div className="min-h-dvh">
+      <SkipLink />
       <TopBar />
       <div className="mx-auto max-w-5xl px-4">
         {/* Words sit 12px in; pull them back so their text lines up with the page edge. */}
@@ -112,7 +118,7 @@ export function CoachLayout() {
             ))}
           </nav>
         </div>
-        <main className="py-8">
+        <main id="main-content" tabIndex={-1} className="scroll-mt-20 py-8">
           <RouteContent />
         </main>
       </div>

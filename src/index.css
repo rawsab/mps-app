@@ -14,10 +14,12 @@
   --color-gold-hover: color-mix(in oklab, var(--color-gold) 86%, #0a0a0a);
   --color-gold-fg: #c8a55d;
   --color-on-gold: #0a0a0a;
+  --color-on-gold-icon: #171717;
   --color-ink: #0a0a0a;
   --color-surface: #171717;
   --color-surface-raised: #202020;
   --color-line: #2e2e2e;
+  --color-grid-edge: color-mix(in oklab, var(--color-ink) 85%, transparent);
   --color-muted: #a3a3a3;
   --color-text: #f2f2f2;
   --color-danger: #f08a7e;
@@ -37,6 +39,7 @@ html[data-theme='light'] {
   --color-surface: #ffffff;
   --color-surface-raised: #f0eee8;
   --color-line: #e0dcd2;
+  --color-grid-edge: color-mix(in oklab, var(--color-text) 15%, transparent);
   --color-muted: #5c5a55;
   --color-text: #171717;
   --color-danger: #b42318;
@@ -297,6 +300,176 @@ html[data-theme='light'] .brand-logo {
   transition: background-color 120ms var(--ease-ui);
 }
 
+.disclosure-summary {
+  display: flex;
+  min-height: 44px;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  list-style: none;
+}
+.disclosure-summary::-webkit-details-marker {
+  display: none;
+}
+.disclosure-summary::marker {
+  content: '';
+}
+.disclosure-chevron {
+  display: inline-flex;
+  flex-shrink: 0;
+  color: var(--color-muted);
+  transition: transform 180ms var(--ease-ui);
+}
+details[open] > .disclosure-summary > .disclosure-chevron {
+  transform: rotate(90deg);
+}
+
+/*
+ * Dismissible notice: unfolds and fades in on mount, folds away on dismiss. The negative margin
+ * absorbs the parent's gap so content below glides instead of jumping when it unmounts.
+ */
+@keyframes notice-in {
+  from {
+    grid-template-rows: 0fr;
+    opacity: 0;
+    margin-block-end: calc(-1 * var(--notice-gap, 0px));
+  }
+}
+.notice-motion {
+  display: grid;
+  grid-template-rows: 1fr;
+  animation: notice-in 320ms var(--ease-ui) both;
+  transition:
+    grid-template-rows 320ms var(--ease-ui),
+    margin-block-end 320ms var(--ease-ui),
+    opacity 220ms 80ms ease-out;
+}
+.notice-motion[data-leaving] {
+  grid-template-rows: 0fr;
+  opacity: 0;
+  margin-block-end: calc(-1 * var(--notice-gap, 0px));
+  transition:
+    opacity 160ms ease-out,
+    grid-template-rows 280ms 100ms var(--ease-ui),
+    margin-block-end 280ms 100ms var(--ease-ui);
+}
+@media (prefers-reduced-motion: reduce) {
+  /* 1ms, not none, so transitionend still fires and the notice unmounts. */
+  .notice-motion,
+  .notice-motion[data-leaving] {
+    animation: none;
+    transition-duration: 1ms;
+    transition-delay: 0s;
+  }
+}
+
+/* Animate intrinsic content height in both directions without measuring the panel. */
+.animated-disclosure-content {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  visibility: hidden;
+  transition: grid-template-rows 240ms var(--ease-ui), opacity 180ms var(--ease-ui), visibility 0s linear 240ms;
+}
+.animated-disclosure-content[data-open='true'] {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0s;
+}
+@media (prefers-reduced-motion: reduce) {
+  .animated-disclosure-content {
+    transition: none;
+  }
+}
+
+/* One continuous rail per section; title markers remain centered as exercises collapse. */
+.exercise-section-rail:has(> li)::before {
+  content: '';
+  position: absolute;
+  inset-block: 0;
+  left: 9px;
+  width: 2px;
+  background: color-mix(in oklab, var(--color-gold) 60%, transparent);
+  pointer-events: none;
+}
+
+/* A single focus-owned exercise surface; moving among its fields keeps the fill steady. */
+.exercise-editor::before {
+  content: '';
+  position: absolute;
+  inset: 0 -8px;
+  z-index: -1;
+  pointer-events: none;
+  border-radius: var(--radius-card);
+  background: color-mix(in oklab, var(--color-gold) 5%, transparent);
+  opacity: 0;
+  transition: opacity 180ms var(--ease-ui);
+}
+.exercise-editor:focus-within::before {
+  opacity: 1;
+}
+
+.outline-add {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--radius-card);
+  color: var(--color-muted);
+  font-size: 12px;
+  text-align: left;
+  opacity: 0.75;
+  transition: color 150ms var(--ease-ui), background-color 150ms var(--ease-ui), opacity 150ms var(--ease-ui);
+}
+.outline-add:not(:disabled):hover {
+  background: color-mix(in oklab, var(--color-gold) 5%, transparent);
+  color: var(--color-text);
+  opacity: 1;
+}
+.outline-add:disabled {
+  opacity: 0.35;
+}
+@media (pointer: coarse) {
+  .outline-add {
+    min-height: 44px;
+  }
+}
+
+/* Program editing uses aligned rows inside open sections, with room for every field label. */
+.exercise-targets {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 8px;
+  align-items: start;
+}
+.exercise-targets > :first-child {
+  display: none;
+}
+.exercise-targets > :nth-child(2) {
+  grid-column: 1 / -1;
+}
+@media (min-width: 768px) {
+  .exercise-targets {
+    grid-template-columns: 1.5rem minmax(9rem, 2fr) repeat(5, minmax(0, 1fr)) 2.75rem;
+  }
+  .exercise-targets > :first-child {
+    display: block;
+  }
+  .exercise-targets > :nth-child(2) {
+    grid-column: auto;
+  }
+  .exercise-targets input {
+    padding-inline: 8px;
+  }
+  .exercise-targets label {
+    display: flex;
+    min-height: 2rem;
+    align-items: end;
+  }
+}
+
 /* A back arrow nudges 3px toward where it leads. */
 .arrow-back {
   display: inline-block;
@@ -337,6 +510,12 @@ select:not([multiple]):not([size]) {
   padding-right: 2.5rem;
 }
 
+/* Native date segments need explicit empty styling; they do not use ::placeholder. */
+input[type='date'][data-empty='true'],
+input[type='date'][data-empty='true']::-webkit-datetime-edit {
+  color: color-mix(in oklab, var(--color-muted) 60%, transparent);
+}
+
 :focus-visible {
   outline: 2px solid var(--color-gold);
   outline-offset: 2px;
@@ -349,4 +528,20 @@ select:not([multiple]):not([size]) {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+/* Let the old day number soften away before its new position comes into focus. */
+@keyframes day-number-out {
+  from { filter: blur(0); opacity: 1; }
+  to { filter: blur(4px); opacity: 0; }
+}
+@keyframes day-number-in {
+  from { filter: blur(4px); opacity: 0; transform: translateY(2px); }
+  to { filter: blur(0); opacity: 1; transform: translateY(0); }
+}
+.day-number-exit { animation: day-number-out 100ms ease-out both; }
+.day-number-enter { animation: day-number-in 220ms var(--ease-ui) 100ms both; }
+@media (prefers-reduced-motion: reduce) {
+  .day-number-exit { display: none; }
+  .day-number-enter { animation: none; }
 }

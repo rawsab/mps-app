@@ -5,7 +5,6 @@ import { useAuth } from '@/app/auth';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Alert, Button, Spinner, TextField } from '@/components/ui';
 import { requireSupabase } from '@/lib/supabase';
-import { DevQuickLogin } from './DevQuickLogin';
 
 /*
  * STAND-IN photograph (Wikimedia Commons, CC BY 2.0, cropped to remove a third-party logo).
@@ -106,7 +105,6 @@ export function SignInPage() {
           <span className="link">Forgot your password?</span>
         </Link>
         <p className="text-xs text-muted">Accounts are created by invitation from your coach.</p>
-        {import.meta.env.DEV ? <DevQuickLogin busy={busy} onSignIn={signIn} /> : null}
       </form>
     </AuthFrame>
   );

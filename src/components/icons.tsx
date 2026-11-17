@@ -86,3 +86,21 @@ export const SendIcon = () => (
     <path d="M20.5 3.5 10 14M20.5 3.5 14 20.5l-4-6.5-6.5-4z" />
   </Icon>
 );
+
+export const PlusIcon = () => <Icon className="size-4 shrink-0"><path d="M12 5v14M5 12h14" /></Icon>;
+export const TrashIcon = () => <Icon className="size-4 shrink-0"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" /></Icon>;
+export const ArchiveIcon = () => <Icon className="size-4 shrink-0"><rect x="3" y="4" width="18" height="4" rx="1" /><path d="M5 8v12h14V8M10 12h4" /></Icon>;
+export const ArrowUpIcon = () => <Icon className="size-4 shrink-0"><path d="M12 20V4m-6 6 6-6 6 6" /></Icon>;
+export const ArrowDownIcon = () => <Icon className="size-4 shrink-0"><path d="M12 4v16m-6-6 6 6 6-6" /></Icon>;
+export const MoveIcon = () => <Icon className="size-4 shrink-0"><path d="M4 12h16m-4-4 4 4-4 4M8 8l-4 4 4 4" /></Icon>;
+export const CautionIcon = () => <Icon className="size-4 shrink-0"><path d="m12 3 10 18H2L12 3ZM12 9v5M12 17h.01" /></Icon>;
+export const PauseIcon = () => <Icon className="size-4 shrink-0"><path d="M8 5v14M16 5v14" /></Icon>;
+export const StopIcon = () => <Icon className="size-4 shrink-0"><rect x="5" y="5" width="14" height="14" rx="2" /></Icon>;
+export const PlayIcon = () => <Icon className="size-4 shrink-0"><path d="m8 4 12 8-12 8V4Z" /></Icon>;
+export const PencilIcon = () => <Icon className="size-4 shrink-0"><path d="m15 4 5 5M4 20l5-1L21 7a2 2 0 0 0-5-5L4 14z" /></Icon>;
+export const DayIcon = () => <Icon><rect x="4" y="5" width="16" height="16" rx="2" /><path d="M8 3v4M16 3v4M4 11h16" /></Icon>;
+export const SectionIcon = () => <Icon><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M4 12h.01M4 18h.01" /></Icon>;
+/** Two headed groups of indented rows: exercises grouped into sections. */
+export const SectionsIcon = () => <Icon className="size-4 shrink-0"><path d="M4 5h9M8 9h12M4 14h9M8 18h12" /></Icon>;
+export const SpreadsheetIcon = () => <Icon><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M3 14h18M9 4v16M15 9v11" /></Icon>;
+export const ChevronIcon = ({ open }: { open: boolean }) => <Icon className={`size-4 shrink-0 transition-transform duration-150 motion-reduce:transition-none ${open ? 'rotate-90' : ''}`}><path d="m9 5 7 7-7 7" /></Icon>;

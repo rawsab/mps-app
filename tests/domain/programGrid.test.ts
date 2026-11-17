@@ -1,11 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { applyCommands } from '@/domain/programs/commands';
+import { applyCommands, applyReversibleCommands } from '@/domain/programs/commands';
 import type { Exercise, ProgramDraft, SetTarget } from '@/domain/programs/contract';
 import {
   cellText,
   GRID_COLUMNS,
   gridRows,
   parseClipboard,
+  planAddGridRow,
+  planAddGridStructure,
   planClear,
   planEdits,
   planPaste,
@@ -29,7 +31,7 @@ const exercise = (id: string, name: string, prescription: Exercise['prescription
   name,
   alternatives: [],
   groupId: null,
-  demoUrl: null,
+  demoUrl: null, muscles: [],
   notes: '',
   prescription,
 });
@@ -43,7 +45,7 @@ const draft = (): ProgramDraft => ({
     {
       id: 'warm',
       kind: 'preparation',
-      title: '',
+      title: 'Preparation',
       instructions: '',
       exercises: [exercise('stretch', 'Couch stretch', { setCount: null, targets: [] })],
     },
@@ -55,6 +57,7 @@ const draft = (): ProgramDraft => ({
       index: 1,
       label: 'Week 1',
       startDate: null,
+      useSections: false,
       days: [
         {
           id: 'd1',
@@ -99,12 +102,12 @@ describe('grid rows and cell text', () => {
     const rows = gridRows(draft());
     expect(rows.map((r) => [r.dayLabel, r.sectionLabel, r.position, r.exercise.name])).toEqual([
       ['All days', 'Preparation', 1, 'Couch stretch'],
-      ['W1 · Legs', 'Main', 1, 'Squat'],
-      ['W1 · Legs', 'Main', 2, 'Leg press'],
+      ['Day 1', 'Main', 1, 'Squat'],
+      ['Day 1', 'Main', 2, 'Leg press'],
     ]);
     const squat = rows[1]!;
     expect(GRID_COLUMNS.map((c) => cellText(squat, c.key))).toEqual([
-      'W1 · Legs', 'Main', '1', 'Squat', '3', '8-12', '', 'Weight', '100', 'lb', '1-2', '', '',
+      'Legs', 'Main', '1', 'Squat', '', '3', '8-12', '', 'Weight', '100', 'lb', '1-2', '', '',
     ]);
     expect(cellText(rows[2]!, 'effort')).toBe('8-12 / 6-8');
     expect(cellText(rows[2]!, 'load')).toBe('100');
@@ -191,14 +194,20 @@ describe('planEdits', () => {
     expect(planEdits(draft(), [edit('squat', 'sets', '3'), edit('squat', 'order', '1')])).toEqual({ commands: [], errors: [], changes: [] });
   });
 
-  it('clears target cells but never the name', () => {
+  it('clears names and day labels along with targets', () => {
     const { draft: d } = applied(draft(), []);
     const plan = planClear(d, [
       { exerciseId: 'squat', column: 'name' },
       { exerciseId: 'squat', column: 'rir' },
       { exerciseId: 'squat', column: 'day' },
     ]);
-    expect(plan.changes).toEqual([{ exerciseId: 'squat', column: 'rir', before: '1-2', after: '' }]);
+    expect(plan.errors).toEqual([]);
+    expect(plan.changes).toEqual([
+      { exerciseId: 'squat', column: 'day', before: 'Legs', after: '' },
+      { exerciseId: 'squat', column: 'name', before: 'Squat', after: '' },
+      { exerciseId: 'squat', column: 'rir', before: '1-2', after: '' },
+      { exerciseId: 'press', column: 'day', before: 'Legs', after: '' },
+    ]);
   });
 });
 
@@ -236,5 +245,150 @@ describe('clipboard', () => {
     const matrix = [['a\tb', 'say "hi"'], ['line\nbreak', '']];
     expect(parseClipboard(toClipboard(matrix))).toEqual(matrix);
     expect(parseClipboard('1\t2\r\n3\t4\r\n')).toEqual([['1', '2'], ['3', '4']]);
+  });
+});
+
+
+describe('adding grid rows (FR-06)', () => {
+  it('appends at the bottom with a distinct movement history key', () => {
+    const before = draft();
+    const plan = planAddGridRow(before);
+    const result = applyCommands(before, plan.commands);
+    if (!result.ok) throw new Error(result.error.message);
+    const rows = gridRows(result.draft);
+    expect(rows.at(-1)?.exerciseId).toBe(plan.exerciseId);
+    expect(rows.at(-1)?.exercise.logicalKey).toBe(plan.exerciseId);
+    expect(rows).toHaveLength(gridRows(before).length + 1);
+    expect(plan.commands).toHaveLength(1);
+  });
+  it('creates a first week/day/section in one batch for an empty program', () => {
+    const before = { ...draft(), sharedSections: [], weeks: [] };
+    const plan = planAddGridRow(before);
+    const result = applyCommands(before, plan.commands);
+    if (!result.ok) throw new Error(result.error.message);
+    expect(result.draft.weeks[0]?.days[0]?.sections[0]?.exercises[0]?.id).toBe(plan.exerciseId);
+    expect(plan.commands).toHaveLength(4);
+  });
+  it('uses an existing final day even when it has no sections or exercises', () => {
+    const before = draft();
+    before.weeks[0]!.days[0]!.sections = [];
+    const plan = planAddGridRow(before);
+    const result = applyCommands(before, plan.commands);
+    if (!result.ok) throw new Error(result.error.message);
+    expect(result.draft.weeks).toHaveLength(1);
+    expect(result.draft.weeks[0]?.days).toHaveLength(1);
+    expect(result.draft.weeks[0]?.days[0]?.sections[0]?.exercises[0]?.id).toBe(plan.exerciseId);
+    expect(plan.commands).toHaveLength(2);
+  });
+  it('appends to shared sections when the program only contains shared rows', () => {
+    const before = { ...draft(), weeks: [] };
+    const plan = planAddGridRow(before);
+    const result = applyCommands(before, plan.commands);
+    if (!result.ok) throw new Error(result.error.message);
+    expect(result.draft.weeks).toHaveLength(0);
+    expect(gridRows(result.draft).at(-1)?.dayLabel).toBe('All days');
+  });
+});
+
+
+describe('adding workout structure from Grid (FR-05, FR-06)', () => {
+  it('adds a visible week and restores the previous program with one undo', () => {
+    const before = draft();
+    const plan = planAddGridStructure(before, { kind: 'week', label: 'Next block' });
+    const result = applyReversibleCommands(before, plan.commands);
+    if (!result.ok) throw new Error(result.error.message);
+    const added = result.draft.weeks.at(-1)!;
+    expect(added.label).toBe('Next block');
+    expect(added.index).toBe(2);
+    expect(added.days[0]?.sections[0]?.exercises[0]?.id).toBe(plan.exerciseId);
+    expect(gridRows(result.draft).at(-1)?.exerciseId).toBe(plan.exerciseId);
+    expect(applyCommands(result.draft, result.entry.undo)).toMatchObject({ ok: true, draft: before });
+  });
+  it('adds a named day to the selected week, preserving existing exercises', () => {
+    const before = draft();
+    const weekId = before.weeks[0]!.id;
+    const plan = planAddGridStructure(before, { kind: 'day', label: 'Upper B', weekId });
+    const result = applyCommands(before, plan.commands);
+    if (!result.ok) throw new Error(result.error.message);
+    const days = result.draft.weeks[0]!.days;
+    expect(days.at(-1)?.label).toBe('Upper B');
+    expect(days[0]).toEqual(before.weeks[0]!.days[0]);
+    expect(days.at(-1)?.sections[0]?.exercises[0]?.id).toBe(plan.exerciseId);
+  });
+  it('creates the first week when adding a day to an empty program', () => {
+    const before = { ...draft(), weeks: [] };
+    const plan = planAddGridStructure(before, { kind: 'day', label: 'Full body', weekId: null });
+    const result = applyCommands(before, plan.commands);
+    if (!result.ok) throw new Error(result.error.message);
+    expect(result.draft.weeks[0]?.days[0]?.label).toBe('Full body');
+    expect(gridRows(result.draft).at(-1)?.exerciseId).toBe(plan.exerciseId);
+  });
+  it('adds a typed section to the selected day or across all days', () => {
+    for (const dayId of [draft().weeks[0]!.days[0]!.id, null]) {
+      const before = draft();
+      const plan = planAddGridStructure(before, { kind: 'section', label: 'Mobility', dayId, sectionKind: 'preparation' });
+      const result = applyCommands(before, plan.commands);
+      if (!result.ok) throw new Error(result.error.message);
+      const sections = dayId ? result.draft.weeks[0]!.days[0]!.sections : result.draft.sharedSections;
+      expect(sections.at(-1)).toMatchObject({ title: 'Mobility', kind: 'preparation', exercises: [{ id: plan.exerciseId }] });
+    }
+  });
+  it('rejects a removed destination without inserting any partial structure', () => {
+    const before = draft();
+    const plan = planAddGridStructure(before, { kind: 'day', label: 'Day 2', weekId: 'missing' });
+    expect(applyCommands(before, plan.commands)).toMatchObject({ ok: false, commandIndex: 0 });
+    expect(before.weeks).toHaveLength(1);
+  });
+});
+
+describe('clearing exercise names and optional per-side values (FR-06)', () => {
+  it('clears names and per-side flags across a rectangle as one reversible batch', () => {
+    const doc = draft();
+    for (const id of ['squat', 'press']) {
+      for (const target of exerciseIn(doc, id).prescription.targets) {
+        if (target.effort) target.effort.perSide = true;
+      }
+    }
+    const columns = GRID_COLUMNS.slice(3, 7); // Exercise through Per side.
+    const plan = planClear(doc, ['squat', 'press'].flatMap((exerciseId) => columns.map(({ key }) => ({ exerciseId, column: key }))));
+    expect(plan.errors).toEqual([]);
+    const result = applyReversibleCommands(doc, plan.commands);
+    if (!result.ok) throw new Error(result.error.message);
+    for (const id of ['squat', 'press']) {
+      expect(exerciseIn(result.draft, id).name).toBe('');
+      expect(cellText(row(result.draft, id), 'perSide')).toBe('');
+      expect(exerciseIn(result.draft, id).logicalKey).toBe(id);
+    }
+    const undo = applyCommands(result.draft, result.entry.undo);
+    expect(undo.ok && undo.draft).toEqual(doc);
+  });
+
+  it('does not refuse name/per-side clearing because a selected load needs its mode', () => {
+    const doc = draft();
+    const movement = exerciseIn(doc, 'squat');
+    movement.prescription.targets[0]!.effort = { kind: 'reps', reps: { min: 8, max: 12 }, perSide: true };
+    const plan = planClear(doc, (['name', 'perSide', 'load'] as const).map((column) => ({ exerciseId: 'squat', column })));
+    expect(plan.errors).toEqual([]);
+    const result = applyCommands(doc, plan.commands);
+    if (!result.ok) throw new Error(result.error.message);
+    const after = exerciseIn(result.draft, 'squat');
+    expect(after.name).toBe('');
+    expect(after.prescription.targets[0]!.effort).toEqual({ kind: 'reps', reps: { min: 8, max: 12 }, perSide: false });
+    expect(after.prescription.targets[0]!.load).toBeNull();
+    expect(after.prescription.setCount).toEqual({ min: 3, max: 3 });
+    expect(after.prescription.targets[0]!.rir).toEqual({ min: 1, max: 2 });
+  });
+
+  it('keeps optional per-side blank without requiring a target, and clears it without changing reps', () => {
+    const doc = draft();
+    expect(planClear(doc, [{ exerciseId: 'stretch', column: 'perSide' }])).toEqual({ commands: [], errors: [], changes: [] });
+    const movement = exerciseIn(doc, 'squat');
+    movement.prescription.targets[0]!.effort = { kind: 'reps', reps: { min: 8, max: 12 }, perSide: true };
+    const plan = planClear(doc, [{ exerciseId: 'squat', column: 'perSide' }]);
+    const result = applyCommands(doc, plan.commands);
+    if (!result.ok) throw new Error(result.error.message);
+    expect(cellText(row(result.draft, 'squat'), 'perSide')).toBe('');
+    expect(exerciseIn(result.draft, 'squat').prescription.targets[0]!.effort).toEqual({ kind: 'reps', reps: { min: 8, max: 12 }, perSide: false });
+    expect(exerciseIn(result.draft, 'squat').name).toBe('Squat');
   });
 });

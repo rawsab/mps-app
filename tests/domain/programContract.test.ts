@@ -14,6 +14,7 @@ const draft = (): ProgramDraft => ({
       index: 1,
       label: 'Week 1',
       startDate: null,
+      useSections: false,
       days: [
         {
           id: 'w1d1',
@@ -23,7 +24,7 @@ const draft = (): ProgramDraft => ({
             {
               id: 's1',
               kind: 'main',
-              title: '',
+              title: 'Main',
               instructions: '',
               exercises: [
                 {
@@ -32,7 +33,7 @@ const draft = (): ProgramDraft => ({
                   name: 'Smith Machine Squat',
                   alternatives: [],
                   groupId: null,
-                  demoUrl: null,
+                  demoUrl: null, muscles: [],
                   notes: '',
                   prescription: {
                     setCount: { min: 3, max: 3 },
@@ -86,4 +87,44 @@ describe('ProgramDraft contract', () => {
   it('does not let nutrition be forced into a workout program', () => {
     expect(validateForPublish({ ...draft(), service: 'nutrition' })).toContainEqual(expect.objectContaining({ path: 'service' }));
   });
+});
+
+describe('incomplete names in saved drafts', () => {
+  it('accepts empty/whitespace names in drafts but flags every missing name at publish', () => {
+    const doc = draft();
+    const day = doc.weeks[0]!.days[0]!;
+    day.label = '   ';
+    day.sections[0]!.title = '';
+    day.sections[0]!.exercises[0]!.name = '';
+    const parsed = ProgramDraft.parse(doc);
+    expect(validateForPublish(parsed)).toEqual([
+      { path: 'weeks.0.days.0.sections.0.title', message: 'Section needs a name' },
+      { path: 'weeks.0.days.0.sections.0.exercises.0.name', message: 'Exercise needs a name' },
+    ]);
+  });
+
+  it('enforces names and targets in shared preparation too', () => {
+    const doc = draft();
+    const section = structuredClone(doc.weeks[0]!.days[0]!.sections[0]!);
+    section.id = 'shared-section'; section.title = '';
+    section.exercises[0]!.id = 'shared-exercise'; section.exercises[0]!.name = '';
+    section.exercises[0]!.prescription = { setCount: null, targets: [] };
+    doc.sharedSections.push(section);
+    expect(validateForPublish(doc)).toEqual([
+      { path: 'sharedSections.0.title', message: 'Section needs a name' },
+      { path: 'sharedSections.0.exercises.0.name', message: 'Exercise needs a name' },
+      { path: 'sharedSections.0.exercises.0', message: 'Unnamed exercise: set count is missing' },
+      { path: 'sharedSections.0.exercises.0', message: 'Unnamed exercise: no target' },
+    ]);
+  });
+});
+
+
+it('preserves mesocycle style/theme and accepts older documents without a theme', () => {
+  const legacy = draft();
+  expect(ProgramDraft.parse(legacy).title).toBe(legacy.title);
+  const themed = ProgramDraft.parse({ ...legacy, programTheme: 'Strength and size' });
+  expect(themed.programTheme).toBe('Strength and size');
+  expect(ProgramDraft.safeParse({ ...legacy, programTheme: 'x'.repeat(241) }).success).toBe(false);
+  expect(validateForPublish({ ...legacy, title: '' })).toContainEqual({ path: 'title', message: 'Program needs a style' });
 });

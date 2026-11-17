@@ -10,12 +10,14 @@ export function Dialog({
   onClose,
   children,
   footer,
+  wide = false,
 }: {
   title: string;
   description?: ReactNode;
   onClose: () => void;
   children: ReactNode;
   footer?: ReactNode;
+  wide?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const id = useId();
@@ -35,7 +37,7 @@ export function Dialog({
       onClick={(e) => {
         if (e.target === e.currentTarget) ref.current?.close();
       }}
-      className="dialog m-auto w-[min(34rem,calc(100vw-2rem))] max-h-[min(40rem,calc(100dvh-2rem))] overflow-hidden rounded-card border border-line bg-surface p-0 text-text backdrop:bg-ink/75"
+      className={`dialog m-auto ${wide ? 'w-[min(48rem,calc(100vw-2rem))]' : 'w-[min(34rem,calc(100vw-2rem))]'} max-h-[min(40rem,calc(100dvh-2rem))] overflow-hidden rounded-card border border-line bg-surface p-0 text-text backdrop:bg-ink/75`}
     >
       <div className="flex max-h-[inherit] flex-col">
         <header className="flex items-start justify-between gap-3 border-b border-line px-4 py-3 sm:px-5">

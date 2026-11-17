@@ -2,6 +2,7 @@ import { useEffect, useId, useState, type ReactNode } from 'react';
 import type { DraftCommand } from '@/domain/programs/commands';
 import { planEdits, type GridColumnKey } from '@/domain/programs/grid';
 import { useEditor } from './useDraftEditor';
+import { useMuscleSuggestions } from './MuscleSuggestions';
 
 /** Shared key for a rejected edit, so the Program and Grid views show the same kept text. */
 export const cellKey = (exerciseId: string, column: GridColumnKey) => `${exerciseId}:${column}`;
@@ -10,9 +11,17 @@ export const cellKey = (exerciseId: string, column: GridColumnKey) => `${exercis
 export function useCellCommit() {
   const editor = useEditor();
   return (exerciseId: string, column: GridColumnKey, text: string): string | null => {
-    const plan = planEdits(editor.draft, [{ exerciseId, column, text }]);
+    // A mode/value/unit can be incomplete on its own. Keep the refused choice until
+    // the dependent cell completes it; apply that combination as one validated edit.
+    const family: GridColumnKey[] = ['loadMode', 'load', 'unit'].includes(column)
+      ? ['loadMode', 'load', 'unit'] : ['effort', 'perSide'].includes(column) ? ['effort', 'perSide'] : [];
+    const buffered = family.filter((key) => key !== column && editor.state.rejected[cellKey(exerciseId, key)])
+      .map((key) => ({ exerciseId, column: key, text: editor.state.rejected[cellKey(exerciseId, key)]!.text }));
+    const edits = [...buffered, { exerciseId, column, text }];
+    const plan = planEdits(editor.draft, edits);
     if (plan.errors.length > 0) return plan.errors[0]!.message;
     const error = editor.dispatch(plan.commands);
+    if (!error) edits.forEach((edit) => editor.setRejected(cellKey(exerciseId, edit.column), null));
     return error ? error.message : null;
   };
 }
@@ -46,11 +55,14 @@ export function CommitField({
   inputMode,
   className = '',
   inputClassName = '',
+  suggest,
 }: {
   label: string;
   value: string;
   rejectKey: string;
   onCommit: (text: string) => string | null;
+  /** Comma-separated autocomplete (muscle names), single-line fields only. */
+  suggest?: readonly string[];
   multiline?: boolean;
   hideLabel?: boolean;
   placeholder?: string;
@@ -65,6 +77,7 @@ export function CommitField({
   const rejected = editor.state.rejected[rejectKey];
   const [text, setText] = useState(rejected?.text ?? value);
   const [focused, setFocused] = useState(false);
+  const suggestions = useMuscleSuggestions(focused && suggest ? suggest : [], text, setText, `${id}-suggestions`);
 
   // Follow the draft (another view, a replayed conflict, undo) unless the coach is typing here.
   useEffect(() => {
@@ -82,6 +95,7 @@ export function CommitField({
 
   const shared = {
     id,
+    'data-edit-key': rejectKey,
     value: text,
     placeholder,
     'aria-invalid': rejected ? true : undefined,
@@ -92,6 +106,7 @@ export function CommitField({
       commit();
     },
     onKeyDown: (e: React.KeyboardEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+      if (!multiline && suggestions.onKeyDown(e as React.KeyboardEvent<HTMLInputElement>)) return;
       if (e.key === 'Escape') {
         setText(value);
         editor.setRejected(rejectKey, null);
@@ -104,13 +119,17 @@ export function CommitField({
 
   return (
     <div className={`flex min-w-0 flex-col gap-1 ${className}`}>
-      <label htmlFor={id} className={hideLabel ? 'sr-only' : 'text-xs font-medium text-muted'}>
+      <label htmlFor={id} className={hideLabel ? 'sr-only' : 'text-sm font-medium text-text'}>
         {label}
       </label>
       {multiline ? (
         <textarea {...shared} rows={2} onChange={(e) => setText(e.target.value)} className={`${inputClass} ${border} min-h-16 resize-y py-2 ${inputClassName}`} />
       ) : (
-        <input {...shared} type={type} inputMode={inputMode} onChange={(e) => setText(e.target.value)} className={`${inputClass} ${border} ${inputClassName}`} />
+        <div className="relative">
+          <input {...shared} {...(suggest ? suggestions.inputProps : {})} type={type} data-empty={type === 'date' && text === '' ? true : undefined} inputMode={inputMode}
+            onChange={(e) => { suggestions.onTextChange(); setText(e.target.value); }} className={`${inputClass} ${border} ${inputClassName}`} />
+          {suggest ? suggestions.list : null}
+        </div>
       )}
       {hint && !rejected ? (
         <p id={`${id}-hint`} className="text-xs text-muted">
@@ -146,13 +165,14 @@ export function CommitSelect({
   const [error, setError] = useState<string | null>(null);
   return (
     <div className={`flex min-w-0 flex-col gap-1 ${className}`}>
-      <label htmlFor={id} className={hideLabel ? 'sr-only' : 'text-xs font-medium text-muted'}>
+      <label htmlFor={id} className={hideLabel ? 'sr-only' : 'text-sm font-medium text-text'}>
         {label}
       </label>
       <select
         id={id}
         value={value}
         aria-invalid={error ? true : undefined}
+        aria-describedby={error ? `${id}-error` : undefined}
         onChange={(e) => setError(onCommit(e.target.value))}
         className={`${inputClass} ${error ? 'border-danger' : 'border-line'}`}
       >
@@ -162,24 +182,8 @@ export function CommitSelect({
           </option>
         ))}
       </select>
-      {error ? <p className="text-xs text-danger">{error}</p> : null}
+      {error ? <p id={`${id}-error`} className="text-xs text-danger">{error}</p> : null}
     </div>
-  );
-}
-
-/** Small square icon button for row actions; always labelled for screen readers. */
-export function IconButton({ label, onClick, children, disabled, tone = 'default' }: { label: string; onClick: () => void; children: ReactNode; disabled?: boolean; tone?: 'default' | 'danger' }) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      disabled={disabled}
-      className={`btn-motion inline-flex size-11 shrink-0 items-center justify-center rounded-card text-muted hover:bg-surface-raised disabled:cursor-not-allowed disabled:opacity-35 sm:size-9 ${tone === 'danger' ? 'hover:text-danger' : 'hover:text-text'}`}
-    >
-      {children}
-    </button>
   );
 }
 

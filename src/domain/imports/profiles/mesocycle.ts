@@ -177,6 +177,7 @@ export function parseMesocycle(wb: Workbook, acc: ImportAccumulator): MesocycleR
           index,
           label: weekCell ? cellText(weekCell) : /week\s*\d+/i.test(sheet.name) ? sheet.name : `Week ${index}`,
           startDate: null,
+          useSections: false,
           days: [],
         };
         if (weekCell) acc.map(cellId(weekCell), 'heading', `weeks.${index - 1}.label`);
@@ -264,7 +265,7 @@ export function parseMesocycle(wb: Workbook, acc: ImportAccumulator): MesocycleR
           name,
           alternatives: [],
           groupId: null,
-          demoUrl: null,
+          demoUrl: null, muscles: [],
           prescription: { setCount: null, targets: [{ effort: null, load: null, rir: null, rpe: null, annotations: [] }] },
           notes: '',
         };

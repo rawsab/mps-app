@@ -2,7 +2,7 @@
 -- "Publish revision"; decisions 0004, 0005). Run with: pnpm test:db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(50);
+select plan(54);
 
 create function pg_temp.act_as(uid uuid) returns void language plpgsql as $$
 begin
@@ -28,33 +28,37 @@ grant execute on all functions in schema pg_temp to anon, authenticated;
 \set client_a    '''10000000-0000-4000-b000-000000000001'''
 \set client_b    '''10000000-0000-4000-b000-000000000002'''
 
+-- Seeded demo programs (supabase/seed/programs.sql) are cleared inside this rolled-back
+-- transaction, so the visibility assertions below see only this file's fixtures.
+truncate public.programs cascade;
+
 -- Documents (as the owner). "valid" exercises every load mode, a duration effort, per-set
 -- targets, RIR 1-2 and RIR 0, an alternative, a shared warm-up and a resource.
 create table pg_temp.drafts (name text primary key, doc jsonb not null);
 grant select on pg_temp.drafts to anon, authenticated;
 insert into pg_temp.drafts values ('valid', $json$
 {
-  "schemaVersion": 1, "service": "mesocycle", "title": "Block 2", "coachNotes": "Push the last set.",
+  "schemaVersion": 1, "service": "mesocycle", "title": "Block 2", "programTheme": "Strength and size", "coachNotes": "Push the last set.",
   "sharedSections": [{
     "id": "30000000-0000-4000-d000-000000000001", "kind": "preparation", "title": "Warm-up", "instructions": "5 min bike",
     "exercises": [{
       "id": "31000000-0000-4000-d000-000000000001", "logicalKey": "hip-90-90", "name": "90/90 hip switch",
-      "alternatives": [], "groupId": null, "demoUrl": null, "notes": "",
+      "alternatives": [], "groupId": null, "demoUrl": null, "notes": "", "muscles": [],
       "prescription": {"setCount": {"min": 1, "max": 1}, "targets": [
         {"effort": {"kind": "duration", "seconds": {"min": 45, "max": 45}, "perSide": true},
          "load": {"mode": "not_applicable"}, "rir": null, "rpe": null, "annotations": []}]}
     }]
   }],
   "weeks": [{
-    "id": "32000000-0000-4000-d000-000000000001", "index": 1, "label": "Week 1", "startDate": "2026-11-23",
+    "id": "32000000-0000-4000-d000-000000000001", "index": 1, "label": "Week 1", "startDate": "2026-11-23", "useSections": false,
     "days": [{
       "id": "33000000-0000-4000-d000-000000000001", "label": "Upper A", "scheduledDate": null,
       "sections": [{
-        "id": "30000000-0000-4000-d000-000000000002", "kind": "main", "title": "", "instructions": "",
+        "id": "30000000-0000-4000-d000-000000000002", "kind": "main", "title": "Main", "instructions": "",
         "exercises": [
           {"id": "31000000-0000-4000-d000-000000000002", "logicalKey": "incline-db-press", "name": "Incline DB Press",
            "alternatives": [{"id": "alt-1", "name": "Incline machine press"}], "groupId": "A",
-           "demoUrl": "https://example.test/incline", "notes": "Pause at the bottom",
+           "demoUrl": "https://example.test/incline", "notes": "Pause at the bottom", "muscles": ["Chest", "Front Delts"],
            "prescription": {"setCount": {"min": 2, "max": 2}, "targets": [
              {"effort": {"kind": "reps", "reps": {"min": 8, "max": 12}, "perSide": false},
               "load": {"mode": "external", "value": {"min": 50, "max": 55}, "unit": "lb"},
@@ -63,12 +67,12 @@ insert into pg_temp.drafts values ('valid', $json$
               "load": {"mode": "external", "value": {"min": 45, "max": 45}, "unit": null},
               "rir": {"min": 0, "max": 0}, "rpe": null, "annotations": ["drop set"]}]}},
           {"id": "31000000-0000-4000-d000-000000000003", "logicalKey": "band-pull-apart", "name": "Band pull-apart",
-           "alternatives": [], "groupId": "A", "demoUrl": null, "notes": "",
+           "alternatives": [], "groupId": "A", "demoUrl": null, "notes": "", "muscles": [],
            "prescription": {"setCount": {"min": 2, "max": 3}, "targets": [
              {"effort": {"kind": "reps", "reps": {"min": 15, "max": 20}, "perSide": false},
               "load": {"mode": "band", "label": "light"}, "rir": null, "rpe": {"min": 7, "max": 8}, "annotations": []}]}},
           {"id": "31000000-0000-4000-d000-000000000004", "logicalKey": "pull-up", "name": "Pull-up",
-           "alternatives": [], "groupId": null, "demoUrl": null, "notes": "",
+           "alternatives": [], "groupId": null, "demoUrl": null, "notes": "", "muscles": [],
            "prescription": {"setCount": {"min": 3, "max": 3}, "targets": [
              {"effort": {"kind": "reps", "reps": {"min": 6, "max": 8}, "perSide": false},
               "load": {"mode": "bodyweight", "added": {"value": 10, "unit": "kg"}},
@@ -202,6 +206,7 @@ select pg_temp.reset_role();
 
 select pg_temp.act_as(:user_a);
 select results_eq('select title from public.program_revisions', array['Block 2'], 'the client sees only the published revision');
+select results_eq('select program_theme from public.program_revisions', array['Strength and size'], 'the client sees the published theme');
 select is((select count(*)::int from public.prescribed_sets), 5, 'the client reads the published targets');
 select pg_temp.reset_role();
 
@@ -214,6 +219,14 @@ select is((select r.title from public.programs p join public.program_revisions r
 update public.programs set archived_at = now() where id = :'prog';
 select pg_temp.act_as(:coach);
 select throws_ok(format('select public.save_draft(%L, null, pg_temp.doc(%L))', :'prog', 'valid'), '55000', null, 'an archived program accepts no drafts');
+select pg_temp.reset_role();
+
+-- Additive theme metadata remains compatible with legacy documents and immutable after publish.
+select throws_ok(format('update public.program_revisions set program_theme = %L where program_id = %L and status = %L', 'Changed', :'prog', 'published'), '55000', null, 'published theme is immutable');
+select pg_temp.act_as(:coach);
+select public.create_program(:'enr_a') as legacy_prog \gset
+select lives_ok(format('select public.save_draft(%L, null, %L::jsonb)', :'legacy_prog', pg_temp.doc('valid') - 'programTheme'), 'legacy documents without a theme still save');
+select is(public.get_program_draft(:'legacy_prog')->'draft'->>'programTheme', '', 'legacy theme defaults to empty');
 select pg_temp.reset_role();
 
 select * from finish();

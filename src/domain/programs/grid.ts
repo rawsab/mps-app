@@ -1,7 +1,9 @@
 import { formatRange, parseRangeText, type NumericRange } from '../measurements/range';
 import type { Effort, Load, WeightUnit } from '../measurements/load';
-import { applyCommands, type DraftCommand } from './commands';
-import { ExercisePrescription, type Exercise, type ProgramDraft, type SetTarget } from './contract';
+import { applyCommands, newDay, newExercise, newSection, newWeek, type DraftCommand } from './commands';
+import { dayFocus, dayName, weekName } from './labels';
+import { formatMuscles, parseMuscles, weekMuscles } from './muscles';
+import { ExercisePrescription, type Exercise, type ProgramDraft, type Section, type SetTarget, type ServiceKind } from './contract';
 
 /**
  * The Grid view as a pure model (FR-06). Rows are exercises; cells are text. Every edit, from one
@@ -14,10 +16,11 @@ import { ExercisePrescription, type Exercise, type ProgramDraft, type SetTarget 
  */
 
 export const GRID_COLUMNS = [
-  { key: 'day', label: 'Day', editable: false },
+  { key: 'day', label: 'Day / Focus', editable: false },
   { key: 'section', label: 'Section', editable: false },
   { key: 'order', label: '#', editable: false },
   { key: 'name', label: 'Exercise', editable: true },
+  { key: 'muscles', label: 'Muscles', editable: true },
   { key: 'sets', label: 'Sets', editable: true },
   { key: 'effort', label: 'Reps / time', editable: true },
   { key: 'perSide', label: 'Per side', editable: true },
@@ -30,6 +33,15 @@ export const GRID_COLUMNS = [
 ] as const;
 
 export type GridColumnKey = (typeof GRID_COLUMNS)[number]['key'];
+export type GridColumn = { key: GridColumnKey; label: string; editable: boolean };
+// Mesocycles: RIR goal follows Exercise, then Muscles (which drive set totals, decision 0021).
+const MESOCYCLE_COLUMNS: readonly GridColumn[] = GRID_COLUMNS.flatMap<GridColumn>((column) =>
+  column.key === 'rir' || column.key === 'muscles' ? [] : column.key === 'name'
+    ? [column, { key: 'rir', label: 'RIR goal', editable: true }, { key: 'muscles', label: 'Muscles', editable: true }] : [column]);
+// Personal training has no set totals, so it keeps its original columns.
+const PERSONAL_TRAINING_COLUMNS: readonly GridColumn[] = GRID_COLUMNS.filter((column) => column.key !== 'muscles');
+export const gridColumns = (service: ServiceKind): readonly GridColumn[] => service === 'mesocycle' ? MESOCYCLE_COLUMNS : PERSONAL_TRAINING_COLUMNS;
+
 
 export type GridRow = {
   exerciseId: string;
@@ -38,6 +50,7 @@ export type GridRow = {
   dayId: string | null;
   sectionId: string;
   dayLabel: string;
+  focus?: string;
   sectionLabel: string;
   /** 1-based position within the section. */
   position: number;
@@ -56,23 +69,145 @@ export type GridPlan = {
   changes: CellChange[];
 };
 
-const SECTION_KIND_LABELS = { preparation: 'Preparation', main: 'Main', cooldown: 'Cooldown', other: 'Other' } as const;
-
 export function gridRows(draft: ProgramDraft): GridRow[] {
   const rows: GridRow[] = [];
-  const add = (weekId: string | null, dayId: string | null, dayLabel: string, sections: ProgramDraft['sharedSections']) => {
+  const add = (weekId: string | null, dayId: string | null, dayLabel: string, sections: ProgramDraft['sharedSections'], focus = '') => {
     for (const section of sections) {
-      const sectionLabel = section.title.trim() || SECTION_KIND_LABELS[section.kind];
+      const sectionLabel = section.title;
       section.exercises.forEach((exercise, i) =>
-        rows.push({ exerciseId: exercise.id, weekId, dayId, sectionId: section.id, dayLabel, sectionLabel, position: i + 1, exercise }),
+        rows.push({ exerciseId: exercise.id, weekId, dayId, sectionId: section.id, dayLabel, focus, sectionLabel, position: i + 1, exercise }),
       );
     }
   };
   add(null, null, 'All days', draft.sharedSections);
   for (const week of draft.weeks) {
-    for (const day of week.days) add(week.id, day.id, `W${week.index} · ${day.label}`, day.sections);
+    week.days.forEach((day, index) => add(week.id, day.id, dayName(index), day.sections, dayFocus(day)));
   }
   return rows;
+}
+
+/** Day-cell editing sets optional Focus; the day number is always derived. */
+export function planSetDayFocus(draft: ProgramDraft, exerciseId: string, text: string): GridPlan {
+  const rows = gridRows(draft);
+  const row = rows.find((row) => row.exerciseId === exerciseId);
+  const label = text.trim();
+  const message = !row ? 'This exercise no longer exists' : !row.dayId ? 'Shared preparation has no day focus' : label.length > 120 ? 'Keep focus under 120 characters' : null;
+  if (message || !row?.dayId) return { commands: [], changes: [], errors: [{ exerciseId, column: 'day', message: message! }] };
+  if (label === row.focus) return { commands: [], changes: [], errors: [] };
+  return {
+    commands: [{ type: 'updateDay', id: row.dayId, patch: { label } }], errors: [],
+    changes: rows.filter((candidate) => candidate.dayId === row.dayId).map((candidate) => ({ exerciseId: candidate.exerciseId, column: 'day', before: row.focus ?? '', after: label })),
+  };
+}
+
+/** Each sheet owns its selection and paste bounds, including weeks with no exercises yet. */
+export function gridSheets(draft: ProgramDraft) {
+  const rows = gridRows(draft);
+  return [
+    ...(draft.sharedSections.length ? [{ weekId: null, label: 'Every-workout preparation', rows: rows.filter((row) => row.weekId === null) }] : []),
+    ...draft.weeks.map((week, index) => ({ weekId: week.id, label: weekName(index), rows: rows.filter((row) => row.weekId === week.id) })),
+  ];
+}
+
+/** Add to this sheet only; an empty week gets its first day and section in the same batch. */
+export function planAddSheetRow(draft: ProgramDraft, weekId: string | null, newId: () => string = () => crypto.randomUUID()): { commands: DraftCommand[]; exerciseId: string } {
+  const commands: DraftCommand[] = [];
+  const week = draft.weeks.find((week) => week.id === weekId);
+  const day = week?.days.at(-1);
+  let sectionId = weekId === null ? draft.sharedSections.at(-1)?.id : day?.sections.at(-1)?.id;
+  if (!sectionId) {
+    let dayId: string | null = day?.id ?? null;
+    if (weekId !== null && !dayId) {
+      const node = newDay('', newId);
+      dayId = node.value.id;
+      commands.push({ type: 'insert', parentId: weekId, node });
+    }
+    const node = newSection(weekId === null ? 'preparation' : 'main', '', newId);
+    sectionId = node.value.id;
+    commands.push({ type: 'insert', parentId: dayId, node });
+  }
+  const exercise = newExercise('New exercise', newId);
+  if (exercise.kind === 'exercise') exercise.value.logicalKey = exercise.value.id;
+  commands.push({ type: 'insert', parentId: sectionId, node: exercise });
+  return { commands, exerciseId: exercise.value.id };
+}
+
+/** Move a complete superset together, keeping its ids, prescriptions and grouping intact. */
+export function planMoveGridExercise(draft: ProgramDraft, exerciseId: string, sectionId: string): DraftCommand[] {
+  const rows = gridRows(draft);
+  const row = rows.find((row) => row.exerciseId === exerciseId);
+  if (!row || row.sectionId === sectionId) return [];
+  const moving = row.exercise.groupId
+    ? rows.filter((candidate) => candidate.sectionId === row.sectionId && candidate.exercise.groupId === row.exercise.groupId)
+    : [row];
+  return moving.map((candidate) => ({ type: 'move', id: candidate.exerciseId, parentId: sectionId }));
+}
+
+/** Append an exercise to the final section, creating the first workout structure if necessary. */
+export function planAddGridRow(draft: ProgramDraft, newId = () => crypto.randomUUID()): { commands: DraftCommand[]; exerciseId: string } {
+  const commands: DraftCommand[] = [];
+  const week = draft.weeks.at(-1);
+  const day = week?.days.at(-1);
+  let sectionId = day?.sections.at(-1)?.id;
+  if (!week && draft.sharedSections.length > 0) sectionId = draft.sharedSections.at(-1)!.id;
+  if (!sectionId) {
+    let weekId = week?.id;
+    if (!weekId) {
+      const node = newWeek('Week 1', newId);
+      weekId = node.value.id;
+      commands.push({ type: 'insert', parentId: null, node });
+    }
+    let dayId = day?.id;
+    if (!dayId) {
+      const node = newDay('', newId);
+      dayId = node.value.id;
+      commands.push({ type: 'insert', parentId: weekId, node });
+    }
+    const node = newSection('main', '', newId);
+    sectionId = node.value.id;
+    commands.push({ type: 'insert', parentId: dayId, node });
+  }
+  const node = newExercise('New exercise', newId);
+  // Placeholder names must not give unrelated new movements a shared history key.
+  if (node.kind === 'exercise') node.value.logicalKey = node.value.id;
+  commands.push({ type: 'insert', parentId: sectionId, node });
+  return { commands, exerciseId: node.value.id };
+}
+
+export type GridStructureRequest =
+  | { kind: 'week'; label: string }
+  | { kind: 'day'; label: string; weekId: string | null }
+  | { kind: 'section'; label: string; dayId: string | null; sectionKind: Section['kind']; weekId?: string };
+
+/** Create a visible week/day/section in one undoable batch, with its first editable exercise. */
+export function planAddGridStructure(draft: ProgramDraft, request: GridStructureRequest, newId = () => crypto.randomUUID()): { commands: DraftCommand[]; exerciseId: string } {
+  const commands: DraftCommand[] = [];
+  let dayId: string | null;
+  if (request.kind === 'section') {
+    dayId = request.dayId;
+    if (dayId === null && request.weekId) {
+      const day = newDay('', newId);
+      dayId = day.value.id;
+      commands.push({ type: 'insert', parentId: request.weekId, node: day });
+    }
+  }
+  else {
+    let weekId = request.kind === 'day' ? request.weekId : null;
+    if (!weekId) {
+      const week = newWeek(request.kind === 'week' ? request.label : `Week ${draft.weeks.length + 1}`, newId);
+      weekId = week.value.id;
+      commands.push({ type: 'insert', parentId: null, node: week });
+    }
+    const day = newDay(request.kind === 'day' ? request.label : '', newId);
+    dayId = day.value.id;
+    commands.push({ type: 'insert', parentId: weekId, node: day });
+  }
+  const section = newSection(request.kind === 'section' ? request.sectionKind : 'main', request.kind === 'section' ? request.label : '', newId);
+  commands.push({ type: 'insert', parentId: dayId, node: section });
+  const exercise = newExercise('New exercise', newId);
+  if (exercise.kind === 'exercise') exercise.value.logicalKey = exercise.value.id;
+  commands.push({ type: 'insert', parentId: section.value.id, node: exercise });
+  return { commands, exerciseId: exercise.value.id };
 }
 
 // ---------------------------------------------------------------------------------------------
@@ -145,7 +280,7 @@ export function cellText(row: GridRow, column: GridColumnKey): string {
   const e = row.exercise;
   switch (column) {
     case 'day':
-      return row.dayLabel;
+      return row.dayId ? row.focus ?? '' : row.dayLabel;
     case 'section':
       return row.sectionLabel;
     case 'order':
@@ -154,6 +289,8 @@ export function cellText(row: GridRow, column: GridColumnKey): string {
       return e.name;
     case 'notes':
       return e.notes;
+    case 'muscles':
+      return formatMuscles(e.muscles);
     case 'sets':
       return formatOptionalRange(e.prescription.setCount);
     default:
@@ -194,7 +331,8 @@ export function planEdits(draft: ProgramDraft, edits: CellEdit[]): GridPlan {
 
   const commands: DraftCommand[] = [];
   for (const [exerciseId, cells] of grouped) {
-    const result = planRow(byId.get(exerciseId)!.exercise, cells);
+    const row = byId.get(exerciseId)!;
+    const result = planRow(row.exercise, cells, weekMuscles(draft, row.weekId));
     if ('errors' in result) errors.push(...result.errors);
     else commands.push(...result.commands);
   }
@@ -222,58 +360,129 @@ export function planEdits(draft: ProgramDraft, edits: CellEdit[]): GridPlan {
   return { commands: changes.length > 0 ? commands : [], errors: [], changes };
 }
 
-/** Clears every editable cell in `cells` (Delete/Backspace over a selection). */
+/** Clear selected content, including merged Day/Section labels, as one undoable batch. */
 export function planClear(draft: ProgramDraft, cells: { exerciseId: string; column: GridColumnKey }[]): GridPlan {
-  return planEdits(
-    draft,
-    cells.filter((c) => isEditable(c.column) && c.column !== 'name').map((c) => ({ ...c, text: '' })),
-  );
+  const rows = gridRows(draft);
+  const byId = new Map(rows.map((row) => [row.exerciseId, row]));
+  const commands: DraftCommand[] = [];
+  const selected = new Map<string, Set<GridColumnKey>>();
+  const days = new Set<string>();
+  const sections = new Set<string>();
+  for (const cell of cells) {
+    const row = byId.get(cell.exerciseId);
+    if (!row) return { commands: [], changes: [], errors: [{ ...cell, message: 'This exercise no longer exists' }] };
+    const columns = selected.get(cell.exerciseId) ?? new Set<GridColumnKey>();
+    columns.add(cell.column);
+    selected.set(cell.exerciseId, columns);
+    if (cell.column === 'day' && row.dayId) days.add(row.dayId);
+    if (cell.column === 'section') sections.add(row.sectionId);
+  }
+  for (const [id, columns] of selected) {
+    const exercise = byId.get(id)!.exercise;
+    if (columns.has('name') || columns.has('notes') || columns.has('muscles')) commands.push({
+      type: 'updateExercise', id,
+      patch: { ...(columns.has('name') ? { name: '' } : {}), ...(columns.has('notes') ? { notes: '' } : {}), ...(columns.has('muscles') ? { muscles: [] } : {}) },
+    });
+    // Clearing is a draft operation, not parsing an incomplete new value. Keep the remaining
+    // targets valid so a load dependency cannot refuse the entire range (including names).
+    const prescription = {
+      setCount: columns.has('sets') ? null : exercise.prescription.setCount,
+      targets: exercise.prescription.targets.map((target) => {
+        let load = target.load;
+        if (columns.has('loadMode') || columns.has('load')) load = null;
+        else if (columns.has('unit') && load) {
+          if (load.mode === 'external' || load.mode === 'assisted') load = { ...load, unit: null };
+          else if (load.mode === 'bodyweight' && load.added) load = { ...load, added: { ...load.added, unit: null } };
+        }
+        return {
+          ...target,
+          effort: columns.has('effort') ? null : columns.has('perSide') && target.effort ? { ...target.effort, perSide: false } : target.effort,
+          load,
+          rir: columns.has('rir') ? null : target.rir,
+          rpe: columns.has('rpe') ? null : target.rpe,
+        };
+      }),
+    };
+    if (JSON.stringify(prescription) !== JSON.stringify(exercise.prescription)) commands.push({ type: 'setPrescription', exerciseId: id, prescription });
+  }
+  days.forEach((id) => commands.push({ type: 'updateDay', id, patch: { label: '' } }));
+  sections.forEach((id) => commands.push({ type: 'updateSection', id, patch: { title: '' } }));
+  const result = applyCommands(draft, commands);
+  if (!result.ok) return { commands: [], changes: [], errors: [{ exerciseId: null, column: null, message: result.error.message }] };
+  const changes: CellChange[] = [];
+  for (const after of gridRows(result.draft)) {
+    const before = byId.get(after.exerciseId)!;
+    for (const { key } of GRID_COLUMNS) {
+      const previous = cellText(before, key);
+      const next = cellText(after, key);
+      if (previous !== next) changes.push({ exerciseId: after.exerciseId, column: key, before: previous, after: next });
+    }
+  }
+  return { commands: changes.length ? commands : [], errors: [], changes };
+}
+
+export function planRenameGridSection(draft: ProgramDraft, exerciseId: string, text: string): GridPlan {
+  const rows = gridRows(draft);
+  const row = rows.find((row) => row.exerciseId === exerciseId);
+  const title = text.trim();
+  const message = !row ? 'This exercise no longer exists' : title.length > 160 ? 'Keep section names under 160 characters' : null;
+  if (message || !row) return { commands: [], changes: [], errors: [{ exerciseId, column: 'section', message: message! }] };
+  if (title === row.sectionLabel) return { commands: [], changes: [], errors: [] };
+  return {
+    commands: [{ type: 'updateSection', id: row.sectionId, patch: { title } }], errors: [],
+    changes: rows.filter((candidate) => candidate.sectionId === row.sectionId).map((candidate) => ({ exerciseId: candidate.exerciseId, column: 'section', before: row.sectionLabel, after: title })),
+  };
 }
 
 /**
  * A rectangular paste anchored at (`rowIndex`, `columnIndex`) of `rows`. Cells that fall outside the
  * grid are errors, never dropped, so a paste either lands whole or not at all.
  */
-export function planPaste(draft: ProgramDraft, rows: GridRow[], rowIndex: number, columnIndex: number, matrix: string[][]): GridPlan {
+export function planPaste(draft: ProgramDraft, rows: GridRow[], rowIndex: number, columnIndex: number, matrix: string[][], columns: readonly GridColumn[] = GRID_COLUMNS): GridPlan {
   const edits: CellEdit[] = [];
   const errors: CellError[] = [];
   matrix.forEach((line, r) =>
     line.forEach((text, c) => {
       const row = rows[rowIndex + r];
-      const column = GRID_COLUMNS[columnIndex + c];
+      const column = columns[columnIndex + c];
       if (!row || !column) return;
       edits.push({ exerciseId: row.exerciseId, column: column.key, text });
     }),
   );
   const width = Math.max(0, ...matrix.map((l) => l.length));
-  if (rowIndex + matrix.length > rows.length || columnIndex + width > GRID_COLUMNS.length) {
+  if (rowIndex + matrix.length > rows.length || columnIndex + width > columns.length) {
     errors.push({
       exerciseId: null,
       column: null,
-      message: `The pasted block is ${matrix.length} × ${width} but only ${rows.length - rowIndex} × ${GRID_COLUMNS.length - columnIndex} cells are available from here`,
+      message: `The pasted block is ${matrix.length} × ${width} but only ${rows.length - rowIndex} × ${columns.length - columnIndex} cells are available from here`,
     });
   }
   const plan = planEdits(draft, edits);
   return errors.length > 0 ? { commands: [], errors: [...errors, ...plan.errors], changes: [] } : plan;
 }
 
-export const columnLabel = (column: GridColumnKey) => GRID_COLUMNS.find((c) => c.key === column)!.label;
+export const columnLabel = (column: GridColumnKey, columns: readonly GridColumn[] = GRID_COLUMNS) => columns.find((c) => c.key === column)!.label;
 
 type RowResult = { commands: DraftCommand[] } | { errors: CellError[] };
 
-function planRow(exercise: Exercise, cells: Map<GridColumnKey, string>): RowResult {
+function planRow(exercise: Exercise, cells: Map<GridColumnKey, string>, knownMuscles: readonly string[] = []): RowResult {
   const errors: CellError[] = [];
   const fail = (column: GridColumnKey, message: string) => errors.push({ exerciseId: exercise.id, column, message });
   const commands: DraftCommand[] = [];
 
-  const patch: { name?: string; notes?: string } = {};
+  const patch: { name?: string; notes?: string; muscles?: string[] } = {};
   if (cells.has('name')) {
     const name = cells.get('name')!.trim();
-    if (name === '') fail('name', 'Exercise needs a name');
-    else if (name.length > 200) fail('name', 'Keep the name under 200 characters');
+    if (name.length > 200) fail('name', 'Keep the name under 200 characters');
     else if (name !== exercise.name) patch.name = name;
   }
   if (cells.has('notes') && cells.get('notes') !== exercise.notes) patch.notes = cells.get('notes')!;
+  if (cells.has('muscles')) {
+    // The week's existing spelling wins, so typing "glutes" joins an existing "Glutes".
+    const parsed = parseMuscles(cells.get('muscles')!, knownMuscles);
+    if (!parsed.ok) fail('muscles', parsed.message);
+    else if (formatMuscles(parsed.muscles) !== formatMuscles(exercise.muscles)) patch.muscles = parsed.muscles;
+  }
 
   let { setCount, targets } = exercise.prescription;
   if (cells.has('sets')) {
@@ -311,7 +520,7 @@ function planRow(exercise: Exercise, cells: Map<GridColumnKey, string>): RowResu
   }
 
   if (errors.length > 0) return { errors: dedupe(errors) };
-  if (patch.name !== undefined || patch.notes !== undefined) commands.push({ type: 'updateExercise', id: exercise.id, patch });
+  if (Object.keys(patch).length > 0) commands.push({ type: 'updateExercise', id: exercise.id, patch });
 
   const prescription = { setCount, targets };
   if (JSON.stringify(prescription) !== JSON.stringify(exercise.prescription)) {

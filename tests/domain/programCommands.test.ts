@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   applyCommand,
+  applyReversibleCommands,
   applyCommands,
   newDay,
   newExercise,
@@ -25,7 +26,7 @@ const exercise = (id: string, name: string, groupId: string | null = null): Exer
   name,
   alternatives: [{ id: `${id}-alt`, name: `${name} (machine)` }],
   groupId,
-  demoUrl: null,
+  demoUrl: null, muscles: [],
   notes: '',
   prescription: { setCount: { min: 3, max: 3 }, targets: [target()] },
 });
@@ -43,6 +44,7 @@ const draft = (): ProgramDraft => ({
       index: 1,
       label: 'Week 1',
       startDate: '2026-11-16',
+      useSections: false,
       days: [
         {
           id: 'd1',
@@ -61,7 +63,7 @@ const draft = (): ProgramDraft => ({
         },
       ],
     },
-    { id: 'w2', index: 2, label: 'Week 2', startDate: null, days: [] },
+    { id: 'w2', index: 2, label: 'Week 2', startDate: null, useSections: false, days: [] },
   ],
 });
 
@@ -254,5 +256,72 @@ describe('draft commands: batches', () => {
     expect(result.createdIds).toHaveLength(2);
     expect(result.draft.weeks[0]!.days[1]!.id).toBe(result.createdIds[0]);
     expect(result.draft.resources[1]!.id).toBe(result.createdIds[1]);
+  });
+});
+
+
+describe('reversible draft batches (FR-06)', () => {
+  const commands: DraftCommand[] = [
+    { type: 'updateProgram', patch: { title: 'Changed', programTheme: 'Strength and size', coachNotes: 'Note' } },
+    { type: 'updateWeek', id: 'w1', patch: { startDate: null, label: 'Updated week' } },
+    { type: 'updateDay', id: 'd1', patch: { label: 'Updated day', scheduledDate: null } },
+    { type: 'updateSection', id: 's1', patch: { instructions: 'Rest', kind: 'other' } },
+    { type: 'updateExercise', id: 'e1', patch: { name: 'Renamed', alternatives: [], groupId: null } },
+    { type: 'updateResource', id: 'r1', patch: { title: 'Updated resource', body: 'Text' } },
+    { type: 'setSetCount', exerciseId: 'e1', setCount: { min: 2, max: 2 } },
+    { type: 'updateTarget', exerciseId: 'e1', index: 0, patch: { rir: null } },
+    { type: 'setTargets', exerciseId: 'e1', targets: [] },
+    { type: 'setPrescription', exerciseId: 'e1', prescription: { setCount: null, targets: [] } },
+    { type: 'insert', parentId: 's1', node: newExercise('New movement', () => 'inserted') },
+    { type: 'move', id: 'e1', parentId: 's2' },
+    { type: 'move', id: 'w1', parentId: null, index: 1 },
+    { type: 'duplicate', id: 'w1' },
+    { type: 'remove', id: 'w1' },
+  ];
+  it.each(commands)('restores the exact document and ids for $type', (command) => {
+    const before = draft();
+    const changed = applyReversibleCommands(before, [command], { newId: ids() });
+    expect(changed.ok).toBe(true);
+    if (!changed.ok) return;
+    const undone = applyCommands(changed.draft, changed.entry.undo);
+    expect(undone).toMatchObject({ ok: true, draft: before });
+    if (!undone.ok) return;
+    expect(applyCommands(undone.draft, changed.entry.redo)).toMatchObject({ ok: true, draft: changed.draft });
+    expect(applyCommands(before, changed.commands)).toMatchObject({ ok: true, draft: changed.draft });
+  });
+
+  it('undoes a batch in reverse order, including per-set values removed by a resize', () => {
+    const before = draft();
+    before.weeks[0]!.days[0]!.sections[0]!.exercises[0]!.prescription.targets = [target(), target({ rir: null }), target({ rir: { min: 0, max: 0 } })];
+    const changed = applyReversibleCommands(before, [
+      { type: 'setSetCount', exerciseId: 'e1', setCount: { min: 1, max: 1 } },
+      { type: 'updateExercise', id: 'e1', patch: { name: 'Changed', notes: 'Changed notes' } },
+      { type: 'remove', id: 's1' },
+    ]);
+    expect(changed.ok).toBe(true);
+    if (!changed.ok) return;
+    expect(applyCommands(changed.draft, changed.entry.undo)).toMatchObject({ ok: true, draft: before });
+  });
+
+  it('replays a duplicate followed by edits and undo with stable descendant ids', () => {
+    const before = draft();
+    const duplicate = applyReversibleCommands(before, [{ type: 'duplicate', id: 'w1' }], { newId: ids() });
+    if (!duplicate.ok) throw new Error('Duplicate failed');
+    const exercise = duplicate.draft.weeks[1]!.days[0]!.sections[0]!.exercises[0]!;
+    const edit = applyReversibleCommands(duplicate.draft, [{ type: 'updateExercise', id: exercise.id, patch: { notes: 'Changed copy' } }]);
+    if (!edit.ok) throw new Error('Edit failed');
+    const remote = { ...before, coachNotes: 'Another editor changed this' };
+    const replay = applyCommands(remote, [...duplicate.commands, ...edit.commands, ...edit.entry.undo]);
+    expect(replay).toMatchObject({ ok: true, draft: { ...duplicate.draft, coachNotes: remote.coachNotes } });
+  });
+
+  it('refuses a bad batch without a partial document or history entry', () => {
+    const before = draft();
+    const result = applyReversibleCommands(before, [
+      { type: 'remove', id: 'w1' }, { type: 'updateExercise', id: 'e1', patch: { name: 'Gone' } },
+    ]);
+    expect(result).toMatchObject({ ok: false, commandIndex: 1 });
+    expect(result).not.toHaveProperty('entry');
+    expect(before.weeks[0]!.days[0]!.sections[0]!.exercises[0]!.name).toBe('Squat');
   });
 });

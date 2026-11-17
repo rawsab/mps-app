@@ -48,7 +48,7 @@ export function parsePersonalTraining(doc: WordDocument, acc: ImportAccumulator)
     service: 'personal_training',
     title: '',
     sharedSections: [],
-    weeks: [{ id: 'w1', index: 1, label: 'Week 1', startDate: null, days: [] }],
+    weeks: [{ id: 'w1', index: 1, label: 'Week 1', startDate: null, useSections: false, days: [] }],
     resources: [],
     coachNotes: '',
   };
@@ -89,7 +89,7 @@ export function parsePersonalTraining(doc: WordDocument, acc: ImportAccumulator)
       name,
       alternatives: [],
       groupId: null,
-      demoUrl: null,
+      demoUrl: null, muscles: [],
       prescription: { setCount: null, targets: [emptyTarget()] },
       notes: '',
     };

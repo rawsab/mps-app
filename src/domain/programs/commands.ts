@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { slug } from '../imports/notation';
 import type { NumericRange } from '../measurements/range';
 import {
+  MuscleList,
   Exercise,
   ExercisePrescription,
   ProgramDraft,
@@ -24,12 +25,14 @@ type ResourceNode = z.infer<typeof Resource>;
 type NodeOf = { week: ProgramWeek; day: WorkoutDay; section: Section; exercise: Exercise; resource: ResourceNode };
 export type DraftNode = { [K in NodeKind]: { kind: K; value: NodeOf[K] } }[NodeKind];
 
-const ProgramPatch = ProgramDraft.pick({ title: true, coachNotes: true }).partial().strict();
-const WeekPatch = ProgramWeek.pick({ label: true, startDate: true }).partial().strict();
+const ProgramPatch = ProgramDraft.pick({ title: true, programTheme: true, coachNotes: true }).partial().strict();
+const WeekPatch = ProgramWeek.pick({ label: true, startDate: true, useSections: true }).partial().strict();
 const DayPatch = WorkoutDay.pick({ label: true, scheduledDate: true }).partial().strict();
 const SectionPatch = Section.pick({ kind: true, title: true, instructions: true }).partial().strict();
 /** `logicalKey` is deliberately absent: renaming a movement keeps its history key. */
+// muscles is extended without its document default, so a patch that omits it leaves it alone.
 const ExercisePatch = Exercise.pick({ name: true, alternatives: true, groupId: true, demoUrl: true, notes: true })
+  .extend({ muscles: MuscleList })
   .partial()
   .strict();
 const ResourcePatch = Resource.pick({ title: true, body: true, url: true }).partial().strict();
@@ -141,12 +144,77 @@ export function applyCommand(draft: ProgramDraft, command: DraftCommand, options
   }
 }
 
+/** A user operation (including a rectangular paste) is one reversible batch. */
+export type HistoryEntry = { undo: DraftCommand[]; redo: DraftCommand[] };
+export type ReversibleBatchResult =
+  | { ok: true; draft: ProgramDraft; commands: DraftCommand[]; entry: HistoryEntry }
+  | { ok: false; error: CommandError; commandIndex: number };
+
+/**
+ * Invert accepted commands, retaining removed subtrees and the actual ids produced by duplication.
+ * Forward replay and redo use concrete inserts instead of generating different ids on each replay.
+ * Undo is a new draft edit through the same save/version path, including after autosave (FR-06).
+ */
+export function applyReversibleCommands(draft: ProgramDraft, commands: DraftCommand[], options: CommandOptions = {}): ReversibleBatchResult {
+  let current = draft;
+  const redo: DraftCommand[] = [];
+  let undo: DraftCommand[] = [];
+  const previousPatch = <T extends object>(value: T, patch: Partial<T>): Partial<T> =>
+    Object.fromEntries(Object.keys(patch).map((key) => [key, value[key as keyof T]])) as Partial<T>;
+  for (const [commandIndex, command] of commands.entries()) {
+    const result = applyCommand(current, command, options);
+    if (!result.ok) return { ...result, commandIndex };
+    let forward = command;
+    let inverse: DraftCommand;
+    switch (command.type) {
+      case 'updateProgram': inverse = { type: 'updateProgram', patch: previousPatch(current, command.patch) }; break;
+      case 'updateWeek': inverse = { ...command, patch: previousPatch(locate(current, command.id)!.node as ProgramWeek, command.patch) }; break;
+      case 'updateDay': inverse = { ...command, patch: previousPatch(locate(current, command.id)!.node as WorkoutDay, command.patch) }; break;
+      case 'updateSection': inverse = { ...command, patch: previousPatch(locate(current, command.id)!.node as Section, command.patch) }; break;
+      case 'updateExercise': inverse = { ...command, patch: previousPatch(locate(current, command.id)!.node as Exercise, command.patch) }; break;
+      case 'updateResource': inverse = { ...command, patch: previousPatch(locate(current, command.id)!.node as ResourceNode, command.patch) }; break;
+      case 'setSetCount':
+      case 'updateTarget':
+      case 'setTargets':
+      case 'setPrescription':
+        inverse = { type: 'setPrescription', exerciseId: command.exerciseId, prescription: (locate(current, command.exerciseId)!.node as Exercise).prescription };
+        break;
+      case 'insert': inverse = { type: 'remove', id: command.node.value.id }; break;
+      case 'duplicate': {
+        const at = locate(result.draft, result.createdId!)!;
+        forward = insertionAt(result.draft, at);
+        inverse = { type: 'remove', id: at.node.id };
+        break;
+      }
+      case 'remove': inverse = insertionAt(current, locate(current, command.id)!); break;
+      case 'move': {
+        const at = locate(current, command.id)!;
+        inverse = { type: 'move', id: command.id, parentId: parentIdAt(current, at), index: at.index };
+        break;
+      }
+    }
+    current = result.draft;
+    redo.push(forward);
+    undo = [inverse, ...undo];
+  }
+  return { ok: true, draft: current, commands: redo, entry: { undo, redo } };
+}
+
+function parentIdAt(draft: ProgramDraft, at: Location): string | null {
+  if (at.containerPath.length === 1) return null;
+  return (getIn(draft, at.containerPath.slice(0, -1)) as { id: string }).id;
+}
+
+function insertionAt(draft: ProgramDraft, at: Location): Extract<DraftCommand, { type: 'insert' }> {
+  return { type: 'insert', parentId: parentIdAt(draft, at), index: at.index, node: { kind: at.kind, value: at.node } as DraftNode };
+}
+
 // ---------------------------------------------------------------------------------------------
 // Node factories for editors. Ids default to uuids, which `save_draft` requires (decision 0004).
 
 export function newWeek(label: string, newId = defaultNewId): DraftNode {
   // The index is assigned from the week's position on insert.
-  return { kind: 'week', value: { id: newId(), index: 1, label, startDate: null, days: [] } };
+  return { kind: 'week', value: { id: newId(), index: 1, label, startDate: null, useSections: false, days: [] } };
 }
 
 export function newDay(label: string, newId = defaultNewId): DraftNode {
@@ -154,7 +222,7 @@ export function newDay(label: string, newId = defaultNewId): DraftNode {
 }
 
 export function newSection(kind: Section['kind'], title: string, newId = defaultNewId): DraftNode {
-  return { kind: 'section', value: { id: newId(), kind, title, instructions: '', exercises: [] } };
+  return { kind: 'section', value: { id: newId(), kind, title: title || kind[0]!.toUpperCase() + kind.slice(1), instructions: '', exercises: [] } };
 }
 
 /** Starts unprescribed (no set count, no target); publish readiness flags it until filled in. */
@@ -167,7 +235,7 @@ export function newExercise(name: string, newId = defaultNewId): DraftNode {
       name,
       alternatives: [],
       groupId: null,
-      demoUrl: null,
+      demoUrl: null, muscles: [],
       prescription: { setCount: null, targets: [] },
       notes: '',
     },
@@ -364,7 +432,7 @@ function copyWithFreshIds(node: DraftNode, newId: () => string): DraftNode {
   const day = (d: WorkoutDay): WorkoutDay => ({ ...d, id: newId(), scheduledDate: null, sections: d.sections.map(section) });
   switch (node.kind) {
     case 'week':
-      return { kind: 'week', value: { ...node.value, id: newId(), startDate: null, days: node.value.days.map(day) } };
+      return { kind: 'week', value: { ...node.value, id: newId(), startDate: null, useSections: node.value.useSections ?? false, days: node.value.days.map(day) } };
     case 'day':
       return { kind: 'day', value: day(node.value) };
     case 'section':

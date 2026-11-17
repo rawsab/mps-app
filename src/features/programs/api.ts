@@ -7,6 +7,7 @@ export type RevisionSummary = {
   revision_number: number;
   status: 'draft' | 'published';
   title: string;
+  program_theme: string;
   updated_at: string;
   published_at: string | null;
 };
@@ -23,7 +24,7 @@ export type ProgramRow = {
 
 // programs ↔ program_revisions has two FKs (revision.program_id and programs.current_revision_id).
 const PROGRAM_COLUMNS =
-  'id, service, enrollment_id, current_revision_id, archived_at, created_at, program_revisions!program_revisions_program_id_client_id_fkey(id, revision_number, status, title, updated_at, published_at)';
+  'id, service, enrollment_id, current_revision_id, archived_at, created_at, program_revisions!program_revisions_program_id_client_id_fkey(id, revision_number, status, title, program_theme, updated_at, published_at)';
 
 export function useClientPrograms(clientId: string) {
   return useQuery({
@@ -147,4 +148,18 @@ export function programErrorMessage(err: unknown): string {
   if (e?.code === '22023') return `The server rejected the draft: ${e.message}`;
   if (e?.message === 'Failed to fetch') return 'Could not reach the server. Your edits are kept here.';
   return e?.message ?? 'Something went wrong. Your edits are kept here.';
+}
+
+export function useRemoveProgram() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ programId, expectedVersion, archive }: { programId: string; expectedVersion: number | null; archive: boolean }) => {
+      const { data, error } = await requireSupabase().rpc('remove_program', {
+        p_program_id: programId, p_expected_version: expectedVersion, p_archive: archive,
+      });
+      if (error) throw rpcError(error);
+      return data as 'deleted' | 'archived';
+    },
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['programs'] }),
+  });
 }

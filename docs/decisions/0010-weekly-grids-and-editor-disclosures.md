@@ -1,0 +1,24 @@
+# 0010 — Weekly spreadsheets and collapsible program editing
+
+Date: 2026-11-16 · Status: accepted by the owner before implementation
+
+## Decision (FR-05, FR-06, NFR-06)
+
+- Grid mode renders one independently labelled spreadsheet per week, including empty weeks. Shared preparation is shown once in its own sheet. Each sheet owns its selection, keyboard bounds, clipboard preview and add-row operation; pastes cannot overflow into the next week.
+- Mouse/pen dragging selects a rectangular range within the sheet, with edge scrolling and pointer capture until release/cancel. The range uses the existing copy and Delete/Backspace command paths. Text editing retains native text selection; fixed-choice cells show their value and a picker button until edited, allowing range selection across their contents. Touch retains native scrolling. Double-click or Enter/F2 enters cell editing.
+- Each week's name is a heading immediately above its grid, with a pencil control for inline editing. The former day-name/move controls above the grid are removed. Day and Section names are edited directly in their merged table cells using double-click, Enter/F2 or typing; their cells have no pencil. These edits use the same rejection keys and update commands as Program view. Shared preparation has no editable day name. Decision 0011 supersedes the original label-preserving clear behavior.
+- Day and Section columns use real row spans over contiguous rows sharing the same identities. Equal names belonging to different days/sections stay separate. Day labels omit the redundant week prefix; a normal one-pixel rule separates days. Keyboard focus, drag hit-testing and rectangular clipboard operations use logical row/column coordinates rather than DOM cell indexes, which differ in rows covered by merged cells.
+- The grid toolbar and cell context menu can move an exercise to another day/section or shared preparation. A superset moves as a complete group. Moves retain ids, prescriptions, notes and alternatives, and use the normal reversible command path.
+- The attached add-row button inserts into its own sheet. Empty weeks receive their first day and section atomically; shared insertion stays in shared preparation. Structure creation can target any week, with focus handed to the appropriate sheet's new exercise.
+- Program view adds app-native day, section and exercise icons. Native disclosures independently collapse sections and exercises without unmounting their fields. Collapsed exercises retain a name, prescription summary and invalid-edit indicator. Publish issue links open every collapsed ancestor before focusing a field.
+- The exercise containing keyboard focus receives a 5% gold background over its entire editing area, fading over 180ms. The existing reduced-motion rule disables the transition. Other exercises have no enclosing fill.
+- The bottom + tab is 28px high and opens the same popup style as cell actions, offering New exercise, New section and New day. Structure setup defaults to the sheet's week; creating a section in an empty week scaffolds its first day atomically. All native disclosures use a shared chevron rotating over 180ms, with reduced motion respected.
+- Outline Add week sits directly below the final week, aligned with week rows. Each week has an Add day directly below its days, aligned with day rows. Both have plus icons, smaller text/padding, and subdued opacity; coarse-pointer targets retain 44px height. On smaller screens the selector has matching add controls for the selected week.
+- Keep the current grid implementation. `react-spreadsheet` supports controlled data and custom cell editors, but adopting it would still require adapters for domain validation, paste review, undo/redo and the shared draft. A migration is outside this approved change. References: [usage](https://iddan.github.io/react-spreadsheet/learn/usage/), [custom cells](https://iddan.github.io/react-spreadsheet/).
+
+## Verification
+
+- All 149 unit tests pass. Eight new tests cover separate sheets, empty weeks, bounded paste, targeted insertion, atomic scaffolding/undo, superset move/undo/redo and whole-day movement.
+- Typecheck and production build pass. The existing unsplit-bundle warning remains (about 815 kB minified).
+- No browser automation or screenshots were run, following the owner's verification preference. Manual checks: separate week grids and bounded paste; week/day renaming; move operations and undo; outline button alignment; section/exercise collapse; publish issue reopening; focus highlight/fade in both themes and reduced motion; archived read-only behavior.
+- Merged-label refinement: all 158 tests, typecheck and build pass. Nine additional tests cover identity-based spans, logical cell ownership, shared rows, merged-cell pointer coordinates, and validated day renames with exact undo. Browser/layout verification remains manual.

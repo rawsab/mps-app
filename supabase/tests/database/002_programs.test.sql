@@ -46,6 +46,10 @@ grant execute on all functions in schema pg_temp to anon, authenticated;
 \set tpl_v1      '''27100000-0000-4000-c000-000000000001'''
 
 -- Fixtures (as the table owner) --------------------------------------------------
+-- Seeded demo programs (supabase/seed/programs.sql) are cleared inside this rolled-back
+-- transaction, so the visibility assertions below see only this file's fixtures.
+truncate public.programs cascade;
+
 insert into public.templates (id, service, title) values (:tpl, 'mesocycle', 'Synthetic hypertrophy block');
 insert into public.template_versions (id, template_id, version_number, schema_version, content)
   values (:tpl_v1, :tpl, 1, 1, '{"weeks": []}');

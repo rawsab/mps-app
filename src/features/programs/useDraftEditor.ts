@@ -1,5 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useReducer, useRef } from 'react';
-import { applyCommands, type CommandError, type DraftCommand } from '@/domain/programs/commands';
+import { applyCommands, applyReversibleCommands, type CommandError, type DraftCommand, type HistoryEntry } from '@/domain/programs/commands';
 import { PROGRAM_DRAFT_SCHEMA_VERSION, type ProgramDraft, type PublishProblem, type ServiceKind } from '@/domain/programs/contract';
 import {
   fetchProgramDraft,
@@ -31,6 +31,8 @@ type State = {
   saved: ProgramDraft | null;
   /** Commands applied since `saved`, replayable onto a newer server draft. */
   pending: DraftCommand[];
+  past: HistoryEntry[];
+  future: HistoryEntry[];
   lockVersion: number | null;
   revisionNumber: number | null;
   baseStatus: DraftSnapshot['status'];
@@ -46,7 +48,7 @@ type State = {
 type Action =
   | { type: 'loaded'; snapshot: DraftSnapshot; draft: ProgramDraft; recovery: Recovery | null }
   | { type: 'loadFailed'; error: string }
-  | { type: 'apply'; draft: ProgramDraft; commands: DraftCommand[] }
+  | { type: 'apply'; draft: ProgramDraft; commands: DraftCommand[]; entry?: HistoryEntry; direction?: 'undo' | 'redo' }
   | { type: 'saving' }
   | { type: 'saved'; doc: ProgramDraft; count: number; lockVersion: number; revisionNumber: number }
   | { type: 'saveFailed'; error: string }
@@ -62,6 +64,8 @@ const initial: State = {
   draft: null,
   saved: null,
   pending: [],
+  past: [],
+  future: [],
   lockVersion: null,
   revisionNumber: null,
   baseStatus: null,
@@ -95,6 +99,11 @@ function reducer(state: State, action: Action): State {
         ...state,
         draft: action.draft,
         pending: [...state.pending, ...action.commands],
+        past: action.direction === 'undo' ? state.past.slice(0, -1)
+          : action.direction === 'redo' ? [...state.past, state.future.at(-1)!]
+          : action.entry ? [...state.past.slice(-99), action.entry] : [],
+        future: action.direction === 'undo' ? [...state.future, state.past.at(-1)!]
+          : action.direction === 'redo' ? state.future.slice(0, -1) : [],
         // A conflict stays a conflict until it is resolved; otherwise the next save picks this up.
         saveState: state.saveState === 'conflict' || state.saveState === 'saving' ? state.saveState : 'unsaved',
         publishProblems: null,
@@ -126,6 +135,8 @@ function reducer(state: State, action: Action): State {
         draft: action.draft,
         saved: action.snapshot.draft,
         pending: action.pending,
+        past: [],
+        future: [],
         lockVersion: action.snapshot.lockVersion,
         revisionNumber: action.snapshot.revisionNumber,
         baseStatus: action.snapshot.status,
@@ -170,7 +181,7 @@ function writeRecovery(programId: string, recovery: Recovery | null) {
 }
 
 function emptyDraft(service: ServiceKind): ProgramDraft {
-  return { schemaVersion: PROGRAM_DRAFT_SCHEMA_VERSION, service, title: '', sharedSections: [], weeks: [], resources: [], coachNotes: '' };
+  return { schemaVersion: PROGRAM_DRAFT_SCHEMA_VERSION, service, title: '', programTheme: '', sharedSections: [], weeks: [], resources: [], coachNotes: '' };
 }
 
 const sameDoc = (a: ProgramDraft | null, b: ProgramDraft | null) => a === b || JSON.stringify(a) === JSON.stringify(b);
@@ -238,17 +249,29 @@ export function useDraftEditor(program: { id: string; service: ServiceKind }) {
     writeRecovery(program.id, { draft: state.draft, pending: state.pending, lockVersion: state.lockVersion, at: new Date().toISOString() });
   }, [program.id, state.draft, state.pending, state.saveState, state.lockVersion, state.recovery]);
 
-  const dispatch = useCallback((commands: DraftCommand[]): CommandError | null => {
+  const applyLocal = useCallback((commands: DraftCommand[], direction?: 'undo' | 'redo'): CommandError | null => {
     const s = stateRef.current;
     if (!s.draft || commands.length === 0) return null;
-    const result = applyCommands(s.draft, commands);
+    const result = applyReversibleCommands(s.draft, commands);
     if (!result.ok) return result.error;
-    if (result.draft !== s.draft) {
-      send({ type: 'apply', draft: result.draft, commands });
-      stateRef.current = { ...stateRef.current, draft: result.draft };
+    if (!sameDoc(result.draft, s.draft)) {
+      const action: Action = { type: 'apply', draft: result.draft, commands: result.commands, entry: result.entry, direction };
+      send(action);
+      // Blur may commit a field just before Undo is clicked in the same event.
+      stateRef.current = reducer(s, action);
     }
     return null;
   }, []);
+
+  const dispatch = useCallback((commands: DraftCommand[]) => applyLocal(commands), [applyLocal]);
+  const undo = useCallback(() => {
+    const entry = stateRef.current.past.at(-1);
+    return entry ? applyLocal(entry.undo, 'undo') : null;
+  }, [applyLocal]);
+  const redo = useCallback(() => {
+    const entry = stateRef.current.future.at(-1);
+    return entry ? applyLocal(entry.redo, 'redo') : null;
+  }, [applyLocal]);
 
   /** Replays pending edits onto `snapshot`; returns an error message if they no longer apply. */
   const rebaseOnto = useCallback((snapshot: DraftSnapshot, pending: DraftCommand[]): string | null => {
@@ -333,8 +356,8 @@ export function useDraftEditor(program: { id: string; service: ServiceKind }) {
     state.saveState === 'unsaved' || state.saveState === 'saving' || state.saveState === 'error' || state.saveState === 'conflict' || Object.keys(state.rejected).length > 0;
 
   return useMemo(
-    () => ({ state, dispatch, save, resolveConflict, restoreRecovery, discardRecovery, publish, setRejected, hasUnsavedWork }),
-    [state, dispatch, save, resolveConflict, restoreRecovery, discardRecovery, publish, setRejected, hasUnsavedWork],
+    () => ({ state, dispatch, undo, redo, canUndo: state.past.length > 0, canRedo: state.future.length > 0, save, resolveConflict, restoreRecovery, discardRecovery, publish, setRejected, hasUnsavedWork }),
+    [state, dispatch, undo, redo, save, resolveConflict, restoreRecovery, discardRecovery, publish, setRejected, hasUnsavedWork],
   );
 }
 
