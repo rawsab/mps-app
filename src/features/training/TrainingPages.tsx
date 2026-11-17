@@ -1,5 +1,6 @@
 import { Link, useParams, useSearchParams } from 'react-router';
 import { DisclosureSummary } from '@/components/DisclosureSummary';
+import { CheckCircleIcon } from '@/components/icons';
 import { Alert, Button, EmptyState, PageHeader, Spinner } from '@/components/ui';
 import { dayView, locateDay, prescriptionView, weekSummaries, type DayBlock, type DayView } from '@/domain/programs/clientView';
 import type { Exercise, ProgramDraft } from '@/domain/programs/contract';
@@ -8,7 +9,8 @@ import { formatDate } from '@/lib/format';
 import { SERVICE_LABELS } from '@/lib/services';
 import type { TrainingSession } from '@/domain/training/volume';
 import { logErrorMessage, trainingErrorMessage, usePublishedProgram, usePublishedPrograms, useStartSession, useTrainingLog } from './api';
-import { ExerciseSetLog, SessionDetails, SetTotals } from './SetLog';
+import { ResourceBody } from './ResourceBody';
+import { ExerciseSetLog, SessionDate, SessionWrapUp, SetTotals } from './SetLog';
 
 const programName = (title: string) => title.trim() || 'Your program';
 
@@ -94,7 +96,7 @@ export function TrainingProgramView({ programId, backTo, backLabel, staff = fals
       {located ? (
         <>
           <WeekPicker program={doc} weekId={located.week.id} onSelect={(weekId) => select(weekId, null)} />
-          <DayPicker program={doc} weekId={located.week.id} dayId={located.day?.id ?? null} onSelect={(dayId) => select(located.week.id, dayId)} />
+          <DayPicker program={doc} weekId={located.week.id} dayId={located.day?.id ?? null} completed={new Set(log.data?.filter((s) => s.status === 'completed').map((s) => s.dayId))} onSelect={(dayId) => select(located.week.id, dayId)} />
           {located.day ? (() => {
             const session = log.data?.find((s) => s.dayId === located.day!.id) ?? null;
             // A started session keeps the day as prescribed when it began (its revision's snapshot).
@@ -102,9 +104,10 @@ export function TrainingProgramView({ programId, backTo, backLabel, staff = fals
             const day = session ? session.day : located.day;
             return <>
               {logging ? <LogHeader programId={programId} dayId={located.day.id} session={session} pending={log.isPending} error={log.error} archived={!!archivedAt} staff={staff} /> : null}
-              {logging && session ? <SessionDetails programId={programId} session={session} readOnly={false} /> : null}
+              {logging && session ? <SessionDate programId={programId} session={session} readOnly={false} /> : null}
               <Day view={dayView(doc, week, day)} log={logging && session ? { programId, session } : null} />
               {logging && log.data ? <SetTotals program={doc} sessions={log.data} dayId={located.day.id} /> : null}
+              {logging && session ? <SessionWrapUp programId={programId} session={session} readOnly={false} /> : null}
             </>;
           })() : <p className="mt-6 text-sm text-muted">This week has no workouts.</p>}
         </>
@@ -132,22 +135,33 @@ function WeekPicker({ program, weekId, onSelect }: { program: ProgramDraft; week
   );
 }
 
-function DayPicker({ program, weekId, dayId, onSelect }: { program: ProgramDraft; weekId: string; dayId: string | null; onSelect: (id: string) => void }) {
+function DayPicker({ program, weekId, dayId, completed, onSelect }: { program: ProgramDraft; weekId: string; dayId: string | null; completed: Set<string>; onSelect: (id: string) => void }) {
   const week = weekSummaries(program).find((w) => w.id === weekId)!;
   if (week.days.length === 0) return null;
   return (
     <nav aria-label={`${week.name} days`} className="mb-6">
       <p className="mb-2 text-sm text-muted">{week.name}{week.startDate ? ` · starts ${formatDate(week.startDate)}` : ''}</p>
       <ul className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-        {week.days.map((d) => (
-          <li key={d.id}>
-            <button type="button" aria-current={d.id === dayId ? 'true' : undefined} onClick={() => onSelect(d.id)}
-              className={`flex min-h-14 w-full flex-col items-start justify-center rounded-card border px-3 py-2 text-left transition-colors ${d.id === dayId ? 'border-gold/50 bg-gold/10' : 'border-line hover:bg-surface-raised'}`}>
-              <span className={`text-xs ${d.id === dayId ? 'text-gold-fg' : 'text-muted'}`}>{d.name}</span>
-              <span className="w-full truncate text-sm font-medium">{d.focus || 'Workout'}</span>
-            </button>
-          </li>
-        ))}
+        {week.days.map((d) => {
+          const selected = d.id === dayId;
+          const done = completed.has(d.id);
+          // Completed days turn green (stronger when selected) and lead with a check.
+          const tone = done
+            ? selected ? 'border-success bg-success/15' : 'border-success/50 bg-success/10 hover:bg-success/15'
+            : selected ? 'border-gold/50 bg-gold/10' : 'border-line hover:bg-surface-raised';
+          return (
+            <li key={d.id}>
+              <button type="button" aria-current={selected ? 'true' : undefined} onClick={() => onSelect(d.id)}
+                className={`flex min-h-14 w-full items-center gap-2.5 rounded-card border px-3 py-2 text-left transition-colors ${tone}`}>
+                {done ? <span className="text-success"><CheckCircleIcon /></span> : null}
+                <span className="flex min-w-0 flex-1 flex-col">
+                  <span className={`text-xs ${done ? 'text-success' : selected ? 'text-gold-fg' : 'text-muted'}`}>{d.name}{done ? <span className="sr-only"> (completed)</span> : null}</span>
+                  <span className="w-full truncate text-sm font-medium">{d.focus || 'Workout'}</span>
+                </span>
+              </button>
+            </li>
+          );
+        })}
       </ul>
     </nav>
   );
@@ -162,7 +176,7 @@ function LogHeader({ programId, dayId, session, pending, error, archived, staff 
   if (pending || session) return null;
   if (archived) return <p className="mb-4 text-sm text-muted">This program is archived, so new workouts can’t be logged.</p>;
   return (
-    <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-card border border-gold/40 bg-gold/5 p-3">
+    <div className="mb-6 flex flex-wrap items-center justify-between gap-3 rounded-card border border-line bg-surface-raised p-3">
       <p className="text-sm">{staff ? 'The client hasn’t logged this day yet.' : 'Ready to train? Log your weight and reps for each set.'}</p>
       <Button busy={start.isPending} onClick={() => start.mutate(dayId)}>{staff ? 'Start log for client' : 'Log this workout'}</Button>
       {start.error ? <p role="alert" className="w-full text-xs text-danger">{logErrorMessage(start.error)}</p> : null}
@@ -191,7 +205,7 @@ function Block({ block, shared, log }: { block: DayBlock; shared?: boolean; log:
       {block.instructions ? <p className="mb-3 whitespace-pre-line text-sm text-muted">{block.instructions}</p> : null}
       <ol className="grid gap-3">
         {block.groups.map((g) => g.superset ? (
-          <li key={g.key} className="rounded-card border border-gold/40 p-3">
+          <li key={g.key} className="rounded-card border border-line p-3">
             <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gold-fg">Superset · do these back to back</p>
             <ol className="grid divide-y divide-line">{g.exercises.map((e) => <li key={e.id} className="py-2 first:pt-0 last:pb-0"><ExerciseItem exercise={e} log={log} /></li>)}</ol>
           </li>
@@ -263,7 +277,7 @@ function Resources({ program }: { program: ProgramDraft }) {
   return (
     <section aria-labelledby="program-resources" className="mt-8 border-t border-line pt-4">
       <h2 id="program-resources" className="mb-3 text-lg font-semibold">Resources</h2>
-      <ul className="grid gap-3">
+      <ul className="grid gap-8">
         {program.resources.map((r) => (
           <li key={r.id}>
             {r.url ? (
@@ -271,7 +285,7 @@ function Resources({ program }: { program: ProgramDraft }) {
                 {r.title}<span aria-hidden> ↗</span><span className="sr-only"> (opens in a new tab)</span>
               </a>
             ) : <p className="font-medium">{r.title}</p>}
-            {r.body.trim() ? <p className="mt-0.5 whitespace-pre-line break-words text-sm text-muted">{r.body}</p> : null}
+            {r.body.trim() ? <ResourceBody body={r.body} label={r.title} /> : null}
           </li>
         ))}
       </ul>

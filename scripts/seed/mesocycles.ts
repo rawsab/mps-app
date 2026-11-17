@@ -7,30 +7,43 @@
 import type { ProgramDraft } from '@/domain/programs/contract';
 import { advancedProgression, bodyweight, introProgression, mesocycle, resource, type MesoDay } from './builders';
 
-/** The sample's "Additional Resources" sheet, rewritten as readable reference text. */
+/** The sample's "Additional Resources" sheet, rewritten as readable reference tables. */
 const feedbackGuide = (key: string) => [
   resource(key, 'Session feedback (0–3)', [
     'Score each target muscle after the session.',
     '',
-    'Challenge: how much did the session challenge your target muscles?',
-    '0 — barely aware of the target muscles · 1 — they worked, but mildly · 2 — a good amount of tension or burn · 3 — tension and burn close to the limit',
+    '## Stimulus Estimation Assessment Tool',
+    '| Question | 0 | 1 | 2 | 3 |',
+    '|---|---|---|---|---|',
+    '| Challenge: how much did the session challenge your target muscles? | Barely aware of the target muscles | They worked, but mildly | A good amount of tension or burn | Tension and burn close to the limit |',
+    '| Pump: how much pump did you get in the target muscles? | None | Very mild | Decent | Close to maximal |',
+    '| Disruption: how much did the session disrupt your target muscles? | No fatigue or soreness | Weak and stiff after, recovered by the next day | Weak and stiff after, some soreness the next day | Much weaker right after, sore for a few days or more |',
     '',
-    'Pump: 0 — none · 1 — very mild · 2 — decent · 3 — close to maximal',
+    '## Set Progression Assessment Tool',
+    '| Question | 0 | 1 | 2 | 3 |',
+    '|---|---|---|---|---|',
+    '| Soreness: how sore did you get in the target muscles? | Not sore | Stiff for a few hours, resolved by the next session for that muscle | DOMS that recovered just in time for the next session | DOMS still there at the next session |',
+    '| Performance: how was your performance? | Hit target reps with 2+ reps to spare | Hit target reps with 0–1 reps to spare | Hit target reps only after target RIR | Could not match last week\'s reps at any RIR |',
     '',
-    'Disruption: 0 — no fatigue or soreness · 1 — weak and stiff after, recovered by the next day · 2 — weak and stiff after, some soreness the next day · 3 — much weaker right after, sore for a few days or more',
+    '## Stimulus Score Grading',
+    'Stimulus score = challenge + pump + disruption (0–9).',
     '',
-    'Soreness: 0 — not sore · 1 — stiff for a few hours, resolved by the next session for that muscle · 2 — DOMS that recovered just in time · 3 — DOMS still there at the next session',
-    '',
-    'Performance: 0 — hit target reps with 2+ reps to spare · 1 — hit target reps with 0–1 reps to spare · 2 — hit target reps only after target RIR · 3 — could not match last week\'s reps at any RIR',
+    '| Stimulus score | Next week |',
+    '|---|---|',
+    '| 0–3 | Increase volume by two to four sets |',
+    '| 4–6 | Increase volume normally |',
+    '| 7–9 | Drop volume |',
   ].join('\n')),
   resource(key, 'Set progression', [
-    'Stimulus (challenge + pump + disruption, 0–9) and soreness decide next week\'s sets for that muscle.',
+    '## Performance Score matrix',
+    'Find your soreness score (row) and performance score (column) for that muscle to see next week\'s sets.',
     '',
-    'Stimulus 0–3: increase volume by two to four sets · 4–6: progress normally · 7–9: drop volume the following week.',
-    '',
-    'Soreness 0: add 1–3 sets (low stimulus), 0–2 (moderate), none (high).',
-    'Soreness 1: add 1–2 sets (low stimulus), 0–1 (moderate), none (high).',
-    'Soreness 2 or 3: do not add sets; prioritise recovery.',
+    '| Soreness Score \\ Performance Score | 0 | 1 | 2 | 3 |',
+    '|---|---|---|---|---|',
+    '| 0 | Add 1–3 sets | Add 0–2 sets | Do not add sets | Recovery |',
+    '| 1 | Add 1–2 sets | Add 0–1 sets | Do not add sets | Recovery |',
+    '| 2 | Do not add sets | Do not add sets | Do not add sets | Recovery |',
+    '| 3 | Do not add sets | Do not add sets | Do not add sets | Recovery |',
   ].join('\n')),
 ];
 

@@ -47,7 +47,7 @@ Source: the sample's day blocks and its "Additional Resources" sheet.
    - It never changes a prescription (PRD FR-08).
 5. **UI:** an optional "Stimulus & Fatigue" card under the day's set totals. It has one compact 0–3 segmented control per question per muscle, saves on change, and has the same coach-edit attribution. The coach gets a per-week muscle table.
 6. **Open questions for Matt:**
-   - Confirm the scale wording and the soreness × performance matrix. The sample's matrix is partly blank.
+   - Confirm the scale wording and the soreness × performance matrix. The sample's matrix (Additional Resources M24:Q32) is complete: soreness rows 0–3 by performance columns 0–3. An earlier seed guide wrongly read the columns as stimulus bands; the seed now shows the matrix as a table.
    - Is "performance" per muscle (as in the sample) or per exercise?
    - Should Set Progression also be asked on Week 2+ Day 1, where the comparison crosses weeks?
    - The rubric text is MPS IP. Keep it in the (private) codebase, or store it as editable template content?

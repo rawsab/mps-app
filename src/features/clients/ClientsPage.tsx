@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useViewer } from '@/app/auth';
 import { ComboboxField } from '@/components/ComboboxField';
+import { PlusIcon } from '@/components/icons';
 import { Alert, Button, Card, EmptyState, PageHeader, Spinner, TextAreaField, TextField } from '@/components/ui';
 import type { ServiceKind } from '@/domain/programs/contract';
 import { SERVICE_LABELS, SERVICES } from '@/lib/services';
@@ -46,7 +47,7 @@ export function ClientsPage() {
         actions={
           isAdmin && !creating ? (
             <Button ref={newButton} onClick={openForm}>
-              New client
+              <PlusIcon /> New client
             </Button>
           ) : null
         }

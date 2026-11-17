@@ -1,10 +1,15 @@
-import { useState, type FormEvent, type ReactNode } from 'react';
+import { lazy, Suspense, useState, type FormEvent, type ReactNode } from 'react';
 import { Link, Navigate, useNavigate } from 'react-router';
 import { z } from 'zod';
 import { useAuth } from '@/app/auth';
 import { ThemeToggle } from '@/components/ThemeToggle';
 import { Alert, Button, Spinner, TextField } from '@/components/ui';
+import { envResult } from '@/lib/env';
 import { requireSupabase } from '@/lib/supabase';
+
+// One-click seed accounts: dev builds against a local Supabase only. Production builds drop the import.
+const isLocalSupabase = envResult.ok && /^https?:\/\/(127\.0\.0\.1|localhost)(:\d+)?(\/|$)/.test(envResult.env.supabaseUrl);
+const DevSignIn = import.meta.env.DEV && isLocalSupabase ? lazy(() => import('./DevSignIn')) : null;
 
 /*
  * STAND-IN photograph (Wikimedia Commons, CC BY 2.0, cropped to remove a third-party logo).
@@ -106,6 +111,11 @@ export function SignInPage() {
         </Link>
         <p className="text-xs text-muted">Accounts are created by invitation from your coach.</p>
       </form>
+      {DevSignIn ? (
+        <Suspense fallback={null}>
+          <DevSignIn onSignIn={signIn} />
+        </Suspense>
+      ) : null}
     </AuthFrame>
   );
 }

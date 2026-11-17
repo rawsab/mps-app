@@ -43,7 +43,17 @@ const foamRolling: PtSection = {
 const rpeGuide = (key: string) => [
   resource(key, 'RPE guide', [
     'RPE is how hard the set felt, out of 10.',
-    '10 — no more reps possible · 9 — one more rep · 8 — two more reps · 7 — three more reps, speed still good · 6 or below — warm-up effort.',
+    '',
+    '## RPE scale',
+    '| RPE | Reps left | How it feels |',
+    '|---|---|---|',
+    '| 10 | 0 | No more reps possible |',
+    '| 9 | 1 | One more rep |',
+    '| 8 | 2 | Two more reps |',
+    '| 7 | 3 | Three more reps, speed still good |',
+    '| 6 or below | 4+ | Warm-up effort |',
+    '',
+    '## Ranges',
     'When a range is listed (for example 8.5–9), finish the set inside it. If you blow past it, drop the weight next set.',
   ].join('\n')),
 ];

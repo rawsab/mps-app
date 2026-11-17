@@ -148,7 +148,7 @@ export function ProgramView({ readOnly = false }: { readOnly?: boolean }) {
 
       {selected === 'resources' ? <Panel
         title="Resources"
-        description="Guides and links the client can open from the program."
+        description="Guides and links the client can open from the program. Type a table as lines like | A | B |, with |---|---| under the header. Start a line with ## for a heading."
         footer={
           <Button variant="secondary" onClick={() => commit({ type: 'insert', parentId: null, node: newResource('New resource') })}>
             <PlusIcon /> Add resource

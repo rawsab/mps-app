@@ -24,6 +24,13 @@
   --color-text: #f2f2f2;
   --color-danger: #f08a7e;
   --color-success: #8fd19e;
+  /* Muted fills for advice cells in resource matrices (add sets / recovery). */
+  --color-good-fill: color-mix(in oklab, #5f8f3f 24%, transparent);
+  --color-bad-fill: color-mix(in oklab, #b3442f 24%, transparent);
+  --color-on-tone: #f5f3ee;
+  /* Resource table headers: translucent gold, softer than a full gold fill. */
+  --color-table-head: color-mix(in oklab, var(--color-gold) 38%, transparent);
+  --color-on-table-head: #f5f3ee;
   --radius-card: 7px;
   --font-sans: 'Hanken Grotesk Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
   --ease-ui: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -44,6 +51,11 @@ html[data-theme='light'] {
   --color-text: #171717;
   --color-danger: #b42318;
   --color-success: #1d7a3a;
+  --color-good-fill: color-mix(in oklab, #5f8f3f 18%, transparent);
+  --color-bad-fill: color-mix(in oklab, #b3442f 16%, transparent);
+  --color-on-tone: #171717;
+  --color-table-head: color-mix(in oklab, var(--color-gold) 45%, transparent);
+  --color-on-table-head: #171717;
 }
 
 html {

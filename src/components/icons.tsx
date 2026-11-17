@@ -81,6 +81,13 @@ export const CheckIcon = () => (
   </Icon>
 );
 
+export const CheckCircleIcon = () => (
+  <Icon className="size-5 shrink-0" strokeWidth={2}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="m8 12.5 2.75 2.75L16 10" />
+  </Icon>
+);
+
 export const SendIcon = () => (
   <Icon className="size-4 shrink-0">
     <path d="M20.5 3.5 10 14M20.5 3.5 14 20.5l-4-6.5-6.5-4z" />

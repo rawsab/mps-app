@@ -13,14 +13,17 @@ import { logErrorMessage, useDeleteSet, useSaveSet, useUpdateSession, type SetIn
 type Unit = '' | 'lb' | 'kg' | 'BW';
 type Row = { id: string; setNumber: number; weight: string; unit: Unit; reps: string; state: 'saved' | 'saving' | 'error' | 'new' | 'dirty'; message?: string; byStaff: boolean };
 
+// A set with no load saved yet shows lb until the client picks another unit; nothing is stored until a weight is entered.
+const DEFAULT_UNIT: Unit = 'lb';
+
 const unitOf = (set: LoggedSet): Unit => (set.loadMode === 'bodyweight' ? 'BW' : set.loadUnit ?? '');
 const toRow = (set: LoggedSet): Row => ({
-  id: set.id, setNumber: set.setNumber, weight: set.loadValue === null ? '' : String(set.loadValue), unit: unitOf(set),
+  id: set.id, setNumber: set.setNumber, weight: set.loadValue === null ? '' : String(set.loadValue), unit: unitOf(set) || DEFAULT_UNIT,
   reps: set.reps === null ? '' : String(set.reps), state: 'saved', byStaff: set.updatedByStaff,
 });
 const NUMBER = /^\d+(?:\.\d+)?$/;
 
-/** Prescribed unit, else the unit of the last set the client logged for anything this session. */
+/** Prescribed unit, else the unit of the last set the client logged for anything this session, else lb. */
 function defaultUnit(exercise: Exercise, session: TrainingSession, rows: Row[]): Unit {
   const last = rows.at(-1)?.unit;
   if (last) return last;
@@ -28,7 +31,7 @@ function defaultUnit(exercise: Exercise, session: TrainingSession, rows: Row[]):
   if (load?.mode === 'bodyweight') return 'BW';
   if ((load?.mode === 'external' || load?.mode === 'assisted') && load.unit) return load.unit;
   const recent = [...session.sets].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)).find((set) => unitOf(set));
-  return recent ? unitOf(recent) : '';
+  return recent ? unitOf(recent) : DEFAULT_UNIT;
 }
 
 /** Validates a row into the server call; returns a message instead when it can't be saved yet. */
@@ -170,16 +173,19 @@ export function SetTotals({ program, sessions, dayId }: { program: ProgramDraft;
   return (
     <section aria-labelledby={`totals-${dayId}`} className="mb-6 rounded-card border border-line p-3">
       <h3 id={`totals-${dayId}`} className="mb-1 font-semibold">Set totals</h3>
-      <p className="mb-3 text-xs text-muted">Logged sets (with reps) out of planned. Change compares with the last day that trained the muscle.</p>
+      <p className="mb-3 text-xs text-muted">Logged sets (with reps) out of planned. Change compares with the last day that trained each muscle.</p>
       {muscles.length ? (
         <table className="w-full text-sm">
           <thead><tr className="text-left text-xs text-muted"><th scope="col" className="py-1 font-medium">Muscle</th><th scope="col" className="py-1 text-right font-medium">Sets</th><th scope="col" className="py-1 text-right font-medium">Change</th></tr></thead>
           <tbody className="divide-y divide-line">
             {muscles.map((m) => (
               <tr key={m.key}>
-                <th scope="row" className="py-2 text-left font-normal">{m.name}</th>
-                <td className="py-2 text-right tabular-nums">{m.logged} <span className="text-muted">/ {m.planned}</span></td>
-                <td className="py-2 text-right tabular-nums" title={m.comparedTo ? `Compared with ${m.comparedTo.label}${m.comparedTo.logged ? '' : ' (not logged)'}` : 'First day this muscle is trained'}>
+                <th scope="row" className="py-2 text-left font-normal">
+                  {m.name}
+                  <span className="block text-xs text-muted">{m.comparedTo ? `vs ${m.comparedTo.label}${m.comparedTo.logged ? '' : ' (not logged)'}` : 'First time trained'}</span>
+                </th>
+                <td className="py-2 text-right align-top tabular-nums">{m.logged} <span className="text-muted">/ {m.planned}</span></td>
+                <td className="py-2 text-right align-top tabular-nums">
                   <span className={m.change && m.change > 0 ? 'text-success' : m.change && m.change < 0 ? 'text-danger' : 'text-muted'}>{formatChange(m.change)}</span>
                 </td>
               </tr>
@@ -194,37 +200,55 @@ export function SetTotals({ program, sessions, dayId }: { program: ProgramDraft;
   );
 }
 
-/** Workout date, completion and notes. */
-export function SessionDetails({ programId, session, readOnly }: { programId: string; session: TrainingSession; readOnly: boolean }) {
+type SessionPatch = Partial<{ status: TrainingSession['status']; performedOn: string | null; notes: string }>;
+
+/** Saves session fields, keeping the rest as stored. */
+function useSessionSave(programId: string, session: TrainingSession) {
   const updateSession = useUpdateSession(programId);
-  const [notes, setNotes] = useState(session.notes);
   const [error, setError] = useState<string | null>(null);
-  useEffect(() => setNotes(session.notes), [session.notes]);
-  const save = (patch: Partial<{ status: TrainingSession['status']; performedOn: string | null; notes: string }>) => {
+  const save = (patch: SessionPatch) => {
     setError(null);
-    updateSession.mutate({ sessionId: session.id, status: session.status, performedOn: session.performedOn, notes, ...patch }, { onError: (err) => setError(logErrorMessage(err)) });
+    updateSession.mutate({ sessionId: session.id, status: session.status, performedOn: session.performedOn, notes: session.notes, ...patch }, { onError: (err) => setError(logErrorMessage(err)) });
   };
+  return { save, error, pending: updateSession.isPending };
+}
+
+/** Workout date, above the exercises. */
+export function SessionDate({ programId, session, readOnly }: { programId: string; session: TrainingSession; readOnly: boolean }) {
+  const { save, error } = useSessionSave(programId, session);
+  return (
+    <section aria-label="Workout date" className="mb-6 grid gap-2">
+      <label className="grid w-fit gap-1 text-sm">
+        <span className="font-medium">Workout date</span>
+        <input type="date" value={session.performedOn ?? ''} disabled={readOnly} onChange={(e) => save({ performedOn: e.target.value || null })}
+          className="min-h-11 rounded-card border border-line bg-ink px-2 text-base text-text sm:text-sm" />
+      </label>
+      {error ? <p role="alert" className="text-xs text-danger">{error}</p> : null}
+    </section>
+  );
+}
+
+/** Notes and completion, after the exercises so the client finishes where they stopped logging. */
+export function SessionWrapUp({ programId, session, readOnly }: { programId: string; session: TrainingSession; readOnly: boolean }) {
+  const { save, error, pending } = useSessionSave(programId, session);
+  const [notes, setNotes] = useState(session.notes);
+  useEffect(() => setNotes(session.notes), [session.notes]);
   const completed = session.status === 'completed';
   return (
-    <section aria-label="Workout details" className="mb-6 grid gap-3 rounded-card bg-surface-raised p-3">
-      <div className="flex flex-wrap items-end justify-between gap-3">
-        <label className="grid gap-1 text-sm">
-          <span className="font-medium">Workout date</span>
-          <input type="date" value={session.performedOn ?? ''} disabled={readOnly} onChange={(e) => save({ performedOn: e.target.value || null })}
-            className="min-h-11 rounded-card border border-line bg-ink px-2 text-base text-text sm:text-sm" />
-        </label>
-        {!readOnly ? (
-          <Button variant={completed ? 'secondary' : 'primary'} busy={updateSession.isPending} onClick={() => save({ status: completed ? 'in_progress' : 'completed' })}>
-            {completed ? 'Reopen workout' : 'Mark workout complete'}
-          </Button>
-        ) : null}
-      </div>
-      {completed && session.completedAt ? <p className="text-xs text-muted">Completed {new Date(session.completedAt).toLocaleString()}</p> : null}
+    <section aria-label="Finish workout" className="mb-6 grid gap-3 rounded-card bg-surface-raised p-3">
       <label className="grid gap-1 text-sm">
         <span className="font-medium">Notes</span>
         <textarea rows={2} value={notes} disabled={readOnly} onChange={(e) => setNotes(e.target.value)} onBlur={() => { if (notes !== session.notes) save({ notes }); }}
           placeholder="How did it go?" className="min-h-16 rounded-card border border-line bg-ink px-2 py-2 text-base text-text sm:text-sm" />
       </label>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        {completed && session.completedAt ? <p className="text-xs text-muted">Completed {new Date(session.completedAt).toLocaleString()}</p> : <span />}
+        {!readOnly ? (
+          <Button variant={completed ? 'secondary' : 'primary'} busy={pending} onClick={() => save({ notes, status: completed ? 'in_progress' : 'completed' })}>
+            {completed ? 'Reopen workout' : 'Mark workout complete'}
+          </Button>
+        ) : null}
+      </div>
       {error ? <p role="alert" className="text-xs text-danger">{error}</p> : null}
     </section>
   );
