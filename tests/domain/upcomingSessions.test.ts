@@ -3,7 +3,7 @@ import { upcomingByDay, type UpcomingSession } from '@/domain/scheduling/upcomin
 
 const now = new Date(2026, 10, 17, 12, 0);
 const session = (id: string, start: Date, durationMinutes = 60): UpcomingSession => ({
-  id, clientId: 'c', clientName: 'Client', startsAt: start.toISOString(), durationMinutes, recurrence: null, location: null,
+  id, startsAt: start.toISOString(), durationMinutes,
 });
 const day = (d: Date) => `day:${d.getDate()}`;
 

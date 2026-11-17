@@ -29,11 +29,11 @@ export type NutritionActivity = {
   status: 'completed' | 'in_progress'; weight: number | null; weightUnit: 'lb' | 'kg' | null;
   intake: number | null; output: number | null;
 };
-/** A client's cancel or reschedule request for a PT session (decision 0037). Reviews only. */
+/** A client's cancel or reschedule request for a meeting (decisions 0037, 0039). Reviews only. */
 export type RequestActivity = {
-  kind: 'request'; id: string; service: 'personal_training'; requestKind: 'cancel' | 'reschedule';
+  kind: 'request'; id: string; services: ('personal_training' | 'mesocycle' | 'nutrition')[]; requestKind: 'cancel' | 'reschedule';
   status: 'pending' | 'accepted' | 'declined' | 'withdrawn' | 'expired'; message: string; preferredStartsAt: string | null;
-  late: boolean | null; response: string; appointmentId: string; startsAt: string; durationMinutes: number;
+  late: boolean | null; response: string; meetingId: string; startsAt: string; durationMinutes: number;
   activityAt: string; staffEdited: boolean;
 };
 export type ActivityItem = SessionActivity | NutritionActivity | RequestActivity;
@@ -52,7 +52,7 @@ export function activityKind(item: Pick<SessionActivity, 'status' | 'setCount' |
 }
 
 export function activityTitle(item: ActivityItem): string {
-  if (item.kind === 'request') return item.status === 'withdrawn' ? 'Withdrew a session request' : item.requestKind === 'cancel' ? 'Asked to cancel a session' : 'Asked to reschedule a session';
+  if (item.kind === 'request') return item.status === 'withdrawn' ? 'Withdrew a meeting request' : item.requestKind === 'cancel' ? 'Asked to cancel a meeting' : 'Asked to reschedule a meeting';
   if (item.kind === 'nutrition') return item.status === 'completed' ? 'Logged daily nutrition' : item.weight !== null ? 'Logged weight' : item.intake !== null || item.output !== null ? 'Logged calories' : 'Updated daily nutrition';
   switch (activityKind(item)) {
     case 'completed': return 'Completed a workout';
@@ -60,15 +60,16 @@ export function activityTitle(item: ActivityItem): string {
     case 'logged': return item.setCount > 0 ? 'Logged sets' : 'Answered Stimulus & Fatigue';
     case 'started': return 'Started a workout';
     case 'nutrition': return 'Logged daily nutrition';
-    case 'request': return 'Session request';
+    case 'request': return 'Meeting request';
   }
 }
 
 /** "Block one · Week 2 · Day 1 · Push". Numbers follow order, like the editor. */
+const SERVICE_NAMES = { personal_training: 'Personal training', mesocycle: 'Mesocycle', nutrition: 'Nutrition' } as const;
 const SESSION_TIME = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
 export function activityWhere(item: ActivityItem): string {
-  if (item.kind === 'request') return `Personal training · ${SESSION_TIME.format(new Date(item.startsAt))} · ${item.durationMinutes} min`;
+  if (item.kind === 'request') return `${item.services.map((s) => SERVICE_NAMES[s]).join(' · ')} · ${SESSION_TIME.format(new Date(item.startsAt))} · ${item.durationMinutes} min`;
   if (item.kind === 'nutrition') return item.programTitle;
   return [item.programTitle.trim() || 'Untitled program', weekName(item.weekIndex), dayHeading({ label: item.dayLabel }, item.dayIndex)].join(' · ');
 }

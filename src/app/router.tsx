@@ -1,5 +1,6 @@
 import { createBrowserRouter, Navigate } from 'react-router';
 import { ProfileSettingsPage } from '@/features/profile/ProfileSettingsPage';
+import { MeetingsPage } from '@/features/scheduling/MeetingsPage';
 import { NutritionPage, NutritionProgressPage } from '@/features/nutrition/NutritionPages';
 import { NutritionProgramPage } from '@/features/nutrition/NutritionProgramPage';
 import { AuthCallbackPage, ForgotPasswordPage, SignInPage } from '@/features/auth/AuthPages';
@@ -68,6 +69,7 @@ export const router = createBrowserRouter([
               { path: '/coach/clients/:clientId/programs/:programId/log', element: <CoachTrainingLogPage /> },
               { path: '/coach/templates', element: <CoachPlaceholderPage title="Templates" body="Reusable program templates arrive with the program model in M3." /> },
               { path: '/coach/reviews', element: <ReviewsPage /> },
+              { path: '/coach/meetings', element: <MeetingsPage /> },
             ],
           },
         ],

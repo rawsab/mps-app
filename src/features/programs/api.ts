@@ -49,6 +49,21 @@ export function useClientPrograms(clientId: string) {
   });
 }
 
+/** Chooses a service's current program; null clears the choice (decision 0039). */
+export function useSetCurrentProgram() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ enrollmentId, programId }: { enrollmentId: string; programId: string | null }) => {
+      const { error } = await requireSupabase().rpc('set_current_program', { p_enrollment_id: enrollmentId, p_program_id: programId });
+      if (error) throw error;
+    },
+    onSuccess: () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['clients'] }),
+      queryClient.invalidateQueries({ queryKey: ['meetings'] }),
+    ]),
+  });
+}
+
 export function useProgram(programId: string | undefined) {
   return useQuery({
     queryKey: ['programs', programId],

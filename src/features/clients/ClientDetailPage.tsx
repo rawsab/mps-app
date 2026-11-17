@@ -1,16 +1,18 @@
 import { Avatar } from '@/components/Avatar';
 import { ActionsMenu, actionItemClass } from '@/components/ActionsMenu';
-import { ArchiveIcon, TrashIcon } from '@/components/icons';
+import { ArchiveIcon, CalendarIcon, ServicesIcon, TrashIcon } from '@/components/icons';
 import { Dialog } from '@/components/Dialog';
 import { useState, type FormEvent } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { AnimatedDisclosure } from '@/components/AnimatedDisclosure';
 import { useViewer } from '@/app/auth';
-import { Alert, Badge, Button, EmptyState, PageHeader, SelectField, Spinner, TextAreaField } from '@/components/ui';
+import { Alert, Badge, Button, EmptyState, PageHeader, SectionTitle, SelectField, Spinner, TextAreaField, TextField } from '@/components/ui';
 import type { ServiceKind } from '@/domain/programs/contract';
 import { RecentUpdatesCard } from '@/features/activity/ActivityViews';
 import { ProgramsCard } from '@/features/programs/ProgramsCard';
-import { ScheduleCard } from '@/features/scheduling/ScheduleCard';
+import { MeetingsCard } from '@/features/scheduling/MeetingsCard';
+import { CurrentProgramBox } from '@/features/programs/CurrentProgram';
+import { useClientPrograms } from '@/features/programs/api';
 import { capitalize, formatDate } from '@/lib/format';
 import { SERVICE_LABELS, SERVICES } from '@/lib/services';
 import {
@@ -22,6 +24,7 @@ import {
   useClient,
   useClientNotes,
   useClientPhoto,
+  useArchivedServiceContents,
   useDeleteArchivedService,
   useDeleteClientNote,
   useInviteClient,
@@ -38,7 +41,7 @@ export function ClientDetailPage() {
   const client = useClient(clientId);
   const photo = useClientPhoto(client.data?.auth_user_id);
   const isAdmin = viewer.data?.staffRole === 'admin';
-  // Reviews links to a session with ?session=; closing it drops the parameter.
+  // Reviews links to a meeting with ?session=; closing it drops the parameter.
   const [params, setParams] = useSearchParams();
   const focusSession = params.get('session');
 
@@ -65,8 +68,9 @@ export function ClientDetailPage() {
       <div className="grid min-w-0 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="grid min-w-0 gap-8">
           <RecentUpdatesCard client={c} />
-          {c.service_enrollments.some((e) => e.service === 'personal_training' && !e.archived_at) ? (
-            <ScheduleCard clientId={c.id} focusSessionId={focusSession} onFocusClosed={() => setParams((p) => { p.delete('session'); return p; }, { replace: true })} />
+          {c.service_enrollments.some((e) => !e.archived_at) ? (
+            <MeetingsCard clientId={c.id} heading={<span className="flex items-center gap-2"><SectionTitle icon={<CalendarIcon />}>Meetings</SectionTitle></span>}
+              focusMeetingId={focusSession} onFocusClosed={() => setParams((p) => { p.delete('session'); return p; }, { replace: true })} />
           ) : null}
           <ProgramsCard clientId={c.id} enrollments={c.service_enrollments} />
         </div>
@@ -153,6 +157,7 @@ function ServicesCard({
   const setStatus = useSetEnrollmentStatus();
   const archive = useArchiveEnrollment();
   const remove = useDeleteArchivedService();
+  const programs = useClientPrograms(clientId);
   const visible = enrollments.filter((enrollment) => !enrollment.archived_at);
   const archived = enrollments.filter((enrollment) => enrollment.archived_at);
   const [showArchived, setShowArchived] = useState(false);
@@ -163,7 +168,7 @@ function ServicesCard({
 
   return (
     <section className="min-w-0">
-      <h2 className="mb-3 text-lg font-semibold">Services</h2>
+      <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold"><SectionTitle icon={<ServicesIcon />}>Services</SectionTitle></h2>
       {visible.length === 0 ? <p className="text-sm text-muted">No services to show.</p> : null}
       <ul className="divide-y divide-line">
         {visible.map((enrollment) => (
@@ -192,6 +197,7 @@ function ServicesCard({
                   onClick={() => setStatus.mutate({ id: enrollment.id, status: 'ended' })}>End</button>
               </ActionsMenu> : null}
             </div>
+            <CurrentProgramBox clientId={clientId} enrollment={enrollment} programs={programs.data ?? []} />
           </li>
         ))}
       </ul>
@@ -222,12 +228,7 @@ function ServicesCard({
           ) : null}
         </div>
       ) : null}
-      {deleting ? <Dialog title={`Delete archived ${SERVICE_LABELS[deleting.service]}?`}
-        description="This permanently removes the service record. Services that still have programs or scheduled sessions can’t be deleted."
-        onClose={() => { if (!remove.isPending) setDeleting(null); }} footer={<>
-          <Button variant="secondary" disabled={remove.isPending} onClick={() => setDeleting(null)}>Keep service</Button>
-          <Button variant="danger" busy={remove.isPending} onClick={() => remove.mutate(deleting.id, { onSuccess: () => setDeleting(null) })}><TrashIcon />Delete service</Button>
-        </>}><Alert visible={!!remove.error} className="m-4" title="Could not delete service">{friendlyError(remove.error)}</Alert></Dialog> : null}
+      {deleting ? <DeleteServiceDialog enrollment={deleting} onClose={() => setDeleting(null)} /> : null}
       {canEdit && available.length ? (
         <form
           className="mt-4 flex flex-wrap items-end gap-2"
@@ -253,6 +254,59 @@ function ServicesCard({
       <Alert visible={!!archive.error} className="mt-3" title="Could not archive service">{friendlyError(archive.error)}</Alert>
       <Alert visible={!!setStatus.error} className="mt-3">{friendlyError(setStatus.error)}</Alert>
     </section>
+  );
+}
+
+/**
+ * Deletes an archived service. With programs under it, the admin can also delete them, published
+ * ones and the client's logged workouts included (decision 0038), after typing the service's name.
+ */
+function DeleteServiceDialog({ enrollment, onClose }: { enrollment: EnrollmentRow; onClose: () => void }) {
+  const remove = useDeleteArchivedService();
+  const contents = useArchivedServiceContents(enrollment.id);
+  const [withPrograms, setWithPrograms] = useState(false);
+  const [typed, setTyped] = useState('');
+  const label = SERVICE_LABELS[enrollment.service];
+  const linked = contents.data?.programs ?? 0;
+  const confirmed = !withPrograms || typed.trim().toLowerCase() === label.toLowerCase();
+  const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`;
+
+  return (
+    <Dialog title={`Delete archived ${label}?`} description="This permanently removes the service record."
+      onClose={() => { if (!remove.isPending) onClose(); }} footer={<>
+        <Button variant="secondary" disabled={remove.isPending} onClick={onClose}>Keep service</Button>
+        <Button variant="danger" busy={remove.isPending} disabled={contents.isPending || (linked > 0 && !withPrograms) || !confirmed}
+          onClick={() => remove.mutate({ id: enrollment.id, deletePrograms: withPrograms }, { onSuccess: onClose })}>
+          <TrashIcon />{withPrograms ? 'Delete service and programs' : 'Delete service'}
+        </Button>
+      </>}>
+      <div className="grid gap-4 p-4 sm:p-5">
+        {contents.isPending ? <Spinner label="Checking what this service has" /> : null}
+        <Alert visible={!!contents.error} title="Could not check the service">{friendlyError(contents.error)}</Alert>
+        {contents.data && linked === 0 ? <p className="text-sm text-muted">Nothing else is linked to it.</p> : null}
+        {contents.data && linked > 0 ? (
+          <>
+            <p className="text-sm">
+              It still has {plural(linked, 'program')}
+              {contents.data.published ? `, ${contents.data.published} published` : ''}
+              {contents.data.loggedWorkouts ? `, with ${plural(contents.data.loggedWorkouts, 'logged workout')}` : ''}.
+              Keep it archived, or delete the programs with it.
+            </p>
+            <label className="flex min-h-11 cursor-pointer items-start gap-3 rounded-card border border-danger/40 p-3 text-sm">
+              <input type="checkbox" className="mt-0.5 size-4 accent-gold" checked={withPrograms} onChange={(event) => setWithPrograms(event.target.checked)} />
+              <span>
+                <span className="block font-medium text-danger">Also delete its programs</span>
+                <span className="block text-muted">Removes the programs, every revision, and the client’s logged workouts and Stimulus & Fatigue answers for them. Daily nutrition logs are kept. This can’t be undone.</span>
+              </span>
+            </label>
+            {withPrograms ? (
+              <TextField label={`Type “${label}” to confirm`} value={typed} onChange={(event) => setTyped(event.target.value)} autoComplete="off" />
+            ) : null}
+          </>
+        ) : null}
+        <Alert visible={!!remove.error} title="Could not delete service">{friendlyError(remove.error)}</Alert>
+      </div>
+    </Dialog>
   );
 }
 

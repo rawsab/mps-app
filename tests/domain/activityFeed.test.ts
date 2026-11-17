@@ -69,22 +69,22 @@ describe('activity times', () => {
   });
 });
 
-describe('PT session requests', () => {
+describe('meeting requests', () => {
   const request = (overrides: Partial<RequestActivity> = {}): RequestActivity => ({
-    kind: 'request', id: 'r1', service: 'personal_training', requestKind: 'reschedule', status: 'pending', message: 'Thursday instead?',
-    preferredStartsAt: null, late: null, response: '', appointmentId: 'a1', startsAt: '2026-11-24T12:00:00Z', durationMinutes: 60,
+    kind: 'request', id: 'r1', services: ['personal_training', 'nutrition'], requestKind: 'reschedule', status: 'pending', message: 'Thursday instead?',
+    preferredStartsAt: null, late: null, response: '', meetingId: 'a1', startsAt: '2026-11-24T12:00:00Z', durationMinutes: 60,
     activityAt: '2026-11-17T12:00:00Z', staffEdited: false, ...overrides,
   });
 
   it('names what the client asked for', () => {
     expect(activityKind(request())).toBe('request');
-    expect(activityTitle(request())).toBe('Asked to reschedule a session');
-    expect(activityTitle(request({ requestKind: 'cancel', late: true }))).toBe('Asked to cancel a session');
-    expect(activityTitle(request({ status: 'withdrawn' }))).toBe('Withdrew a session request');
+    expect(activityTitle(request())).toBe('Asked to reschedule a meeting');
+    expect(activityTitle(request({ requestKind: 'cancel', late: true }))).toBe('Asked to cancel a meeting');
+    expect(activityTitle(request({ status: 'withdrawn' }))).toBe('Withdrew a meeting request');
   });
 
   it('shows the session and quotes the message', () => {
-    expect(activityWhere(request())).toMatch(/^Personal training · .+ · 60 min$/);
+    expect(activityWhere(request())).toMatch(/^Personal training · Nutrition · .+ · 60 min$/);
     expect(activityDetails(request())[0]).toBe('“Thursday instead?”');
     expect(activityDetails(request({ message: '' }))).toEqual([]);
   });

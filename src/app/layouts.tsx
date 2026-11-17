@@ -7,6 +7,7 @@ import {
   NutritionIcon,
   ProgressIcon,
   ReviewsIcon,
+  CalendarIcon,
   SidebarIcon,
   SignOutIcon,
   TemplatesIcon,
@@ -129,6 +130,7 @@ export function ClientLayout() {
 
 const COACH_ITEMS: NavItem[] = [
   { to: '/coach/clients', label: 'Clients', icon: <ClientsIcon /> },
+  { to: '/coach/meetings', label: 'Meetings', icon: <CalendarIcon /> },
   { to: '/coach/templates', label: 'Templates', icon: <TemplatesIcon /> },
   { to: '/coach/reviews', label: 'Reviews', icon: <ReviewsIcon /> },
 ];

@@ -7,3 +7,5 @@ Date: 2026-11-17 · Status: accepted (owner request)
 - **No mock backend (CLAUDE.md).** `useUpcomingSessions` (`src/features/scheduling/api.ts`) returns labelled sample sessions (fictional seed clients, times relative to now) only when `import.meta.env.DEV`; the panel then shows "Preview · sample data". Any other build shows "Session scheduling isn't set up yet." The production bundle was checked to contain none of the sample data. Delete `sampleSessions.ts` when the real query lands; `UpcomingSession` in `src/domain/scheduling/upcoming.ts` is the shape it should return.
 
 **Revised the same day (owner feedback):** the panel is now "Upcoming today": only today's sessions that haven't finished, soonest first, at most three (`UPCOMING_LIMIT`), then "+N more today". With none left it says "No more sessions today." `upcomingByDay` keeps its multi-day option for a later schedule view.
+
+**Superseded (2026-11-17, decision 0039):** "Upcoming today" reads real meetings, and `sampleSessions.ts` is deleted.

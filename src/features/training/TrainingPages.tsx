@@ -41,6 +41,7 @@ export function TrainingPage() {
                     {SERVICE_LABELS[p.service]} · {p.weekCount} {p.weekCount === 1 ? 'week' : 'weeks'} · updated {formatDate(p.publishedAt)}
                   </p>
                 </div>
+                {p.isCurrent ? <Badge tone="gold">Current</Badge> : null}
                 <span aria-hidden className="text-muted group-hover:text-text">→</span>
               </Link>
             </li>

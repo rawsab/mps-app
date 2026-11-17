@@ -263,11 +263,35 @@ Date: 2026-11-16
   - No browser checks.
   - The client side of requests (sending them) arrives with phase 3, so requests can only be created through the API for now.
 
+## Meetings, current programs and Upcoming today (2026-11-17)
+
+- **Meetings (decision 0039):**
+  - PT sessions are now meetings tagged with one or more services. Only Personal training meetings are billable or can be cancelled late.
+  - Each tagged service can name a program to discuss, defaulting to the current one. Staff-only notes, and a remembered "Hide cancelled" toggle.
+  - Migration 00033 renames everything from `pt_*` to meetings.
+- **Current programs:**
+  - The coach chooses a current program per service. With only one program, it is current automatically.
+  - The Services card shows it as a one-line link with ↗; the Programs card has "Make current".
+  - Clients see "Current" on their Training and Nutrition lists.
+- **Upcoming today** lists real meetings, and the sample sessions are deleted.
+- **Client page:** section icons on Recent updates, Meetings, Programs and Services.
+- **Verification:**
+  - `pnpm verify` (299 unit tests) and the full `pnpm test:db` (including 31 new meeting assertions) pass.
+  - `supabase db diff` replayed all migrations into a shadow database with no drift.
+  - Migration 00033 was applied to the running local DB without a reset. No browser checks.
+
+## Meetings page (2026-11-17)
+
+- Repeating patterns have their own staff-only notes, shown on each of their meetings (migration 00035, 38 assertions in `026`).
+- Meetings in the sidebar (decision 0040): the next meeting countdown, the next three, and a month/week/day calendar with "Hide cancelled". Clicking a meeting opens it on the client page.
+- `pnpm verify`: 306 unit tests (7 new calendar tests), typecheck and build. No browser checks.
+- **Delete archived service with its programs** (decision 0038, revised): an admin-only option that deletes published programs and their logged workouts after typing the service name. Migration 00034 adds a delete-only, transaction-local exception to published-revision immutability. The full `pnpm test:db` passes.
+
 ## Known limitations
 
 - **Programs:** program/revision tables, both coach editors, the client Training view and mesocycle session logging are implemented. Programs under an ended (but not archived) service still appear to the client (decision 0020, open question). Nutrition now has its own draft/publish/archive lifecycle, weekly spreadsheets, shared daily records, correction history and program-relative summaries (decision 0029). Import-batch and general audit tables remain pending; Client Home has saved-record nutrition tasks, while training task derivation remains pending.
 - **Activity feeds:** Training updates derive from latest record state, so a coach overwriting a client's only logged row can drop that workout from Reviews; general `audit_events` is still pending. Nutrition notifications use durable client/day activity, survive coach corrections and retain the separate before/after entry history (decision 0030). Feeds and unread counts poll every minute (no realtime).
-- **Scheduling:** the database layer is built (decision 0037). Coach screens are built (phase 2); client screens are not, so "Upcoming today" still shows sample data in local development and an "isn't set up yet" message elsewhere (decision 0026). Clients can't send requests from the app yet, and nothing emails Matt.
+- **Meetings:** coach screens and Upcoming today are built (decisions 0037, 0039). Client screens (upcoming list and calendar, sending requests, the UTC time zone prompt) are phase 3. Nothing emails Matt, and Google Calendar sync is in the backlog.
 - **Invitations:** invite and recovery emails have only been verified against local Mailpit. Real Resend delivery is untested.
 - **Playwright:** not yet a project dependency. The browser smoke script lives outside the repo.
 - **No linting:** no ESLint or formatter is configured yet.
@@ -298,6 +322,12 @@ Date: 2026-11-16
 
 - **Calendar view and sidebar navigation:** implement a calendar view in a later increment and add a new **Calendar** option to the sidebar.
 - **Upcoming today — "starts soon" cue** (decision 0026): on the clients page, under a session's time (e.g. "7:00 AM"), show small red text "in X minutes" when it starts in 30 minutes or less. Needs a timer so it updates while the page is open (and disappears once the session starts), plus a unit test for the 30-minute boundary. Use the danger token, not a hard-coded red.
+- **Google Calendar sync for meetings** (decision 0039): when Matt creates, moves, cancels or reinstates a meeting (recurring or one-off), add or update it in his Google Calendar. Needs:
+  - Google OAuth for the coach, with tokens kept server-side and never in `VITE_*`.
+  - An Edge Function or job that pushes changes, storing the Google event id on each meeting so updates and cancellations hit the same event.
+  - Retry and error handling, so a Google outage never blocks scheduling.
+  - A decision on one-way sync (app → Google) versus also reading Google busy times.
+  - Explicit authorization before any hosted Google project or credentials are created.
 
 ## Profile settings and pictures (2026-11-17)
 

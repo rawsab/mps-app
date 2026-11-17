@@ -1,17 +1,12 @@
 /**
- * Upcoming personal training sessions (decision 0026). Scheduling isn't built yet: this is the
- * shape the clients page reads, kept close to what the scheduling tables will return.
+ * What upcoming lists need from a meeting (decisions 0026, 0039): an id, a UTC start instant and a
+ * length. Meetings from `list_meetings` fit as they are.
  */
 export type UpcomingSession = {
   id: string;
-  clientId: string;
-  clientName: string;
   /** UTC instant; shown in the viewer's zone. */
   startsAt: string;
   durationMinutes: number;
-  /** null for a one-off session, e.g. "Weekly on Tuesday" for a recurring one. */
-  recurrence: string | null;
-  location: string | null;
 };
 
 const DAY_MS = 86_400_000;
@@ -21,10 +16,10 @@ const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDat
  * Sessions still to finish from today through the next `days` days, soonest first, grouped by the
  * viewer's local day ("Today", "Tomorrow", then a weekday and date).
  */
-export function upcomingByDay(sessions: UpcomingSession[], now: Date, formatDay: (d: Date) => string, days = 7): { label: string; sessions: UpcomingSession[] }[] {
+export function upcomingByDay<T extends UpcomingSession>(sessions: T[], now: Date, formatDay: (d: Date) => string, days = 7): { label: string; sessions: T[] }[] {
   const end = startOfDay(now).getTime() + days * DAY_MS;
   const today = startOfDay(now).getTime();
-  const groups: { key: number; label: string; sessions: UpcomingSession[] }[] = [];
+  const groups: { key: number; label: string; sessions: T[] }[] = [];
   const upcoming = sessions
     .filter((s) => new Date(s.startsAt).getTime() + s.durationMinutes * 60_000 > now.getTime() && new Date(s.startsAt).getTime() < end)
     .sort((a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime() || a.id.localeCompare(b.id));

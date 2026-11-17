@@ -132,3 +132,11 @@ export const SpreadsheetIcon = () => <Icon><rect x="3" y="4" width="18" height="
 export const ChevronIcon = ({ open }: { open: boolean }) => <Icon className={`size-4 shrink-0 transition-transform duration-150 motion-reduce:transition-none ${open ? 'rotate-90' : ''}`}><path d="m9 5 7 7-7 7" /></Icon>;
 export const StimulusIcon = () => <Icon className="size-4 shrink-0"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" /></Icon>;
 export const ProgressionIcon = () => <Icon className="size-4 shrink-0"><path d="m3 17 6-6 4 4 8-8M15 7h6v6" /></Icon>;
+export const ArrowUpRightIcon = () => <Icon className="size-4 shrink-0"><path d="M7 17 17 7M9 7h8v8" /></Icon>;
+export const CalendarIcon = () => <Icon><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M4 10h16M8.5 3v4M15.5 3v4" /></Icon>;
+/** Recent activity: a clock with a return arrow. */
+export const HistoryIcon = () => <Icon><path d="M4 12a8 8 0 1 0 2.3-5.6L4 8.7" /><path d="M4 4v4.7h4.7M12 8v4.5l3 1.8" /></Icon>;
+/** Programs: a clipboard with lines. */
+export const ProgramIcon = () => <Icon><rect x="5" y="4.5" width="14" height="16" rx="2" /><path d="M9 4.5V3.5h6v1M8.5 10h7M8.5 13.5h7M8.5 17h4.5" /></Icon>;
+/** Services: stacked layers. */
+export const ServicesIcon = () => <Icon><path d="m12 4 8.5 4.5L12 13 3.5 8.5z" /><path d="m3.5 12.5 8.5 4.5 8.5-4.5M3.5 16.5 12 21l8.5-4.5" /></Icon>;

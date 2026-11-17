@@ -192,3 +192,8 @@ export function Badge({ children, tone = 'neutral' }: { children: ReactNode; ton
   const styles = { neutral: 'border-line text-muted', gold: 'border-gold/50 text-gold-fg', danger: 'border-danger/50 text-danger', success: 'border-success/50 bg-success/10 text-success' }[tone];
   return <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs ${styles}`}>{children}</span>;
 }
+
+/** A section heading's icon and text; put it inside an h2 with `flex items-center gap-2`. */
+export function SectionTitle({ icon, children }: { icon: ReactNode; children: ReactNode }) {
+  return <><span aria-hidden className="inline-flex shrink-0 text-gold-fg">{icon}</span><span className="min-w-0">{children}</span></>;
+}

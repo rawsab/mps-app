@@ -35,6 +35,8 @@ export type NutritionProgramSnapshot = z.infer<typeof NutritionProgramSnapshot>;
 export const NutritionProgramSummary = z.object({
   id: z.string(), program_style: z.string(), start_date: z.iso.date(), week_count: z.number().int(),
   archived_at: z.string().nullable(), published_at: z.string(),
+  /** The service's current program (decision 0039); older responses omit it. */
+  is_current: z.boolean().default(false),
 });
 export type NutritionProgramSummary = z.infer<typeof NutritionProgramSummary>;
 

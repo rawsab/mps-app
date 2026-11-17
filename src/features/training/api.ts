@@ -14,6 +14,8 @@ export type PublishedProgramSummary = {
   title: string;
   programTheme: string;
   weekCount: number;
+  /** The service's current program (decision 0039). */
+  isCurrent: boolean;
 };
 
 export type PublishedProgram = {

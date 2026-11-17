@@ -19,9 +19,9 @@ const NutritionActivitySchema = z.object({
   intake: z.number().nullable(), output: z.number().nullable(),
 });
 const RequestActivitySchema = z.object({
-  kind: z.literal('request'), id: z.string(), service: z.literal('personal_training'), requestKind: z.enum(['cancel', 'reschedule']),
+  kind: z.literal('request'), id: z.string(), services: z.array(z.enum(['personal_training', 'mesocycle', 'nutrition'])), requestKind: z.enum(['cancel', 'reschedule']),
   status: z.enum(['pending', 'accepted', 'declined', 'withdrawn', 'expired']), message: z.string(), preferredStartsAt: z.string().nullable(),
-  late: z.boolean().nullable(), response: z.string(), appointmentId: z.string(), startsAt: z.string(), durationMinutes: z.number().int(),
+  late: z.boolean().nullable(), response: z.string(), meetingId: z.string(), startsAt: z.string(), durationMinutes: z.number().int(),
   activityAt: z.string(), staffEdited: z.boolean(),
 });
 export const ActivitySchema = z.discriminatedUnion('kind',[SessionActivitySchema,NutritionActivitySchema]);
@@ -61,7 +61,7 @@ export function useActivityHistory(clientId: string) {
 /** Opens the logged day in the coach's view of the client log, returning to where the coach came from. */
 export function activityLink(clientId: string, item: ActivityItem): string {
   // The client page opens the session (and its request) from ?session=.
-  if (item.kind === 'request') return `/coach/clients/${clientId}?${new URLSearchParams({ session: item.appointmentId })}`;
+  if (item.kind === 'request') return `/coach/clients/${clientId}?${new URLSearchParams({ session: item.meetingId })}`;
   if (item.kind === 'nutrition') return item.programId
     ? `/coach/clients/${clientId}/nutrition/${item.programId}/log#nutrition-day-${item.loggedOn}`
     : `/coach/clients/${clientId}`;

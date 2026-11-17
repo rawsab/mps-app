@@ -7,7 +7,7 @@
 /** One session in a pattern: an ISO weekday (1 = Monday) in a given week of the cycle. */
 export type PatternSlot = { cycleWeek: number; weekday: number; startTime: string; durationMinutes: number };
 
-export type PtSchedule = {
+export type PatternSchedule = {
   id: string;
   cycleWeeks: number;
   /** The Monday that counts as Week 1. */
@@ -112,7 +112,7 @@ function slotLabel(slot: PatternSlot, long: boolean, locale?: string) {
  * "Every Tuesday at 7:00 AM · 60 min", or one part per week for longer cycles:
  * ["Week 1: Wed 7:00 AM · 60 min", "Week 2: no sessions"].
  */
-export function describePattern(schedule: Pick<PtSchedule, 'cycleWeeks' | 'slots'>, locale?: string): { summary: string; weeks: string[] } {
+export function describePattern(schedule: Pick<PatternSchedule, 'cycleWeeks' | 'slots'>, locale?: string): { summary: string; weeks: string[] } {
   const slots = sortSlots(schedule.slots);
   if (schedule.cycleWeeks === 1) {
     const days = slots.map((slot) => slotLabel(slot, slots.length === 1, locale));

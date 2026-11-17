@@ -13,7 +13,7 @@ const row = (name: string, status: ClientRow['status'], services: [ClientRow['se
   auth_user_id: status === 'pending' ? null : 'u',
   created_at: created,
   updated_at: created,
-  service_enrollments: services.map(([service, s], i) => ({ id: `${name}${i}`, service, status: s, starts_on: '2026-01-01', ends_on: s === 'ended' ? '2026-02-01' : null, archived_at: null })),
+  service_enrollments: services.map(([service, s], i) => ({ id: `${name}${i}`, service, status: s, starts_on: '2026-01-01', ends_on: s === 'ended' ? '2026-02-01' : null, archived_at: null, current_program_id: null, current_nutrition_program_id: null })),
 });
 
 const rows = [

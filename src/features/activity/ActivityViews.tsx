@@ -1,7 +1,8 @@
 import { Fragment } from 'react';
 import { Avatar } from '@/components/Avatar';
 import { Link, useParams, useSearchParams } from 'react-router';
-import { Alert, Badge, Button, EmptyState, PageHeader, Spinner } from '@/components/ui';
+import { Alert, Badge, Button, EmptyState, PageHeader, SectionTitle, Spinner } from '@/components/ui';
+import { HistoryIcon } from '@/components/icons';
 import { activityDetails, activityTitle, activityWhere, groupByDay, relativeTime, type ActivityItem, type RequestActivity, type ReviewItem, type SessionActivity } from '@/domain/activity/feed';
 import { friendlyError, useClient, useClientPhoto, type ClientRow } from '@/features/clients/api';
 import { formatDate, formatDateTime } from '@/lib/format';
@@ -100,7 +101,7 @@ export function RecentUpdatesCard({ client }: { client: ClientRow }) {
   return (
     <section className="min-w-0" aria-labelledby="client-recent-updates">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="client-recent-updates" className="text-lg font-semibold">Recent updates</h2>
+        <h2 id="client-recent-updates" className="flex items-center gap-2 text-lg font-semibold"><SectionTitle icon={<HistoryIcon />}>Recent updates</SectionTitle></h2>
         {recent.data?.length ? (
           <Link to={`/coach/clients/${client.id}/activity`} className="-my-3 inline-flex min-h-11 items-center text-sm text-gold-fg"><span className="link">View full history</span></Link>
         ) : null}

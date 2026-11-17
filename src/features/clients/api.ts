@@ -29,9 +29,12 @@ export type EnrollmentRow = {
   archived_at: string | null;
   /** Selected by the clients list, which counts service changes as edits. */
   updated_at?: string;
+  /** The coach's choice of current program (decision 0039); see `currentProgramId`. */
+  current_program_id: string | null;
+  current_nutrition_program_id: string | null;
 };
 
-const CLIENT_COLUMNS = 'id, email, full_name, status, timezone, auth_user_id, created_at, updated_at, service_enrollments(id, service, status, starts_on, ends_on, archived_at, updated_at)';
+const CLIENT_COLUMNS = 'id, email, full_name, status, timezone, auth_user_id, created_at, updated_at, service_enrollments(id, service, status, starts_on, ends_on, archived_at, updated_at, current_program_id, current_nutrition_program_id)';
 
 export function useClients() {
   return useQuery({
@@ -183,16 +186,32 @@ export function useArchiveEnrollment() {
   });
 }
 
-/** Admin only; the server refuses services that still have programs or scheduled sessions (decision 0038). */
+/** What deleting an archived service with its programs would remove. Admin only. */
+export function useArchivedServiceContents(enrollmentId: string) {
+  return useQuery({
+    queryKey: ['clients', 'archived-service', enrollmentId],
+    queryFn: async () => {
+      const { data, error } = await requireSupabase().rpc('archived_service_contents', { p_enrollment_id: enrollmentId });
+      if (error) throw error;
+      return z.object({ programs: z.number().int(), published: z.number().int(), loggedWorkouts: z.number().int() }).parse(data);
+    },
+  });
+}
+
+/** Admin only. Without `deletePrograms`, the server refuses a service that still has programs (decision 0038). */
 export function useDeleteArchivedService() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await requireSupabase().rpc('delete_archived_service', { p_enrollment_id: id });
+    mutationFn: async ({ id, deletePrograms }: { id: string; deletePrograms: boolean }) => {
+      const { error } = await requireSupabase().rpc('delete_archived_service', { p_enrollment_id: id, p_delete_programs: deletePrograms });
       if (error?.code === 'PT409') throw new Error(`${error.message.charAt(0).toUpperCase()}${error.message.slice(1)}.`);
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clients'] }),
+    onSuccess: () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['clients'] }),
+      queryClient.invalidateQueries({ queryKey: ['programs'] }),
+      queryClient.invalidateQueries({ queryKey: ['meetings'] }),
+    ]),
   });
 }
 

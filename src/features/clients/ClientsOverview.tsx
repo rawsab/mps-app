@@ -5,7 +5,8 @@ import { CheckIcon, CopyIcon, SendIcon } from '@/components/icons';
 import { Alert, Badge, Button, Spinner } from '@/components/ui';
 import { ActivityRow } from '@/features/activity/ActivityViews';
 import { useLatestUnread, useUnreadCount } from '@/features/activity/api';
-import { useUpcomingSessions } from '@/features/scheduling/api';
+import { schedulingError, useMeetingsToday } from '@/features/scheduling/api';
+import { topicLabel } from '@/features/scheduling/MeetingTopic';
 import { upcomingByDay } from '@/domain/scheduling/upcoming';
 import { formatDate } from '@/lib/format';
 import { SERVICE_SHORT_LABELS, SERVICES } from '@/lib/services';
@@ -42,10 +43,10 @@ const FOLLOW_UP_COPY: Record<FollowUp, { title: string; empty: string; descripti
 const LATEST_REVIEWS = 3;
 
 const SESSION_TIME = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' });
-/** Today's next sessions shown before "+N more today". */
+/** Today's next meetings shown before "+N more today". */
 const UPCOMING_LIMIT = 3;
 
-/** Half for client activity (decision 0025), half for upcoming PT sessions (decision 0026). */
+/** Half for client activity (decision 0025), half for today's meetings (decisions 0026, 0039). */
 function ActivityAndSessions() {
   return (
     <div className="mb-2 grid min-w-0 gap-x-9 border-b border-line md:grid-cols-2">
@@ -72,18 +73,7 @@ function ToReviewPanel() {
       </div>
       <Alert visible={!!(unread.error || latest.error)} title="Could not load reviews">{friendlyError(unread.error ?? latest.error)}</Alert>
       {latest.isPending ? <Spinner label="Loading reviews" /> : null}
-      {latest.data?.length === 0 ? (
-        <div role="status" className="flex items-center gap-3 py-1">
-          <svg aria-hidden viewBox="0 0 24 24" className="size-9 shrink-0 text-success" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-            <circle cx="12" cy="12" r="9.5" />
-            <path d="m7.5 12.5 3 3 6-6.5" />
-          </svg>
-          <div className="min-w-0">
-            <p className="text-xl font-semibold leading-tight text-text">All caught up.</p>
-            <p className="mt-0.5 text-xs text-muted">No unread workouts or logs from your clients.</p>
-          </div>
-        </div>
-      ) : null}
+      {latest.data?.length === 0 ? <AllClear title="All caught up." detail="No unread workouts or logs from your clients." /> : null}
       {latest.data?.length ? (
         <ul className="min-w-0 divide-y divide-line">
           {latest.data.map((item) => <ActivityRow key={item.id} clientId={item.clientId} item={item} from={from} review={item} compact />)}
@@ -93,36 +83,52 @@ function ToReviewPanel() {
   );
 }
 
-/** Today's next few sessions. Scheduling isn't built yet: sample sessions in local development only, clearly labelled. */
+/** A green tick with a headline, for panels with nothing waiting. */
+function AllClear({ title, detail }: { title: string; detail: string }) {
+  return (
+    <div role="status" className="flex items-center gap-3 py-1">
+      <svg aria-hidden viewBox="0 0 24 24" className="size-9 shrink-0 text-success" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+        <circle cx="12" cy="12" r="9.5" />
+        <path d="m7.5 12.5 3 3 6-6.5" />
+      </svg>
+      <div className="min-w-0">
+        <p className="text-xl font-semibold leading-tight text-text">{title}</p>
+        <p className="mt-0.5 text-xs text-muted">{detail}</p>
+      </div>
+    </div>
+  );
+}
+
+/** Today's next few meetings across the coach's clients (decisions 0026, 0039). Rows open the meeting. */
 function UpcomingSessionsPanel() {
-  const upcoming = useUpcomingSessions();
-  const today = upcoming.source === 'sample' ? upcomingByDay(upcoming.sessions, new Date(), (d) => d.toDateString(), 1)[0]?.sessions ?? [] : [];
+  const meetings = useMeetingsToday();
+  // Still to finish, never cancelled; the list refetches every minute so finished meetings drop off.
+  const today = upcomingByDay((meetings.data ?? []).filter((m) => m.status === 'scheduled'), new Date(), (d) => d.toDateString(), 1)[0]?.sessions ?? [];
   const visible = today.slice(0, UPCOMING_LIMIT);
 
   return (
     <section aria-labelledby="clients-upcoming" className="min-w-0 border-t border-line py-3 md:border-l md:border-t-0 md:pl-9">
       <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
-        <h2 id="clients-upcoming" className="flex flex-wrap items-center gap-2 text-xs font-medium text-muted">
-          Upcoming today
-          {upcoming.source === 'sample' ? <Badge>Preview · sample data</Badge> : null}
-        </h2>
-        <Button variant="ghost" disabled title="Scheduling isn’t built yet" className="-my-3">Schedule</Button>
+        <h2 id="clients-upcoming" className="text-xs font-medium text-muted">Upcoming today</h2>
+        <Link to="/coach/meetings" className="-my-3 inline-flex min-h-11 items-center text-sm text-gold-fg"><span className="link">View calendar</span></Link>
       </div>
-      {upcoming.source === 'unavailable' ? <p className="text-sm text-muted">Session scheduling isn’t set up yet.</p> : null}
-      {upcoming.source === 'sample' && today.length === 0 ? <p className="text-sm text-muted">No more sessions today.</p> : null}
+      {meetings.isPending ? <Spinner label="Loading meetings" /> : null}
+      <Alert visible={!!meetings.error} title="Could not load meetings">{schedulingError(meetings.error)}</Alert>
+      {meetings.data && today.length === 0 ? <AllClear title="No upcoming meetings." detail="The rest of the day is clear." /> : null}
       {visible.length ? (
         <ul>
-          {visible.map((session) => (
-            <li key={session.id}>
-              <Link to={`/coach/clients/${session.clientId}`} className="row-link group flex min-h-11 min-w-0 items-center gap-3 rounded-card py-2 pl-2 pr-2 hover:bg-surface-raised">
+          {visible.map((meeting) => (
+            <li key={meeting.id}>
+              <Link to={`/coach/clients/${meeting.clientId}?${new URLSearchParams({ session: meeting.id })}`} className="row-link group flex min-h-11 min-w-0 items-center gap-3 rounded-card py-2 pl-2 pr-2 hover:bg-surface-raised">
                 <span aria-hidden className="w-1 shrink-0 self-stretch rounded-full bg-gold" />
-                <time dateTime={session.startsAt} className="w-16 shrink-0 text-sm tabular-nums text-text">{SESSION_TIME.format(new Date(session.startsAt))}</time>
+                <time dateTime={meeting.startsAt} className="w-16 shrink-0 text-sm tabular-nums text-text">{SESSION_TIME.format(new Date(meeting.startsAt))}</time>
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium">{session.clientName}</span>
+                  <span className="block truncate text-sm font-medium">{meeting.clientName}</span>
                   <span className="block truncate text-xs text-muted">
-                    {[`${session.durationMinutes} min`, session.location, session.recurrence ? `↻ ${session.recurrence}` : 'One-off'].filter(Boolean).join(' · ')}
+                    {[`${meeting.durationMinutes} min`, topicLabel(meeting.services), meeting.scheduleId ? '↻ Repeating' : 'One-off'].join(' · ')}
                   </span>
                 </span>
+                {meeting.request?.status === 'pending' ? <Badge tone="gold">Request</Badge> : null}
                 <span aria-hidden className="text-xs text-muted group-hover:text-text">→</span>
               </Link>
             </li>
