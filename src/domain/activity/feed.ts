@@ -23,30 +23,40 @@ export type SessionActivity = {
   staffEdited: boolean;
 };
 
-export type ActivityItem = SessionActivity;
+export type NutritionActivity = {
+  kind: 'nutrition'; id: string; programId: string | null; service: 'nutrition'; programTitle: string;
+  loggedOn: string; performedOn: string; activityAt: string; staffEdited: boolean;
+  status: 'completed' | 'in_progress'; weight: number | null; weightUnit: 'lb' | 'kg' | null;
+  intake: number | null; output: number | null;
+};
+export type ActivityItem = SessionActivity | NutritionActivity;
 
 /** A Reviews item: timed by the client's own latest change, with this staff member's read state. */
 export type ReviewItem = ActivityItem & { clientId: string; clientName: string; unread: boolean };
 
-/** Mirrors private.activity_kind (migration 00020). */
-export type ActivityKind = 'completed' | 'logged' | 'skipped' | 'started';
+/** Training kinds plus the shared daily nutrition category. */
+export type ActivityKind = 'completed' | 'logged' | 'skipped' | 'started' | 'nutrition';
 
-export function activityKind(item: Pick<ActivityItem, 'status' | 'setCount' | 'feedbackCount'>): ActivityKind {
+export function activityKind(item: Pick<SessionActivity, 'status' | 'setCount' | 'feedbackCount'> | NutritionActivity): ActivityKind {
+  if (!('setCount' in item)) return 'nutrition';
   if (item.status === 'completed' || item.status === 'skipped') return item.status;
   return item.setCount > 0 || item.feedbackCount > 0 ? 'logged' : 'started';
 }
 
 export function activityTitle(item: ActivityItem): string {
+  if (item.kind === 'nutrition') return item.status === 'completed' ? 'Logged daily nutrition' : item.weight !== null ? 'Logged weight' : item.intake !== null || item.output !== null ? 'Logged calories' : 'Updated daily nutrition';
   switch (activityKind(item)) {
     case 'completed': return 'Completed a workout';
     case 'skipped': return 'Skipped a workout';
     case 'logged': return item.setCount > 0 ? 'Logged sets' : 'Answered Stimulus & Fatigue';
     case 'started': return 'Started a workout';
+    case 'nutrition': return 'Logged daily nutrition';
   }
 }
 
 /** "Block one · Week 2 · Day 1 · Push". Numbers follow order, like the editor. */
 export function activityWhere(item: ActivityItem): string {
+  if (item.kind === 'nutrition') return item.programTitle;
   return [item.programTitle.trim() || 'Untitled program', weekName(item.weekIndex), dayHeading({ label: item.dayLabel }, item.dayIndex)].join(' · ');
 }
 
@@ -54,6 +64,11 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 
 /** Facts worth a glance; nothing is listed for counts the client hasn't produced. */
 export function activityDetails(item: ActivityItem): string[] {
+  if (item.kind === 'nutrition') return [
+    item.weight === null ? '' : `Weight ${item.weight.toLocaleString()} ${item.weightUnit ?? ''}`,
+    item.intake === null ? '' : `Consumed ${item.intake.toLocaleString()} kcal`,
+    item.output === null ? '' : `Output ${item.output.toLocaleString()} kcal`,
+  ].filter(Boolean);
   const details: string[] = [];
   if (item.setCount > 0) details.push(`${plural(item.setCount, 'set')} logged`);
   if (item.feedbackCount > 0) details.push(`Stimulus & Fatigue for ${plural(item.feedbackCount, 'muscle')}`);

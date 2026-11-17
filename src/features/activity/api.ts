@@ -4,7 +4,7 @@ import type { ActivityItem, ReviewItem } from '@/domain/activity/feed';
 import { requireSupabase } from '@/lib/supabase';
 
 // Staff-only feed of a client's logging (migration 00018, decision 0023).
-const ActivitySchema = z.object({
+const SessionActivitySchema = z.object({
   kind: z.literal('session'), id: z.string(), programId: z.string(), service: z.enum(['mesocycle', 'personal_training']),
   programTitle: z.string(), weekId: z.string(), weekIndex: z.number().int(), dayId: z.string(), dayIndex: z.number().int(),
   dayLabel: z.string(), status: z.enum(['in_progress', 'completed', 'skipped']), performedOn: z.string().nullable(),
@@ -12,7 +12,15 @@ const ActivitySchema = z.object({
   activityAt: z.string(), staffEdited: z.boolean(),
 });
 
-const ReviewSchema = ActivitySchema.extend({ clientId: z.string(), clientName: z.string(), unread: z.boolean() });
+const NutritionActivitySchema = z.object({
+  kind: z.literal('nutrition'), id: z.string(), programId: z.string().nullable(), service: z.literal('nutrition'), programTitle: z.string(),
+  loggedOn: z.string(), performedOn: z.string(), activityAt: z.string(), staffEdited: z.boolean(),
+  status: z.enum(['completed','in_progress']), weight: z.number().nullable(), weightUnit: z.enum(['lb','kg']).nullable(),
+  intake: z.number().nullable(), output: z.number().nullable(),
+});
+export const ActivitySchema = z.discriminatedUnion('kind',[SessionActivitySchema,NutritionActivitySchema]);
+const reviewFields = { clientId: z.string(), clientName: z.string(), unread: z.boolean() };
+export const ReviewSchema = z.discriminatedUnion('kind',[SessionActivitySchema.extend(reviewFields),NutritionActivitySchema.extend(reviewFields)]);
 
 export const activityKey = (clientId: string) => ['client-activity', clientId];
 export const HISTORY_PAGE = 25;
@@ -30,6 +38,7 @@ async function fetchActivity(clientId: string, limit: number, before?: ActivityI
 export function useRecentActivity(clientId: string, limit = 5) {
   return useQuery({
     queryKey: [...activityKey(clientId), 'recent', limit],
+    refetchInterval: 60_000,
     queryFn: () => fetchActivity(clientId, limit),
   });
 }
@@ -45,6 +54,9 @@ export function useActivityHistory(clientId: string) {
 
 /** Opens the logged day in the coach's view of the client log, returning to where the coach came from. */
 export function activityLink(clientId: string, item: ActivityItem): string {
+  if (item.kind === 'nutrition') return item.programId
+    ? `/coach/clients/${clientId}/nutrition/${item.programId}/log#nutrition-day-${item.loggedOn}`
+    : `/coach/clients/${clientId}`;
   const params = new URLSearchParams({ week: item.weekId, day: item.dayId });
   return `/coach/clients/${clientId}/programs/${item.programId}/log?${params}`;
 }
@@ -63,6 +75,7 @@ export const READ_FADE_MS = 300;
 export function useReviews(unreadOnly: boolean) {
   return useInfiniteQuery({
     queryKey: [...listKey, unreadOnly],
+    refetchInterval: UNREAD_POLL_MS,
     initialPageParam: undefined as ReviewItem | undefined,
     queryFn: async ({ pageParam }) => {
       const { data, error } = await requireSupabase().rpc('get_staff_activity', {
@@ -93,6 +106,7 @@ export function useUnreadCount(enabled = true) {
 export function useLatestUnread(limit: number) {
   return useQuery({
     queryKey: [...listKey, 'latest', limit],
+    refetchInterval: UNREAD_POLL_MS,
     queryFn: async () => {
       const { data, error } = await requireSupabase().rpc('get_staff_activity', { p_limit: limit, p_unread_only: true });
       if (error) throw error;
@@ -110,11 +124,14 @@ type ReviewPages = InfiniteData<ReviewItem[], ReviewItem | undefined>;
 export function useMarkActivityRead() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async (sessionId: string | null) => {
-      const { error } = await requireSupabase().rpc('mark_activity_read', sessionId ? { p_session_id: sessionId } : {});
+    mutationFn: async (item: ActivityItem | null) => {
+      const { error } = item?.kind === 'nutrition'
+        ? await requireSupabase().rpc('mark_nutrition_activity_read', { p_activity_id: item.id })
+        : await requireSupabase().rpc('mark_activity_read', item ? { p_session_id: item.id } : {});
       if (error) throw error;
     },
-    onMutate: async (sessionId) => {
+    onMutate: async (item) => {
+      const sessionId = item?.id ?? null;
       await queryClient.cancelQueries({ queryKey: reviewsKey });
       // Lists are infinite pages (Reviews) or a plain array (the clients page's latest few).
       const lists = queryClient.getQueriesData<ReviewPages | ReviewItem[]>({ queryKey: listKey });

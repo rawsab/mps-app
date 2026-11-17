@@ -1,11 +1,11 @@
 import { useViewer } from '@/app/auth';
 import { Badge, Card, EmptyState, PageHeader } from '@/components/ui';
 import { SERVICE_LABELS } from '@/lib/services';
+import { NutritionHomeTask } from '@/features/nutrition/NutritionPages';
 
 /**
- * Client Home (FR-03). Programs, sessions and nutrition logs do not exist until M3–M5, so this
- * shows only what is real: the client's name and services, plus honest empty states.
- * No placeholder metrics are invented.
+ * Client Home (FR-03): nutrition tasks use persisted daily records. Training has its own view;
+ * schedule-derived workout tasks remain a later increment.
  */
 export function ClientHomePage() {
   const viewer = useViewer();
@@ -32,9 +32,10 @@ export function ClientHomePage() {
           <p className="text-sm text-muted">No services are active yet.</p>
         )}
       </Card>
-      <EmptyState title="Nothing to do yet">
-        Your coach hasn’t published a program for you. When they do, your next workout or nutrition entry will show up here.
-      </EmptyState>
+      {v.services.includes('nutrition') ? <NutritionHomeTask /> : null}
+      {v.services.some((s) => s !== 'nutrition') ? <EmptyState title="Your training">
+        Open Training to see your published programs and saved workouts.
+      </EmptyState> : null}
     </div>
   );
 }

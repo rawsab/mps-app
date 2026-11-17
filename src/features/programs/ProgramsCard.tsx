@@ -1,5 +1,5 @@
 import { NutritionIcon, PlusIcon, ProgressIcon, TrainingIcon } from '@/components/icons';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Alert, Badge, Button, Spinner } from '@/components/ui';
 import type { EnrollmentRow } from '@/features/clients/api';
@@ -10,6 +10,7 @@ import { programErrorMessage, useClientPrograms, useCreateProgram, type ProgramR
 import { ActionsMenu, actionItemClass } from '@/components/ActionsMenu';
 import { RemoveProgramDialog } from './RemoveProgramDialog';
 import type { ServiceKind } from '@/domain/programs/contract';
+import { useCreateNutritionProgram } from '@/features/nutrition/programApi';
 
 type ProgramFilter = 'all' | ServiceKind;
 const programFilters: { value: ProgramFilter; label: string }[] = [
@@ -19,14 +20,17 @@ const programFilters: { value: ProgramFilter; label: string }[] = [
   { value: 'nutrition', label: 'Nutritional' },
 ];
 
-/** A client's workout programs per training service (FR-04). Nutrition has its own model (M5). */
+/** All client programs share one list; nutrition keeps its dedicated revision and logging model. */
 export function ProgramsCard({ clientId, enrollments }: { clientId: string; enrollments: EnrollmentRow[] }) {
   const programs = useClientPrograms(clientId);
   const create = useCreateProgram();
+  const createNutrition = useCreateNutritionProgram();
+  const nutritionCreateIds = useRef<Record<string, string>>({});
   const navigate = useNavigate();
   const [removal, setRemoval] = useState<ProgramRow | null>(null);
   const [filter, setFilter] = useState<ProgramFilter>('all');
-  const training = enrollments.filter((e) => e.service !== 'nutrition' && e.status !== 'ended');
+  const active = enrollments.filter((e) => e.status !== 'ended' && !e.archived_at);
+  const creating = create.isPending || createNutrition.isPending;
   const visiblePrograms = useMemo(() => (programs.data?.filter((program) => filter === 'all' || program.service === filter) ?? [])
     .sort((a, b) => programLastEditedAt(b) - programLastEditedAt(a)), [programs.data, filter]);
 
@@ -38,13 +42,13 @@ export function ProgramsCard({ clientId, enrollments }: { clientId: string; enro
         {programFilters.map((option) => <button key={option.value} type="button" aria-pressed={filter === option.value} onClick={() => setFilter(option.value)} className={`min-h-9 rounded-full border px-3 text-sm transition-colors ${filter === option.value ? 'border-gold/50 bg-gold/10 font-medium text-gold-fg' : 'border-line text-muted hover:bg-surface-raised hover:text-text'}`}>{option.label}</button>)}
       </div>
       {programs.isPending ? <Spinner label="Loading programs" /> : null}
-      {programs.error ? <Alert title="Could not load programs">{programErrorMessage(programs.error)}</Alert> : null}
+      <Alert visible={!!programs.error} title="Could not load programs">{programErrorMessage(programs.error)}</Alert>
       {programs.data && visiblePrograms.length > 0 ? (
         <ul className="mb-4 divide-y divide-line">
           {visiblePrograms.map((p) => (
             <li key={p.id} className="flex items-center gap-2 py-2">
               <Link
-                to={`/coach/clients/${clientId}/programs/${p.id}`}
+                to={`/coach/clients/${clientId}/${p.service === 'nutrition' ? 'nutrition' : 'programs'}/${p.id}`}
                 className="row-link group flex min-h-14 min-w-0 flex-1 flex-wrap items-center justify-between gap-2 rounded-card py-3 pl-3 pr-2 hover:bg-surface-raised"
               >
                 <span aria-hidden className={`grid size-9 shrink-0 place-items-center rounded-full [&>svg]:size-4 ${programServiceIconStyle(p.service)}`}>{programServiceIcon(p.service)}</span>
@@ -66,28 +70,27 @@ export function ProgramsCard({ clientId, enrollments }: { clientId: string; enro
         </ul>
       ) : null}
       {programs.data && visiblePrograms.length === 0 ? <p className="mb-4 text-sm text-muted">{filter === 'all' ? 'No programs yet.' : `No ${programFilters.find((option) => option.value === filter)?.label.toLowerCase()} programs yet.`}</p> : null}
-      {training.length === 0 ? (
-        <p className="text-sm text-muted">Add a personal training or mesocycle service to create a program.</p>
+      {active.length === 0 ? (
+        <p className="text-sm text-muted">Add a service to create a program.</p>
       ) : (
         <div className="flex flex-wrap gap-2">
-          {training.map((e) => (
+          {active.filter((e) => filter === 'all' || filter === e.service).map((e) => (
             <Button
               key={e.id}
               variant="secondary"
-              busy={create.isPending && create.variables === e.id}
-              disabled={create.isPending}
-              onClick={() => create.mutate(e.id, { onSuccess: (id) => navigate(`/coach/clients/${clientId}/programs/${id}`) })}
+              busy={e.service === 'nutrition' ? createNutrition.isPending : create.isPending && create.variables === e.id}
+              disabled={creating}
+              onClick={() => e.service === 'nutrition'
+                ? createNutrition.mutate({ enrollmentId: e.id, programId: nutritionCreateIds.current[e.id] ?? (nutritionCreateIds.current[e.id] = crypto.randomUUID()) }, { onSuccess: (id) => { delete nutritionCreateIds.current[e.id]; navigate(`/coach/clients/${clientId}/nutrition/${id}`); } })
+                : create.mutate(e.id, { onSuccess: (id) => navigate(`/coach/clients/${clientId}/programs/${id}`) })}
             >
-              <PlusIcon /> New {SERVICE_LABELS[e.service].toLowerCase()} program
+              <PlusIcon /> {e.service === 'mesocycle' ? 'New Mesocycle Program' : e.service === 'nutrition' ? 'New Nutritional Program' : 'New Personal Training Program'}
             </Button>
           ))}
         </div>
       )}
-      {create.error ? (
-        <div className="mt-3">
-          <Alert title="Program not created">{programErrorMessage(create.error)}</Alert>
-        </div>
-      ) : null}
+      <Alert visible={!!create.error} className="mt-3" title="Program not created">{programErrorMessage(create.error)}</Alert>
+      <Alert visible={!!createNutrition.error} className="mt-3" title="Program not created">{programErrorMessage(createNutrition.error)}</Alert>
       {removal ? <RemoveProgramDialog program={removal} onClose={() => setRemoval(null)} /> : null}
     </section>
   );
@@ -124,7 +127,7 @@ function programBadges(p: ProgramRow) {
   const draft = p.program_revisions.some((r) => r.status === 'draft');
   return (
     <>
-      {current ? <Badge tone="gold">Live · rev {current.revision_number}</Badge> : <Badge>Not published</Badge>}
+      {current ? <Badge tone="gold">Live</Badge> : <Badge>Not published</Badge>}
       {draft && current ? <Badge>Draft changes</Badge> : null}
     </>
   );

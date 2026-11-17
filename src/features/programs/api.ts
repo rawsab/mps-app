@@ -14,7 +14,7 @@ export type RevisionSummary = {
 
 export type ProgramRow = {
   id: string;
-  service: Exclude<ServiceKind, 'nutrition'>;
+  service: ServiceKind;
   enrollment_id: string;
   current_revision_id: string | null;
   archived_at: string | null;
@@ -30,13 +30,21 @@ export function useClientPrograms(clientId: string) {
   return useQuery({
     queryKey: ['programs', 'client', clientId],
     queryFn: async () => {
-      const { data, error } = await requireSupabase()
+      const [training, nutrition] = await Promise.all([requireSupabase()
         .from('programs')
         .select(PROGRAM_COLUMNS)
         .eq('client_id', clientId)
-        .order('created_at', { ascending: false });
-      if (error) throw error;
-      return data as ProgramRow[];
+        .order('created_at', { ascending: false }),
+        requireSupabase().from('nutrition_programs')
+          .select('id, service, enrollment_id, current_revision_id, archived_at, created_at, nutrition_program_revisions!nutrition_program_revisions_program_id_client_id_fkey(id, revision_number, status, program_style, updated_at, published_at)')
+          .eq('client_id', clientId),
+      ]);
+      if (training.error) throw training.error;
+      if (nutrition.error) throw nutrition.error;
+      const nutritional: ProgramRow[] = (nutrition.data ?? []).map((p) => ({ ...p, service: 'nutrition',
+        program_revisions: p.nutrition_program_revisions.map((r) => ({ ...r, title: r.program_style, program_theme: '' })),
+      }));
+      return [...(training.data as ProgramRow[]), ...nutritional];
     },
   });
 }
@@ -52,7 +60,7 @@ export function useProgram(programId: string | undefined) {
         .eq('id', programId!)
         .maybeSingle();
       if (error) throw error;
-      return data as (ProgramRow & { client_id: string; clients: { full_name: string } | null }) | null;
+      return data as (ProgramRow & { service: Exclude<ServiceKind, 'nutrition'>; client_id: string; clients: { full_name: string } | null }) | null;
     },
   });
 }
@@ -153,13 +161,13 @@ export function programErrorMessage(err: unknown): string {
 export function useRemoveProgram() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: async ({ programId, expectedVersion, archive }: { programId: string; expectedVersion: number | null; archive: boolean }) => {
-      const { data, error } = await requireSupabase().rpc('remove_program', {
+    mutationFn: async ({ programId, expectedVersion, archive, service }: { programId: string; expectedVersion: number | null; archive: boolean; service?: ServiceKind }) => {
+      const { data, error } = await requireSupabase().rpc(service === 'nutrition' ? 'remove_nutrition_program' : 'remove_program', {
         p_program_id: programId, p_expected_version: expectedVersion, p_archive: archive,
       });
       if (error) throw rpcError(error);
       return data as 'deleted' | 'archived';
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['programs'] }),
+    onSuccess: async () => { await Promise.all([queryClient.invalidateQueries({ queryKey: ['programs'] }), queryClient.invalidateQueries({ queryKey: ['nutrition-programs'] })]); },
   });
 }

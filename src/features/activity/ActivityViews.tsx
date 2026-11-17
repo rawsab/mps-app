@@ -1,9 +1,9 @@
 import { Fragment } from 'react';
+import { Avatar } from '@/components/Avatar';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { Alert, Badge, Button, EmptyState, PageHeader, Spinner } from '@/components/ui';
 import { activityDetails, activityTitle, activityWhere, groupByDay, relativeTime, type ActivityItem, type ReviewItem } from '@/domain/activity/feed';
-import { friendlyError, useClient, type ClientRow } from '@/features/clients/api';
-import { programServiceIcon, programServiceIconStyle } from '@/features/programs/ProgramsCard';
+import { friendlyError, useClient, useClientPhoto, type ClientRow } from '@/features/clients/api';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { activityLink, READ_FADE_MS, useActivityHistory, useMarkActivityRead, useRecentActivity, useReviews } from './api';
 
@@ -25,6 +25,13 @@ function UnreadDot({ unread }: { unread: boolean }) {
     className={`h-2 shrink-0 rounded-full bg-gold transition-all ease-out motion-reduce:transition-none ${unread ? 'w-2 opacity-100' : '-mr-2 w-0 scale-50 opacity-0'}`} />;
 }
 
+/** Client and signed-photo queries are shared across repeated notifications for the same client. */
+function ActivityAvatar({ clientId, name }: { clientId: string; name?: string }) {
+  const client = useClient(clientId);
+  const photo = useClientPhoto(client.data?.auth_user_id);
+  return <Avatar url={photo.data} name={name ?? client.data?.full_name ?? 'Client'} className="mt-0.5 size-9" />;
+}
+
 /**
  * Opening an item marks it seen in Reviews, wherever it was opened from. `compact` is the clients
  * page summary: client and date, then what happened.
@@ -32,13 +39,13 @@ function UnreadDot({ unread }: { unread: boolean }) {
 export function ActivityRow({ clientId, item, from, review, leaving = false, compact = false }: { clientId: string; item: ActivityItem; from: { backTo: string; backLabel: string }; review?: Review; leaving?: boolean; compact?: boolean }) {
   const markRead = useMarkActivityRead();
   const details = activityDetails(item);
-  const badge = STATUS_BADGE[item.status];
+  const badge = item.kind === 'nutrition' ? { label: item.status === 'completed' ? 'Complete' : 'Partial entry', tone: item.status === 'completed' ? 'success' as const : 'neutral' as const } : STATUS_BADGE[item.status];
   return (
     // `leaving`: a read item in the Unread filter fades out before the refetch removes it.
     <li style={{ transitionDuration: `${READ_FADE_MS}ms` }} className={`transition-opacity motion-reduce:transition-none ${leaving ? 'opacity-0' : ''}`}>
-      <Link to={activityLink(clientId, item)} state={from} onClick={() => markRead.mutate(item.id)}
+      <Link to={activityLink(clientId, item)} state={from} onClick={() => markRead.mutate(item)}
         className="row-link group flex min-h-14 min-w-0 items-start gap-3 rounded-card py-3 pl-3 pr-2 hover:bg-surface-raised">
-        <span aria-hidden className={`mt-0.5 grid size-9 shrink-0 place-items-center rounded-full [&>svg]:size-4 ${programServiceIconStyle(item.service)}`}>{programServiceIcon(item.service)}</span>
+        <ActivityAvatar clientId={clientId} name={review?.clientName} />
         <div className="min-w-0 flex-1">
           {review ? <p className="flex items-center gap-2 break-words text-sm font-semibold">
             <UnreadDot unread={review.unread} />
@@ -56,7 +63,7 @@ export function ActivityRow({ clientId, item, from, review, leaving = false, com
           {compact ? null : <p className="mt-0.5 break-words text-sm text-muted">{activityWhere(item)}</p>}
           {!compact && (details.length || item.performedOn) ? (
             <p className="mt-0.5 text-xs text-muted">
-              {[...(item.performedOn ? [`Workout date ${formatDate(item.performedOn)}`] : []), ...details].join(' · ')}
+              {[...(item.performedOn ? [`${item.kind === 'nutrition' ? 'Log date' : 'Workout date'} ${formatDate(item.performedOn)}`] : []), ...details].join(' · ')}
             </p>
           ) : null}
         </div>
@@ -71,7 +78,7 @@ export function ActivityRow({ clientId, item, from, review, leaving = false, com
 
 /** The client page's latest few items, above Programs. */
 export function RecentUpdatesCard({ client }: { client: ClientRow }) {
-  const recent = useRecentActivity(client.id);
+  const recent = useRecentActivity(client.id, 3);
   const from = { backTo: `/coach/clients/${client.id}`, backLabel: client.full_name };
 
   return (
@@ -83,7 +90,7 @@ export function RecentUpdatesCard({ client }: { client: ClientRow }) {
         ) : null}
       </div>
       {recent.isPending ? <Spinner label="Loading recent updates" /> : null}
-      {recent.error ? <Alert title="Could not load recent updates">{friendlyError(recent.error)}</Alert> : null}
+      <Alert visible={!!recent.error} title="Could not load recent updates">{friendlyError(recent.error)}</Alert>
       {recent.data?.length === 0 ? <p className="text-sm text-muted">{emptyMessage(client)}</p> : null}
       {recent.data?.length ? (
         <ul className="divide-y divide-line">
@@ -122,7 +129,7 @@ export function ClientActivityPage() {
       {back}
       <PageHeader title="Activity history" subtitle={c.full_name} />
       {history.isPending ? <Spinner label="Loading activity" /> : null}
-      {history.error ? <Alert title="Could not load activity">{friendlyError(history.error)}</Alert> : null}
+      <Alert visible={!!history.error} title="Could not load activity">{friendlyError(history.error)}</Alert>
       {history.data && items.length === 0 ? <p className="text-sm text-muted">{emptyMessage(c)}</p> : null}
       {groupByDay(items, new Date(), formatDate).map((group, index) => (
         <Fragment key={`${group.label}-${index}`}>
@@ -155,15 +162,15 @@ export function ReviewsPage() {
 
   return (
     <div>
-      <PageHeader title="Reviews" subtitle="Workouts and logs from your clients, newest first."
+      <PageHeader title="Reviews" subtitle="Workouts and nutrition logs from your clients, newest first."
         actions={<Button variant="secondary" busy={markAll.isPending} disabled={!items.some((item) => item.unread)} onClick={() => markAll.mutate(null)}>Mark all as read</Button>} />
       <div role="group" aria-label="Filter reviews" className="mb-4 flex flex-wrap gap-1.5">
         {filters.map((option) => <button key={option.label} type="button" aria-pressed={unreadOnly === option.value} onClick={() => setUnreadOnly(option.value)}
           className={`min-h-9 rounded-full border px-3 text-sm transition-colors ${unreadOnly === option.value ? 'border-gold/50 bg-gold/10 font-medium text-gold-fg' : 'border-line text-muted hover:bg-surface-raised hover:text-text'}`}>{option.label}</button>)}
       </div>
-      {markAll.error ? <div className="mb-4"><Alert title="Could not mark as read">{friendlyError(markAll.error)}</Alert></div> : null}
+      <Alert visible={!!markAll.error} className="mb-4" title="Could not mark as read">{friendlyError(markAll.error)}</Alert>
       {reviews.isPending ? <Spinner label="Loading reviews" /> : null}
-      {reviews.error ? <Alert title="Could not load reviews">{friendlyError(reviews.error)}</Alert> : null}
+      <Alert visible={!!reviews.error} title="Could not load reviews">{friendlyError(reviews.error)}</Alert>
       {reviews.data && items.length === 0 ? <p className="text-sm text-muted">{unreadOnly ? 'You’re all caught up.' : 'No client activity yet.'}</p> : null}
       {groupByDay(items, new Date(), formatDate).map((group, index) => (
         <Fragment key={`${group.label}-${index}`}>

@@ -1,0 +1,21 @@
+# 0031 — Nutrition spreadsheet interaction and visual parity
+
+Date: 2026-11-17 · Status: implemented, manual UI verification pending
+
+- Nutrition and mesocycle grids now use the same `SpreadsheetViewport` component. It preserves the mesocycle's original overflow measurement (2px tolerance, ResizeObserver on viewport and table), left/right widths, `from-grid-edge` theme token, 200ms fade and reduced-motion handling. Gradients show only at edges with hidden horizontal content. The mesocycle add-row controls remain outside the shared viewport.
+- Nutrition reuses `useGridDragSelection` for mouse/pen rectangular selection, pointer capture, release/cancel handling and viewport edge scrolling. Touch retains native scrolling. Cell focus rings, gold range backgrounds, header surfaces, borders and inline editors follow the mesocycle grid.
+- Supports click/Shift-click selection, Shift-arrow range extension, arrow/Tab/Home/End navigation, select-all, rectangular copy/cut, Delete/Backspace clear, Enter/F2/double-click or type-to-edit, Escape cancellation, bounded paste review with Before/After, per-week Undo/Redo and a shared-style cell context menu. Native text selection/copy/cut/undo still work inside an open editor.
+- Date and calculated columns can be selected/copied but cannot be changed. Clearing a mixed selection changes only editable input cells, skipping future dates. Pasting ignores date/calculated columns and validates the entire input batch before applying it. Fixed dated rows are not reordered or deleted as workout exercise rows are.
+- Clearing a saved weight requires a versioned missing state. Migration `20261117000027_nutrition_clear_cells.sql` permits null weight values while retaining the record, unit, optimistic version, request idempotency and before/after audit. Clearing is never an actual zero and cannot bypass existing write authorization. Restoring a value uses the current version, so stale pre-clear tabs cannot overwrite it.
+- Weight averages, Week 1 baseline, Home completion and the daily form ignore cleared weights. Client clears update the existing daily notification, including clearing the last calorie values; coach corrections and blank-to-blank writes still do not notify. Server validation continues to reject computed fields and bad batches atomically.
+- Undo/Redo is per weekly sheet, persists acknowledged reversals, and checks that the affected values still match the last action before writing against current versions. External changes are not silently overwritten. Unsaved or rejected text remains guarded by the existing navigation warning.
+- The connected Weekly Caloric Values / Weekly Weight Values panel stretches to match the left spreadsheet frame on wide screens, with internal tracks filling its height; on narrow screens it stacks beneath the sheet. Shared-style lightning and progress icons precede the headings. The calculation explanation uses `text-muted/60` as requested.
+- Verification: typecheck, 274 unit tests and production build; 120 targeted database assertions (22 clear/restore, 37 notifications, 61 program lifecycle); 6 nutrition HTTP checks. Existing bundle-size warning remains. No browser automation/screenshots and no skipped approval-pending commands.
+
+Manual checks:
+
+1. In mesocycle and nutrition spreadsheets, narrow the window and scroll horizontally. Confirm the same edge gradients, showing only hidden-content sides, in both themes.
+2. Select a nutrition rectangle with mouse drag or Shift+arrows, copy, Delete, Undo and Redo. Include Date and calculated columns: those values must remain protected while inputs clear and summaries recalculate.
+3. Double-click or type into a cell, edit with Enter/Tab, cancel with Escape, and paste a numeric rectangle. Check Before/After preview and that a rejected paste makes no partial change.
+4. At desktop width, check that the combined weekly summary panel matches the main frame's height and both heading icons align. At phone width, check stacking and internal scrolling. Confirm the calculation note is quieter.
+5. Clear today's weight, then open the top daily form and Home: completion must reset. Restore it and confirm saved completion returns. Coach notifications should remain one item for that client/day.
