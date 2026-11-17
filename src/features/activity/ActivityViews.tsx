@@ -6,7 +6,7 @@ import { HistoryIcon } from '@/components/icons';
 import { activityDetails, activityTitle, activityWhere, groupByDay, relativeTime, type ActivityItem, type RequestActivity, type ReviewItem, type SessionActivity } from '@/domain/activity/feed';
 import { friendlyError, useClient, useClientPhoto, type ClientRow } from '@/features/clients/api';
 import { formatDate, formatDateTime } from '@/lib/format';
-import { activityLink, READ_FADE_MS, useActivityHistory, useMarkActivityRead, useRecentActivity, useReviews } from './api';
+import { activityLink, READ_FADE_MS, useActivityHistory, useMarkActivityRead, useRecentActivity, useReviews, type ReviewFilter } from './api';
 
 const STATUS_BADGE: Record<SessionActivity['status'], { label: string; tone: 'neutral' | 'gold' | 'success' }> = {
   completed: { label: 'Completed', tone: 'success' },
@@ -22,7 +22,17 @@ const REQUEST_BADGE: Record<RequestActivity['status'], { label: string; tone: 'n
   expired: { label: 'Expired', tone: 'neutral' },
 };
 
-function itemBadge(item: ActivityItem) {
+type BadgeSpec = { label: string; tone: 'neutral' | 'gold' | 'success' | 'danger' };
+
+/** What kind of request it is, ahead of its status (decision 0042). */
+function categoryBadge(item: ActivityItem): BadgeSpec | null {
+  if (item.kind === 'service_request') return { label: 'Service Request', tone: 'gold' };
+  if (item.kind === 'request') return item.requestKind === 'cancel' ? { label: 'Meeting cancelled', tone: 'danger' } : { label: 'Reschedule request', tone: 'gold' };
+  return null;
+}
+
+function itemBadge(item: ActivityItem): BadgeSpec | null {
+  if (item.kind === 'service_request') return item.status === 'enrolled' ? { label: 'Enrolled', tone: 'success' } : null;
   if (item.kind === 'request') return REQUEST_BADGE[item.status];
   if (item.kind === 'nutrition') return { label: item.status === 'completed' ? 'Complete' : 'Partial entry', tone: item.status === 'completed' ? 'success' as const : 'neutral' as const };
   return STATUS_BADGE[item.status];
@@ -55,7 +65,8 @@ export function ActivityRow({ clientId, item, from, review, leaving = false, com
   const markRead = useMarkActivityRead();
   const details = activityDetails(item);
   const badge = itemBadge(item);
-  const performedOn = item.kind === 'request' ? null : item.performedOn;
+  const category = categoryBadge(item);
+  const performedOn = item.kind === 'request' || item.kind === 'service_request' ? null : item.performedOn;
   return (
     // `leaving`: a read item in the Unread filter fades out before the refetch removes it.
     <li style={{ transitionDuration: `${READ_FADE_MS}ms` }} className={`transition-opacity motion-reduce:transition-none ${leaving ? 'opacity-0' : ''}`}>
@@ -73,7 +84,8 @@ export function ActivityRow({ clientId, item, from, review, leaving = false, com
           </p> : null}
           <p className={`flex flex-wrap items-center gap-x-2 gap-y-1 ${review ? 'mt-1' : ''}`}>
             <span className={review ? 'text-sm' : 'font-medium'}>{activityTitle(item)}</span>
-            <Badge tone={badge.tone}>{badge.label}</Badge>
+            {category ? <Badge tone={category.tone}>{category.label}</Badge> : null}
+            {badge ? <Badge tone={badge.tone}>{badge.label}</Badge> : null}
             {item.kind === 'request' && item.late ? <Badge tone="danger">Late cancellation</Badge> : null}
             {item.staffEdited ? <Badge>Edited by coach</Badge> : null}
           </p>
@@ -169,26 +181,27 @@ export function ClientActivityPage() {
 export function ReviewsPage() {
   // The filter lives in the URL so the clients page can link straight to Unread.
   const [params, setParams] = useSearchParams();
-  const unreadOnly = params.get('filter') === 'unread';
-  const setUnreadOnly = (value: boolean) => setParams(value ? { filter: 'unread' } : {}, { replace: true });
-  const reviews = useReviews(unreadOnly);
+  const filter: ReviewFilter = params.get('filter') === 'unread' ? 'unread' : params.get('filter') === 'focused' ? 'focused' : 'all';
+  const setFilter = (value: ReviewFilter) => setParams(value === 'all' ? {} : { filter: value }, { replace: true });
+  const unreadOnly = filter === 'unread';
+  const reviews = useReviews(filter);
   const markAll = useMarkActivityRead();
   const items = reviews.data?.pages.flat() ?? [];
   const from = { backTo: '/coach/reviews', backLabel: 'Reviews' };
-  const filters = [{ value: false, label: 'All' }, { value: true, label: 'Unread' }];
+  const filters: { value: ReviewFilter; label: string }[] = [{ value: 'all', label: 'All' }, { value: 'focused', label: 'Focused' }, { value: 'unread', label: 'Unread' }];
 
   return (
     <div>
-      <PageHeader title="Reviews" subtitle="Workouts, nutrition logs and session requests from your clients, newest first."
+      <PageHeader title="Reviews" subtitle="Workouts, nutrition logs, and meeting and service requests from your clients, newest first."
         actions={<Button variant="secondary" busy={markAll.isPending} disabled={!items.some((item) => item.unread)} onClick={() => markAll.mutate(null)}>Mark all as read</Button>} />
       <div role="group" aria-label="Filter reviews" className="mb-4 flex flex-wrap gap-1.5">
-        {filters.map((option) => <button key={option.label} type="button" aria-pressed={unreadOnly === option.value} onClick={() => setUnreadOnly(option.value)}
-          className={`min-h-9 rounded-full border px-3 text-sm transition-colors ${unreadOnly === option.value ? 'border-gold/50 bg-gold/10 font-medium text-gold-fg' : 'border-line text-muted hover:bg-surface-raised hover:text-text'}`}>{option.label}</button>)}
+        {filters.map((option) => <button key={option.label} type="button" aria-pressed={filter === option.value} onClick={() => setFilter(option.value)}
+          className={`min-h-9 rounded-full border px-3 text-sm transition-colors ${filter === option.value ? 'border-gold/50 bg-gold/10 font-medium text-gold-fg' : 'border-line text-muted hover:bg-surface-raised hover:text-text'}`}>{option.label}</button>)}
       </div>
       <Alert visible={!!markAll.error} className="mb-4" title="Could not mark as read">{friendlyError(markAll.error)}</Alert>
       {reviews.isPending ? <Spinner label="Loading reviews" /> : null}
       <Alert visible={!!reviews.error} title="Could not load reviews">{friendlyError(reviews.error)}</Alert>
-      {reviews.data && items.length === 0 ? <p className="text-sm text-muted">{unreadOnly ? 'You’re all caught up.' : 'No client activity yet.'}</p> : null}
+      {reviews.data && items.length === 0 ? <p className="text-sm text-muted">{unreadOnly ? 'You’re all caught up.' : filter === 'focused' ? 'No service or meeting requests.' : 'No client activity yet.'}</p> : null}
       {groupByDay(items, new Date(), formatDate).map((group, index) => (
         <Fragment key={`${group.label}-${index}`}>
           <h2 className={`mb-1 text-sm font-medium text-muted ${index === 0 ? '' : 'mt-6'}`}>{group.label}</h2>

@@ -24,9 +24,13 @@ const RequestActivitySchema = z.object({
   late: z.boolean().nullable(), response: z.string(), meetingId: z.string(), startsAt: z.string(), durationMinutes: z.number().int(),
   activityAt: z.string(), staffEdited: z.boolean(),
 });
+const ServiceRequestActivitySchema = z.object({
+  kind: z.literal('service_request'), id: z.string(), service: z.enum(['personal_training', 'mesocycle', 'nutrition']), message: z.string(),
+  status: z.enum(['pending', 'enrolled']), activityAt: z.string(), staffEdited: z.boolean(),
+});
 export const ActivitySchema = z.discriminatedUnion('kind',[SessionActivitySchema,NutritionActivitySchema]);
 const reviewFields = { clientId: z.string(), clientName: z.string(), unread: z.boolean() };
-export const ReviewSchema = z.discriminatedUnion('kind',[SessionActivitySchema.extend(reviewFields),NutritionActivitySchema.extend(reviewFields),RequestActivitySchema.extend(reviewFields)]);
+export const ReviewSchema = z.discriminatedUnion('kind',[SessionActivitySchema.extend(reviewFields),NutritionActivitySchema.extend(reviewFields),RequestActivitySchema.extend(reviewFields),ServiceRequestActivitySchema.extend(reviewFields)]);
 
 export const activityKey = (clientId: string) => ['client-activity', clientId];
 export const HISTORY_PAGE = 25;
@@ -62,6 +66,7 @@ export function useActivityHistory(clientId: string) {
 export function activityLink(clientId: string, item: ActivityItem): string {
   // The client page opens the session (and its request) from ?session=.
   if (item.kind === 'request') return `/coach/clients/${clientId}?${new URLSearchParams({ session: item.meetingId })}`;
+  if (item.kind === 'service_request') return `/coach/clients/${clientId}`;
   if (item.kind === 'nutrition') return item.programId
     ? `/coach/clients/${clientId}/nutrition/${item.programId}/log#nutrition-day-${item.loggedOn}`
     : `/coach/clients/${clientId}`;
@@ -80,14 +85,18 @@ const UNREAD_POLL_MS = 60_000;
 /** Matches the fade on unread markers, so read items fade before a refetch drops them from Unread. */
 export const READ_FADE_MS = 300;
 
-export function useReviews(unreadOnly: boolean) {
+export type ReviewFilter = 'all' | 'focused' | 'unread';
+
+/** Focused: service requests and meeting requests (decision 0042). */
+export function useReviews(filter: ReviewFilter) {
   return useInfiniteQuery({
-    queryKey: [...listKey, unreadOnly],
+    queryKey: [...listKey, filter],
     refetchInterval: UNREAD_POLL_MS,
     initialPageParam: undefined as ReviewItem | undefined,
     queryFn: async ({ pageParam }) => {
       const { data, error } = await requireSupabase().rpc('get_staff_activity', {
-        p_before_at: pageParam?.activityAt ?? null, p_before_id: pageParam?.id ?? null, p_limit: HISTORY_PAGE, p_unread_only: unreadOnly,
+        p_before_at: pageParam?.activityAt ?? null, p_before_id: pageParam?.id ?? null, p_limit: HISTORY_PAGE,
+        p_unread_only: filter === 'unread', p_focused: filter === 'focused',
       });
       if (error) throw error;
       return z.array(ReviewSchema).parse(data);
@@ -135,6 +144,8 @@ export function useMarkActivityRead() {
     mutationFn: async (item: ActivityItem | null) => {
       const { error } = item?.kind === 'nutrition'
         ? await requireSupabase().rpc('mark_nutrition_activity_read', { p_activity_id: item.id })
+        : item?.kind === 'service_request'
+        ? await requireSupabase().rpc('mark_service_request_read', { p_request_id: item.id })
         : item?.kind === 'request'
         ? await requireSupabase().rpc('mark_request_read', { p_request_id: item.id })
         : await requireSupabase().rpc('mark_activity_read', item ? { p_session_id: item.id } : {});

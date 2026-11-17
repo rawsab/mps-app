@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activityDetails, activityKind, activityTitle, activityWhere, groupByDay, relativeTime, type SessionActivity, type NutritionActivity, type RequestActivity } from '@/domain/activity/feed';
+import { activityDetails, activityKind, activityTitle, activityWhere, groupByDay, relativeTime, type SessionActivity, type NutritionActivity, type RequestActivity, type ServiceRequestActivity } from '@/domain/activity/feed';
 import { activityLink, ReviewSchema } from '@/features/activity/api';
 
 const item = (overrides: Partial<SessionActivity> = {}): SessionActivity => ({
@@ -92,5 +92,26 @@ describe('meeting requests', () => {
   it('opens the session on the client page and parses from Reviews', () => {
     expect(activityLink('c1', request())).toBe('/coach/clients/c1?session=a1');
     expect(ReviewSchema.parse({ ...request(), clientId: 'c1', clientName: 'Grace Liu', unread: true }).kind).toBe('request');
+  });
+});
+
+describe('service requests', () => {
+  const request = (overrides: Partial<ServiceRequestActivity> = {}): ServiceRequestActivity => ({
+    kind: 'service_request', id: 'q1', service: 'personal_training', message: 'Mornings suit me', status: 'pending',
+    activityAt: '2026-11-17T12:00:00Z', staffEdited: false, ...overrides,
+  });
+
+  it('names the service and quotes the message', () => {
+    expect(activityKind(request())).toBe('service_request');
+    expect(activityTitle(request())).toBe('Requested Personal training');
+    expect(activityWhere(request())).toBe('Waiting for enrollment');
+    expect(activityWhere(request({ status: 'enrolled' }))).toBe('Now enrolled');
+    expect(activityDetails(request())).toEqual(['“Mornings suit me”']);
+    expect(activityDetails(request({ message: '' }))).toEqual([]);
+  });
+
+  it('opens the client page and parses from Reviews', () => {
+    expect(activityLink('c1', request())).toBe('/coach/clients/c1');
+    expect(ReviewSchema.parse({ ...request(), clientId: 'c1', clientName: 'Maya Chen', unread: true }).kind).toBe('service_request');
   });
 });

@@ -138,5 +138,7 @@ export const CalendarIcon = () => <Icon><rect x="4" y="5" width="16" height="15"
 export const HistoryIcon = () => <Icon><path d="M4 12a8 8 0 1 0 2.3-5.6L4 8.7" /><path d="M4 4v4.7h4.7M12 8v4.5l3 1.8" /></Icon>;
 /** Programs: a clipboard with lines. */
 export const ProgramIcon = () => <Icon><rect x="5" y="4.5" width="14" height="16" rx="2" /><path d="M9 4.5V3.5h6v1M8.5 10h7M8.5 13.5h7M8.5 17h4.5" /></Icon>;
+/** To-dos: a checklist. */
+export const TodoIcon = () => <Icon><path d="m4 6.5 1.5 1.5 3-3M4 12.5 5.5 14l3-3M4.5 18.5h3.5M11.5 7H20M11.5 13H20M11.5 18.5H20" /></Icon>;
 /** Services: stacked layers. */
 export const ServicesIcon = () => <Icon><path d="m12 4 8.5 4.5L12 13 3.5 8.5z" /><path d="m3.5 12.5 8.5 4.5 8.5-4.5M3.5 16.5 12 21l8.5-4.5" /></Icon>;

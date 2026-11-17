@@ -36,22 +36,29 @@ export type RequestActivity = {
   late: boolean | null; response: string; meetingId: string; startsAt: string; durationMinutes: number;
   activityAt: string; staffEdited: boolean;
 };
-export type ActivityItem = SessionActivity | NutritionActivity | RequestActivity;
+/** A client's request for a service they don't have (decision 0042). Reviews only. */
+export type ServiceRequestActivity = {
+  kind: 'service_request'; id: string; service: 'personal_training' | 'mesocycle' | 'nutrition'; message: string;
+  status: 'pending' | 'enrolled'; activityAt: string; staffEdited: boolean;
+};
+export type ActivityItem = SessionActivity | NutritionActivity | RequestActivity | ServiceRequestActivity;
 
 /** A Reviews item: timed by the client's own latest change, with this staff member's read state. */
 export type ReviewItem = ActivityItem & { clientId: string; clientName: string; unread: boolean };
 
 /** Training kinds plus the shared daily nutrition and PT request categories. */
-export type ActivityKind = 'completed' | 'logged' | 'skipped' | 'started' | 'nutrition' | 'request';
+export type ActivityKind = 'completed' | 'logged' | 'skipped' | 'started' | 'nutrition' | 'request' | 'service_request';
 
-export function activityKind(item: Pick<SessionActivity, 'status' | 'setCount' | 'feedbackCount'> | NutritionActivity | RequestActivity): ActivityKind {
+export function activityKind(item: Pick<SessionActivity, 'status' | 'setCount' | 'feedbackCount'> | NutritionActivity | RequestActivity | ServiceRequestActivity): ActivityKind {
   if ('requestKind' in item) return 'request';
+  if ('kind' in item && item.kind === 'service_request') return 'service_request';
   if (!('setCount' in item)) return 'nutrition';
   if (item.status === 'completed' || item.status === 'skipped') return item.status;
   return item.setCount > 0 || item.feedbackCount > 0 ? 'logged' : 'started';
 }
 
 export function activityTitle(item: ActivityItem): string {
+  if (item.kind === 'service_request') return `Requested ${SERVICE_NAMES[item.service]}`;
   if (item.kind === 'request') return item.status === 'withdrawn' ? 'Withdrew a meeting request' : item.requestKind === 'cancel' ? 'Asked to cancel a meeting' : 'Asked to reschedule a meeting';
   if (item.kind === 'nutrition') return item.status === 'completed' ? 'Logged daily nutrition' : item.weight !== null ? 'Logged weight' : item.intake !== null || item.output !== null ? 'Logged calories' : 'Updated daily nutrition';
   switch (activityKind(item)) {
@@ -61,6 +68,7 @@ export function activityTitle(item: ActivityItem): string {
     case 'started': return 'Started a workout';
     case 'nutrition': return 'Logged daily nutrition';
     case 'request': return 'Meeting request';
+    case 'service_request': return 'Service request';
   }
 }
 
@@ -69,6 +77,7 @@ const SERVICE_NAMES = { personal_training: 'Personal training', mesocycle: 'Meso
 const SESSION_TIME = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
 export function activityWhere(item: ActivityItem): string {
+  if (item.kind === 'service_request') return item.status === 'enrolled' ? 'Now enrolled' : 'Waiting for enrollment';
   if (item.kind === 'request') return `${item.services.map((s) => SERVICE_NAMES[s]).join(' · ')} · ${SESSION_TIME.format(new Date(item.startsAt))} · ${item.durationMinutes} min`;
   if (item.kind === 'nutrition') return item.programTitle;
   return [item.programTitle.trim() || 'Untitled program', weekName(item.weekIndex), dayHeading({ label: item.dayLabel }, item.dayIndex)].join(' · ');
@@ -78,6 +87,7 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 
 /** Facts worth a glance; nothing is listed for counts the client hasn't produced. */
 export function activityDetails(item: ActivityItem): string[] {
+  if (item.kind === 'service_request') return item.message ? [`“${item.message}”`] : [];
   if (item.kind === 'request') return [
     item.message ? `“${item.message}”` : '',
     item.preferredStartsAt ? `Prefers ${SESSION_TIME.format(new Date(item.preferredStartsAt))}` : '',

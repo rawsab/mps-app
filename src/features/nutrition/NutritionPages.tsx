@@ -1,8 +1,8 @@
 import { Link, Navigate, useParams } from 'react-router';
 import { useViewer } from '@/app/auth';
-import { Alert, Badge, Button, Card, EmptyState, PageHeader, Spinner } from '@/components/ui';
+import { Alert, Badge, Button, EmptyState, PageHeader, Spinner } from '@/components/ui';
 import { NutritionIcon } from '@/components/icons';
-import { shiftDate } from '@/domain/nutrition';
+import { activeNutritionProgram } from '@/domain/clientHome';
 import { nutritionWeeks } from '@/domain/nutritionProgram';
 import { formatDate } from '@/lib/format';
 import { nutritionError, useNutrition } from './api';
@@ -19,7 +19,7 @@ export function NutritionPage({ coach = false }: { coach?: boolean }) {
   const daily = useNutrition(coach ? undefined : viewer.data?.client?.id);
   if (coach) return <Navigate to={`/coach/clients/${clientId}`} replace />;
   if (programs.isPending || daily.isPending) return <Spinner label="Loading nutrition" />;
-  const active=programs.data?.find((p) => daily.data && !p.archived_at && p.start_date<=daily.data.today && shiftDate(p.start_date,p.week_count*7-1)>=daily.data.today);
+  const active = programs.data && daily.data ? activeNutritionProgram(programs.data, daily.data.today) : undefined;
   return <div>
     {active ? <NutritionProgramPage id={active.id} embedded /> : <PageHeader title="Nutrition" />}
     <Alert visible={!!programs.error} title="Could not load programs">{nutritionError(programs.error)}</Alert>
@@ -36,20 +36,6 @@ export function NutritionPage({ coach = false }: { coach?: boolean }) {
       </Link>
     </li>)}</ul>
   </div>;
-}
-
-export function NutritionHomeTask() {
-  const viewer = useViewer();
-  const query = useNutrition(viewer.data?.client?.id);
-  const programs = useNutritionPrograms(viewer.data?.client?.id);
-  if (query.isPending || programs.isPending) return <Spinner label="Loading nutrition task" />;
-  if (query.error || programs.error) return <Alert title="Nutrition task unavailable">{nutritionError(query.error ?? programs.error)}</Alert>;
-  const d = query.data;
-  const active = programs.data.filter((p) => !p.archived_at && p.start_date <= d.today && shiftDate(p.start_date, p.week_count * 7 - 1) >= d.today);
-  if (!active.length) return <Card><h2 className="font-semibold">Your nutrition programs</h2><p className="mt-1 text-sm text-muted">{programs.data.length ? 'There is no nutritional program active today.' : 'Your coach hasn’t published a nutritional program yet.'}</p><Link className="mt-2 inline-flex min-h-11 items-center gap-1.5 rounded-card border border-line px-4 text-sm font-medium hover:border-muted/70" to="/nutrition">View nutrition <span aria-hidden>→</span></Link></Card>;
-  const weighed = d.weights.some((w) => w.measured_on === d.today && w.weight !== null);
-  const logged = d.entries.some((n) => n.activity_on === shiftDate(d.today, -1) && n.intake !== null && n.output !== null);
-  return <Card><h2 className="font-semibold">Your nutrition entry</h2><p className="mb-3 mt-1 text-sm text-muted">{weighed && logged ? 'Today’s weight and yesterday’s calories are saved.' : `${weighed ? 'Today’s weight is saved.' : 'Record today’s weight.'} ${logged ? 'Yesterday’s calories are saved.' : 'Add yesterday’s calories consumed and output.'}`}</p><Link className="inline-flex min-h-11 items-center gap-1.5 rounded-card border border-line px-4 text-sm font-medium hover:border-muted/70" to="/nutrition">{weighed && logged ? 'View nutrition' : 'Log daily entry'} <span aria-hidden>→</span></Link></Card>;
 }
 
 export function NutritionProgressPage() {

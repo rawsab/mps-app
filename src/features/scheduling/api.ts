@@ -35,6 +35,8 @@ export const MeetingSchema = z.object({
   scheduleId: z.string().nullable(), occurrenceOn: z.string().nullable(), cycleWeeks: z.number().int().nullable(),
   cancelledAt: z.string().nullable(), cancellationReason: z.string(), cancelledByClient: z.boolean(),
   meetingUrl: z.string().nullable(), notes: z.string().nullable(),
+  /** The coach's name and picture path, so clients can see who the meeting is with (migration 00038). */
+  coachName: z.string().nullable(), coachAvatarPath: z.string().nullable(),
   /** The repeating pattern's notes (staff only). */
   patternNotes: z.string().nullable(), request: RequestSchema.nullable(),
 });

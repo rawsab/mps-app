@@ -74,12 +74,12 @@ function AtAGlance({ timeZone }: { timeZone: string }) {
         {meetings.isPending ? <Spinner label="Loading meetings" /> : null}
         <Alert visible={!!meetings.error} title="Could not load meetings">{schedulingError(meetings.error)}</Alert>
         {running ? (
-          <p className="mb-2 text-sm">
-            <Badge tone="gold">Now</Badge>{' '}
-            <Link to={meetingLink(running)} className="text-gold-fg"><span className="link">{running.clientName}</span></Link> until {sessionTime(new Date(new Date(running.startsAt).getTime() + running.durationMinutes * 60_000), timeZone)}
-          </p>
+          <div role="status" aria-live="polite">
+            <p className="text-2xl font-semibold leading-tight text-text">Join meeting with {running.clientName}</p>
+            <NextMeetingCard meeting={running} timeZone={timeZone} />
+          </div>
         ) : null}
-        {meetings.data && next ? (
+        {meetings.data && next && !running ? (
           <div role="status" aria-live="polite">
             <p className="text-2xl font-semibold leading-tight text-text">{wait === 'less than a minute' ? 'In less than a minute' : `In ${wait}`}</p>
             <NextMeetingCard meeting={next} timeZone={timeZone} />
