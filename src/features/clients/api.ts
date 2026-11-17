@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import { ServiceKind } from '@/domain/programs/contract';
 import { requireSupabase } from '@/lib/supabase';
+import { photoUrl } from '@/features/profile/api';
 
 export const ClientStatus = z.enum(['pending', 'invited', 'active', 'disabled']);
 export type ClientStatus = z.infer<typeof ClientStatus>;
@@ -51,6 +52,21 @@ export function useClient(id: string | undefined) {
       const { data, error } = await requireSupabase().from('clients').select(CLIENT_COLUMNS).eq('id', id!).maybeSingle();
       if (error) throw error;
       return data as ClientRow | null;
+    },
+  });
+}
+
+/** Photo access follows client assignments in both profile and Storage policies. */
+export function useClientPhoto(userId: string | null | undefined) {
+  return useQuery({
+    queryKey: ['client-photo', userId],
+    enabled: !!userId,
+    staleTime: 60_000,
+    refetchInterval: 30 * 60_000,
+    queryFn: async () => {
+      const { data, error } = await requireSupabase().from('profiles').select('avatar_path').eq('auth_user_id', userId!).maybeSingle();
+      if (error) throw error;
+      return photoUrl(data?.avatar_path ?? null);
     },
   });
 }

@@ -1,3 +1,4 @@
+import { Avatar } from '@/components/Avatar';
 import { ActionsMenu, actionItemClass } from '@/components/ActionsMenu';
 import { ArchiveIcon, TrashIcon } from '@/components/icons';
 import { Dialog } from '@/components/Dialog';
@@ -19,6 +20,7 @@ import {
   useArchiveEnrollment,
   useClient,
   useClientNotes,
+  useClientPhoto,
   useDeleteClientNote,
   useInviteClient,
   useSetEnrollmentStatus,
@@ -32,6 +34,7 @@ export function ClientDetailPage() {
   const { clientId } = useParams();
   const viewer = useViewer();
   const client = useClient(clientId);
+  const photo = useClientPhoto(client.data?.auth_user_id);
   const isAdmin = viewer.data?.staffRole === 'admin';
 
   if (client.isPending) return <Spinner label="Loading client" />;
@@ -53,7 +56,7 @@ export function ClientDetailPage() {
           <span>Clients</span>
         </Link>
       </div>
-      <PageHeader title={c.full_name} subtitle={<span className="break-all">{c.email}</span>} actions={statusBadge(c.status)} />
+      <PageHeader leading={<Avatar url={photo.data} name={c.full_name} className="size-14 sm:size-16" />} title={c.full_name} subtitle={<span className="break-all">{c.email}</span>} actions={statusBadge(c.status)} />
       <div className="grid min-w-0 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="grid min-w-0 gap-8"><RecentUpdatesCard client={c} /><ProgramsCard clientId={c.id} enrollments={c.service_enrollments} /></div>
         <div className="grid min-w-0 gap-8 lg:border-l lg:border-line lg:pl-6">
@@ -119,9 +122,9 @@ function ClientSettings({ client }: { client: ClientRow }) {
           </Button>
         </div>
       </div>
-      {invite.isSuccess ? <Alert tone="success">Invitation request accepted by the server ({invite.data?.status}).</Alert> : null}
-      {invite.error ? <Alert title="Invitation not sent">{friendlyError(invite.error)}</Alert> : null}
-      {setStatus.error ? <Alert title="Status not changed">{friendlyError(setStatus.error)}</Alert> : null}
+      <Alert visible={!!invite.isSuccess} tone="success">Invitation request accepted by the server ({invite.data?.status}).</Alert>
+      <Alert visible={!!invite.error} title="Invitation not sent">{friendlyError(invite.error)}</Alert>
+      <Alert visible={!!setStatus.error} title="Status not changed">{friendlyError(setStatus.error)}</Alert>
     </AnimatedDisclosure>
   );
 }
@@ -151,7 +154,13 @@ function ServicesCard({
         {visible.map((enrollment) => (
           <li key={enrollment.id} className="py-2">
             <div className="flex min-h-11 items-center gap-2">
-              <p className="min-w-0 flex-1 font-medium">{SERVICE_LABELS[enrollment.service]}</p>
+              <div className="min-w-0 flex-1">
+                <p className="font-medium">{SERVICE_LABELS[enrollment.service]}</p>
+                <p className="text-xs text-muted">
+                  From {formatDate(enrollment.starts_on)}
+                  {enrollment.ends_on ? ` to ${formatDate(enrollment.ends_on)}` : ''}
+                </p>
+              </div>
               <Badge tone={enrollment.status === 'active' ? 'gold' : 'neutral'}>{capitalize(enrollment.status)}</Badge>
               {canEdit ? enrollment.status === 'ended' ? (
                 <button type="button" aria-label={`Archive ended ${SERVICE_LABELS[enrollment.service]} service`} title="Archive service"
@@ -168,10 +177,6 @@ function ServicesCard({
                   onClick={() => setStatus.mutate({ id: enrollment.id, status: 'ended' })}>End</button>
               </ActionsMenu> : null}
             </div>
-            <p className="text-xs text-muted">
-              From {formatDate(enrollment.starts_on)}
-              {enrollment.ends_on ? ` to ${formatDate(enrollment.ends_on)}` : ''}
-            </p>
           </li>
         ))}
       </ul>
@@ -196,9 +201,9 @@ function ServicesCard({
           </Button>
         </form>
       ) : null}
-      {add.error ? <div className="mt-3"><Alert>{friendlyError(add.error)}</Alert></div> : null}
-      {archive.error ? <div className="mt-3"><Alert title="Could not archive service">{friendlyError(archive.error)}</Alert></div> : null}
-      {setStatus.error ? <div className="mt-3"><Alert>{friendlyError(setStatus.error)}</Alert></div> : null}
+      <Alert visible={!!add.error} className="mt-3">{friendlyError(add.error)}</Alert>
+      <Alert visible={!!archive.error} className="mt-3" title="Could not archive service">{friendlyError(archive.error)}</Alert>
+      <Alert visible={!!setStatus.error} className="mt-3">{friendlyError(setStatus.error)}</Alert>
     </section>
   );
 }
@@ -227,7 +232,7 @@ function NotesCard({ clientId }: { clientId: string }) {
       <h2 className="text-lg font-semibold">Notes</h2>
       <p className="mb-3 text-sm text-muted">Private to staff. The client never sees these.</p>
       {notes.isPending ? <Spinner label="Loading notes" /> : null}
-      {notes.error ? <Alert title="Could not load notes">{friendlyError(notes.error)}</Alert> : null}
+      <Alert visible={!!notes.error} title="Could not load notes">{friendlyError(notes.error)}</Alert>
       {notes.data && notes.data.length > 0 ? (
         <ul className="mb-3 divide-y divide-line">
           {(showAll ? notes.data : notes.data.slice(0, 3)).map((n) => (
@@ -241,14 +246,14 @@ function NotesCard({ clientId }: { clientId: string }) {
       ) : null}
       {notes.data && notes.data.length > 3 ? <Button variant="ghost" className="mb-3" onClick={() => setShowAll((value) => !value)}>{showAll ? 'Show recent notes' : `Show all ${notes.data.length} notes`}</Button> : null}
       {notes.data && notes.data.length === 0 ? <p className="mb-4 text-sm text-muted">No notes yet.</p> : null}
-      {remove.error && !deleting ? <Alert title="Could not delete note">{friendlyError(remove.error)}</Alert> : null}
+      <Alert visible={!!(remove.error && !deleting)} title="Could not delete note">{friendlyError(remove.error)}</Alert>
       {deleting ? <Dialog title="Delete this note?" description="This permanently deletes your note." onClose={() => { if (!remove.isPending) setDeleting(null); }} footer={<>
         <Button variant="secondary" disabled={remove.isPending} onClick={() => setDeleting(null)}>Keep note</Button>
         <Button variant="danger" busy={remove.isPending} onClick={() => remove.mutate(deleting, { onSuccess: () => setDeleting(null) })}><TrashIcon />Delete note</Button>
-      </>}>{remove.error ? <div className="p-4"><Alert title="Could not delete note">{friendlyError(remove.error)}</Alert></div> : <span />}</Dialog> : null}
+      </>}><Alert visible={!!remove.error} className="m-4" title="Could not delete note">{friendlyError(remove.error)}</Alert></Dialog> : null}
       <form onSubmit={submit} noValidate className="grid gap-3">
         <TextAreaField label="Add a note" rows={3} maxLength={5000} value={draft} onChange={(e) => setDraft(e.target.value)} error={error} />
-        {add.error ? <Alert title="Note not saved">{friendlyError(add.error)}</Alert> : null}
+        <Alert visible={!!add.error} title="Note not saved">{friendlyError(add.error)}</Alert>
         <div>
           <Button type="submit" variant="secondary" busy={add.isPending}>
             Save note

@@ -3,11 +3,16 @@ import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react';
 import type { ServiceKind } from '@/domain/programs/contract';
 import { requireSupabase } from '@/lib/supabase';
+import { photoUrl } from '@/features/profile/api';
 
 export type Viewer = {
   userId: string;
   email: string;
   displayName: string;
+  dateOfBirth: string | null;
+  phoneNumber: string | null;
+  avatarPath: string | null;
+  avatarUrl: string | null;
   staffRole: 'admin' | 'coach' | null;
   /** Null when the user is not a client, or is a disabled client (RLS hides the record). */
   client: { id: string; fullName: string; status: string } | null;
@@ -51,7 +56,7 @@ async function loadViewer(session: Session): Promise<Viewer> {
   const [role, client, profile] = await Promise.all([
     supabase.from('staff_roles').select('role').eq('auth_user_id', userId).maybeSingle(),
     supabase.from('clients').select('id, full_name, status').eq('auth_user_id', userId).maybeSingle(),
-    supabase.from('profiles').select('display_name').eq('auth_user_id', userId).maybeSingle(),
+    supabase.from('profiles').select('display_name, date_of_birth, phone_number, avatar_path').eq('auth_user_id', userId).maybeSingle(),
   ]);
   for (const r of [role, client, profile]) if (r.error) throw r.error;
 
@@ -69,6 +74,11 @@ async function loadViewer(session: Session): Promise<Viewer> {
     userId,
     email: session.user.email ?? '',
     displayName: profile.data?.display_name ?? '',
+    dateOfBirth: profile.data?.date_of_birth ?? null,
+    phoneNumber: profile.data?.phone_number ?? null,
+    avatarPath: profile.data?.avatar_path ?? null,
+    // A photo outage should not prevent navigation or access to profile settings.
+    avatarUrl: await photoUrl(profile.data?.avatar_path ?? null).catch(() => null),
     staffRole: (role.data?.role as Viewer['staffRole']) ?? null,
     client: client.data ? { id: client.data.id, fullName: client.data.full_name, status: client.data.status } : null,
     services,
@@ -83,6 +93,7 @@ export function useViewer() {
     queryFn: () => loadViewer(session!),
     enabled: !!session,
     staleTime: 60_000,
+    refetchInterval: 30 * 60_000,
   });
 }
 

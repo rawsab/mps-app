@@ -12,6 +12,7 @@ import {
   TemplatesIcon,
   TrainingIcon,
 } from '@/components/icons';
+import { Avatar } from '@/components/Avatar';
 import { LegalFooter } from '@/components/LegalFooter';
 import { READ_FADE_MS, useUnreadCount } from '@/features/activity/api';
 import { ThemeToggle } from '@/components/ThemeToggle';
@@ -51,13 +52,26 @@ function TopBar({ children, leading, className = '' }: { children?: ReactNode; l
           <button
             type="button"
             onClick={() => void signOut()}
+            aria-label="Sign out"
             className="btn-motion my-auto min-h-11 rounded-card px-3 text-sm text-muted hover:bg-surface-raised hover:text-text"
           >
-            Sign out
+            <span className="hidden sm:inline">Sign out</span><span className="sm:hidden"><SignOutIcon /></span>
           </button>
         </div>
       </div>
     </header>
+  );
+}
+
+/** The picture is also the entry point to settings, including in collapsed navigation. */
+function ProfileLink({ coach = false, collapsed = false, onNavigate }: { coach?: boolean; collapsed?: boolean; onNavigate?: () => void }) {
+  const viewer = useViewer().data;
+  return (
+    <NavLink to={coach ? '/coach/profile' : '/profile'} onClick={onNavigate} aria-label="Profile settings" title="Profile settings"
+      className={`btn-motion flex min-h-11 min-w-11 items-center gap-3 rounded-card text-sm text-text hover:bg-surface-raised ${collapsed ? 'justify-center' : 'px-2 py-2'}`}>
+      <Avatar url={viewer?.avatarUrl} name={viewer?.displayName ?? ''} />
+      {coach && !collapsed ? <span className="min-w-0"><span className="block truncate font-medium">{viewer?.displayName || 'Your profile'}</span><span className="block text-xs text-muted">Profile settings</span></span> : null}
+    </NavLink>
   );
 }
 
@@ -83,6 +97,7 @@ export function ClientLayout() {
             </NavLink>
           ))}
         </nav>
+        <ProfileLink />
       </TopBar>
       <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-3xl flex-1 scroll-mt-20 px-4 py-8">
         <RouteContent />
@@ -263,6 +278,7 @@ function CoachDrawer({ onClose }: { onClose: () => void }) {
         <nav aria-label="Coach">
           <CoachNavLinks onNavigate={() => ref.current?.close()} />
         </nav>
+        <div className="mt-auto border-t border-line pt-3"><ProfileLink coach onNavigate={() => ref.current?.close()} /></div>
       </div>
     </dialog>
   );
@@ -307,6 +323,7 @@ export function CoachLayout() {
         <nav aria-label="Coach" className="min-h-0 flex-1 overflow-y-auto">
           <CoachNavLinks collapsed={collapsed} />
         </nav>
+        <ProfileLink coach collapsed={collapsed} />
         <div className={`flex gap-1 border-t border-line pt-3 ${collapsed ? 'flex-col items-center' : 'items-center'}`}>
           <ThemeToggle />
           <button type="button" onClick={() => void signOut()} aria-label="Sign out" title="Sign out" className={sidebarControl}>

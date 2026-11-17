@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate } from 'react-router';
+import { ProfileSettingsPage } from '@/features/profile/ProfileSettingsPage';
 import { AuthCallbackPage, ForgotPasswordPage, SignInPage } from '@/features/auth/AuthPages';
 import { ClientActivityPage, ReviewsPage } from '@/features/activity/ActivityViews';
 import { ClientDetailPage } from '@/features/clients/ClientDetailPage';
@@ -27,6 +28,7 @@ export const router = createBrowserRouter([
             element: <ClientLayout />,
             children: [
               { path: '/home', element: <ClientHomePage /> },
+              { path: '/profile', element: <ProfileSettingsPage /> },
               {
                 element: <RequireClient section="training" />,
                 children: [
@@ -54,6 +56,7 @@ export const router = createBrowserRouter([
             children: [
               { path: '/coach', element: <Navigate to="/coach/clients" replace /> },
               { path: '/coach/clients', element: <ClientsPage /> },
+              { path: '/coach/profile', element: <ProfileSettingsPage /> },
               { path: '/coach/clients/:clientId', element: <ClientDetailPage /> },
               { path: '/coach/clients/:clientId/activity', element: <ClientActivityPage /> },
               { path: '/coach/clients/:clientId/programs/:programId', element: <ProgramEditorPage /> },
