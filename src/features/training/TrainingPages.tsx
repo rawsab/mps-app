@@ -199,25 +199,28 @@ function Day({ view, log }: { view: DayView; log: DayLog }) {
         {view.scheduledDate ? <p className="mt-1 text-sm text-muted">{formatDate(view.scheduledDate)}</p> : null}
       </header>
       {view.before.map((b) => <Block key={b.id} block={b} shared log={null} />)}
-      {view.blocks.map((b) => <Block key={b.id} block={b} log={log} />)}
+      {/* Numbering runs on across a day's blocks so it reads as one workout order. */}
+      {view.blocks.map((b, i) => <Block key={b.id} block={b} log={log} start={1 + view.blocks.slice(0, i).reduce((n, x) => n + x.groups.length, 0)} />)}
       {view.exerciseCount === 0 ? <p className="mb-6 text-sm text-muted">No exercises for this day.</p> : null}
       {view.after.map((b) => <Block key={b.id} block={b} shared log={null} />)}
     </article>
   );
 }
 
-function Block({ block, shared, log }: { block: DayBlock; shared?: boolean; log: DayLog }) {
+function Block({ block, shared, log, start = 1 }: { block: DayBlock; shared?: boolean; log: DayLog; start?: number }) {
   const body = (
     <>
       {block.instructions ? <p className="mb-3 whitespace-pre-line text-sm text-muted">{block.instructions}</p> : null}
-      <ol className="grid gap-3">
-        {block.groups.map((g) => g.superset ? (
-          <li key={g.key} className={`rounded-card border bg-surface p-3 ${boxBorder(g.exercises, log)}`}>
+      {/* A gold rail joins the cards; each card's marker gives its place in the workout order. */}
+      <ol start={start} className="relative grid gap-3 pl-10 before:absolute before:top-6 before:bottom-0 before:left-[14px] before:w-0.5 before:bg-gold/60 before:[mask-image:linear-gradient(to_bottom,black_calc(100%-4rem),transparent)]">
+        {block.groups.map((g, i) => g.superset ? (
+          <li key={g.key} className={`relative rounded-card border bg-surface p-3 ${boxBorder(g.exercises, log)}`}>
+            <OrderMarker n={start + i} />
             <p className="mb-2 text-xs font-medium uppercase tracking-wide text-gold-fg">Superset · do these back to back</p>
             <ol className="grid divide-y divide-line">{g.exercises.map((e) => <li key={e.id} className="py-2 first:pt-0 last:pb-0"><ExerciseItem exercise={e} log={log} /></li>)}</ol>
           </li>
         ) : (
-          <li key={g.key} className={`rounded-card border bg-surface p-3 ${boxBorder(g.exercises, log)}`}><ExerciseItem exercise={g.exercises[0]!} log={log} /></li>
+          <li key={g.key} className={`relative rounded-card border bg-surface p-3 ${boxBorder(g.exercises, log)}`}><OrderMarker n={start + i} /><ExerciseItem exercise={g.exercises[0]!} log={log} /></li>
         ))}
       </ol>
     </>
@@ -238,6 +241,15 @@ function Block({ block, shared, log }: { block: DayBlock; shared?: boolean; log:
       {block.title ? <h3 className="mb-2 font-semibold">{block.title}</h3> : null}
       {body}
     </section>
+  );
+}
+
+/** The <ol> already announces order, so the visual number is hidden from screen readers. */
+function OrderMarker({ n }: { n: number }) {
+  return (
+    <span aria-hidden className="absolute top-2.5 -left-10 grid size-7 place-items-center rounded-full border-2 border-gold bg-ink text-xs font-semibold tabular-nums">
+      {n}
+    </span>
   );
 }
 
