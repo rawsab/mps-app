@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ActionItem, ActionsMenu } from '@/components/ActionsMenu';
 import { Checkbox, SegmentedControl } from '@/components/controls';
 import { ConfirmDialog, Dialog, DialogBody } from '@/components/Dialog';
-import { CalendarIcon, PlusIcon } from '@/components/icons';
+import { CalendarIcon, ExtraHoursIcon, PlusIcon, TimeOffIcon } from '@/components/icons';
 import { Alert, Button, Card, SectionHeading, Spinner, TextAreaField, TextField } from '@/components/ui';
 import { exceptionFields, exceptionInstants, type ExceptionFields } from '@/domain/scheduling/availability';
 import {
@@ -60,6 +60,8 @@ export function AvailabilityExceptions({ timeZone, onSaved }: { timeZone: string
                     {rows.map((exception) => (
                       <li key={exception.id}>
                         <Card as="div" padding="sm" fill="page" className="flex min-w-0 items-center gap-3">
+                          {/* Softened danger / success, so the kind reads at a glance without shouting. */}
+                          <span className={kind === 'time_off' ? 'text-danger/70' : 'text-success/70'}>{kind === 'time_off' ? <TimeOffIcon /> : <ExtraHoursIcon />}</span>
                           <span className="min-w-0 flex-1">
                             <span className="block text-sm font-medium">{exceptionLabel(exception, timeZone)}</span>
                             {exception.note ? <span className="mt-1 block break-words text-xs text-muted">{exception.note}</span> : null}

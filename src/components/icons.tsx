@@ -158,6 +158,10 @@ export const ProgressionIcon = () => <Icon className="size-4 shrink-0"><path d="
 export const ArrowUpRightIcon = () => <Icon className="size-4 shrink-0"><path d="M7 17 17 7M9 7h8v8" /></Icon>;
 export const CalendarIcon = () => <Icon><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M4 10h16M8.5 3v4M15.5 3v4" /></Icon>;
 /** Recent activity: a clock with a return arrow. */
+/** Time off (decision 0050): a calendar crossed out. */
+export const TimeOffIcon = () => <Icon><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M4 10h16M8.5 3v4M15.5 3v4M10 13.5l4 4M14 13.5l-4 4" /></Icon>;
+/** Extra hours (decision 0050): a clock with a plus. */
+export const ExtraHoursIcon = () => <Icon><circle cx="10.5" cy="13" r="7.5" /><path d="M10.5 9.5V13l2.2 1.5M19 3v5M16.5 5.5h5" /></Icon>;
 export const HistoryIcon = () => <Icon><path d="M4 12a8 8 0 1 0 2.3-5.6L4 8.7" /><path d="M4 4v4.7h4.7M12 8v4.5l3 1.8" /></Icon>;
 /** Programs: a clipboard with lines. */
 export const ProgramIcon = () => <Icon><rect x="5" y="4.5" width="14" height="16" rx="2" /><path d="M9 4.5V3.5h6v1M8.5 10h7M8.5 13.5h7M8.5 17h4.5" /></Icon>;
