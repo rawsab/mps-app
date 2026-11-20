@@ -428,7 +428,7 @@ html[data-theme='light'] .brand-logo {
  * the page background, so it never reads as the solid surface of the header row.
  */
 .calendar-unavailable {
-  background: repeating-linear-gradient(135deg, color-mix(in oklab, var(--color-line) 65%, transparent) 0 1px, transparent 1px 7px);
+  background: repeating-linear-gradient(135deg, color-mix(in oklab, var(--color-line) 50%, transparent) 0 1px, transparent 1px 7px);
 }
 
 /*
