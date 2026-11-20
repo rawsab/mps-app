@@ -59,7 +59,7 @@ export function AvailabilityExceptions({ timeZone, onSaved }: { timeZone: string
                   <ul className="grid gap-2">
                     {rows.map((exception) => (
                       <li key={exception.id}>
-                        <Card as="div" padding="sm" className="flex min-w-0 items-center gap-3">
+                        <Card as="div" padding="sm" fill="page" className="flex min-w-0 items-center gap-3">
                           <span className="min-w-0 flex-1">
                             <span className="block text-sm font-medium">{exceptionLabel(exception, timeZone)}</span>
                             {exception.note ? <span className="mt-1 block break-words text-xs text-muted">{exception.note}</span> : null}

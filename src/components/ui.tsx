@@ -27,9 +27,14 @@ export function Button({ variant = 'primary', busy, className = '', children, di
   );
 }
 
-/** A bordered surface. `sm` padding for a compact card inside a list or sidebar. */
-export function Card({ children, className = '', padding = 'md', as: Tag = 'section' }: { children: ReactNode; className?: string; padding?: 'sm' | 'md'; as?: 'section' | 'div' | 'dl' }) {
-  return <Tag className={`rounded-card border border-line bg-surface ${padding === 'sm' ? 'p-4' : 'p-4 sm:p-5'} ${className}`}>{children}</Tag>;
+/**
+ * A bordered surface. `sm` padding for a compact card inside a list or sidebar. `fill="page"` leaves
+ * the page background showing, for outlined cards that sit directly on the page.
+ */
+export function Card({ children, className = '', padding = 'md', fill = 'surface', as: Tag = 'section' }: {
+  children: ReactNode; className?: string; padding?: 'sm' | 'md'; fill?: 'surface' | 'page'; as?: 'section' | 'div' | 'dl';
+}) {
+  return <Tag className={`rounded-card border border-line ${fill === 'surface' ? 'bg-surface' : ''} ${padding === 'sm' ? 'p-4' : 'p-4 sm:p-5'} ${className}`}>{children}</Tag>;
 }
 
 /** The look shared by every text control: ink fill, gold border and ring on focus. Add height, padding and a border colour. */
