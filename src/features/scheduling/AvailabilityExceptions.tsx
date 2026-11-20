@@ -51,8 +51,9 @@ export function AvailabilityExceptions({ timeZone, onSaved }: { timeZone: string
       {upcoming.length ? (
         <ul className="divide-y divide-line rounded-card border border-line">
           {upcoming.map((exception) => (
-            <li key={exception.id} className="flex min-w-0 items-start gap-3 px-3 py-3">
-              <span className="min-w-0 flex-1">
+            <li key={exception.id} className="flex min-w-0 items-center gap-3 py-1 pl-3 pr-1">
+              {/* Centred on the menu button, whose 44px target sets the shortest row. */}
+              <span className="min-w-0 flex-1 py-1.5">
                 <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                   <span className="text-sm font-medium">{exceptionLabel(exception, timeZone)}</span>
                   <Badge tone={exception.kind === 'time_off' ? 'neutral' : 'gold-soft'}>{KIND_LABEL[exception.kind]}</Badge>
