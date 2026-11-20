@@ -462,7 +462,7 @@ function MeetingCalendar({ timeZone }: { timeZone: string }) {
       </div>
       <Alert visible={!!meetings.error} className="mb-3" title="Could not load meetings">{schedulingError(meetings.error)}</Alert>
       {available && view !== 'month' ? (
-        <p className="mb-2 text-xs text-muted">Shaded times are outside your availability. Change your week in <Link to="/coach/profile" className="text-gold-fg underline underline-offset-2">Profile settings</Link>.</p>
+        <p className="mb-2 text-xs text-muted">Striped times are outside your availability. Change your week in <Link to="/coach/profile" className="text-gold-fg underline underline-offset-2">Profile settings</Link>.</p>
       ) : null}
       {view === 'month'
         ? <MonthGrid days={days} month={date.slice(0, 7)} today={today} byDay={byDay} timeOff={timeOff} timeZone={timeZone} onDay={(day) => go({ view: 'day', date: day })} onMeeting={setPreview} />
@@ -556,7 +556,7 @@ function TimeGrid({ days, today, byDay, available, timeZone, now, onDay, onMeeti
             });
             const lanes = layoutDay(placed.map((p) => ({ id: p.meeting.id, start: p.start, end: p.end })));
             return (
-              <div key={day} className={`relative border-l border-line ${available ? 'bg-surface-raised/60' : ''}`} style={{ height: 24 * HOUR_PX }}>
+              <div key={day} className={`relative border-l border-line ${available ? 'calendar-unavailable' : ''}`} style={{ height: 24 * HOUR_PX }}>
                 {/* Open time shows the page background; the rest stays shaded. */}
                 {available?.get(day)?.map((window) => (
                   <div key={window.start} aria-hidden className="absolute inset-x-0 bg-ink"

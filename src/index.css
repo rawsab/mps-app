@@ -424,6 +424,14 @@ html[data-theme='light'] .brand-logo {
 }
 
 /*
+ * Calendar time outside the coach's availability (decision 0050): diagonal lines in the line colour on
+ * the page background, so it never reads as the solid surface of the header row.
+ */
+.calendar-unavailable {
+  background: repeating-linear-gradient(135deg, var(--color-line) 0 1px, transparent 1px 7px);
+}
+
+/*
  * Coach sidebar: translucent gold rising at an angle from the bottom-left corner, with fine grain that
  * fades out along with it. The grain sits on a pseudo-element behind the content (isolation keeps it
  * inside the sidebar) so its strength can follow the theme.
