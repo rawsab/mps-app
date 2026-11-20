@@ -50,9 +50,7 @@ export function AvailabilityExceptions({ timeZone, onSaved }: { timeZone: string
             return (
               <div key={kind} className={`min-w-0 ${index ? 'mt-6 border-t border-line pt-4 lg:mt-0 lg:border-l lg:border-t-0 lg:pl-9 lg:pt-0' : ''}`}>
                 <div className="mb-2 flex items-center justify-between gap-2">
-                  <h3 className="text-xs font-medium text-muted">
-                    {KIND_LABEL[kind]}{rows.length ? <span className="ml-2 tabular-nums">{rows.length}</span> : null}
-                  </h3>
+                  <h3 className="text-xs font-medium text-muted">{KIND_LABEL[kind]}</h3>
                   <Button variant="ghost" className="-mr-3" onClick={() => setEditing(kind)}>
                     <PlusIcon />{kind === 'time_off' ? 'Add time off' : 'Add extra hours'}
                   </Button>
