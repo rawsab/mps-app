@@ -174,6 +174,10 @@ select throws_ok($$select public.list_meetings(now(), now() + interval '1 day')$
 -- Client requests
 -- ---------------------------------------------------------------------------
 select pg_temp.act_as(:coach);
+-- Preferred times must be open (decision 0050): open all week, bookable from now.
+select public.save_working_hours((select jsonb_agg(jsonb_build_object('weekday', d, 'startTime', '00:00', 'endTime', '24:00'))
+  from generate_series(1, 7) d)) is not null as ok \gset
+select public.save_booking_rules(0, 90, 0) is not null as ok \gset
 select public.add_meeting(:grace, '{personal_training}', now() + interval '2 hours', 60)->>'id' as soon \gset
 select pg_temp.reset_role();
 select id as far1 from public.meetings where schedule_id = :'sched2' order by starts_at limit 1 offset 0 \gset
@@ -190,7 +194,7 @@ select lives_ok(format('select public.request_meeting_change(%L, %L, ''cancel'',
 select throws_ok(format('select public.request_meeting_change(%L, %L, ''cancel'', ''Again'')', 'a0000000-0000-4000-a000-000000000002', :'soon'),
   'PT409', null, 'one open request per session');
 select throws_ok(format('select public.request_meeting_change(%L, %L, ''reschedule'', ''  '')', 'a0000000-0000-4000-a000-000000000003', :'far2'),
-  '22023', null, 'a reschedule needs a message');
+  '22023', null, 'a reschedule needs a message or a time');
 select pg_temp.act_as(:coach);
 select throws_ok(format('select public.cancel_meeting(%L)', :'soon'), 'PT409', null, 'coach answers the request before changing the session');
 select is(public.respond_to_meeting_request('a0000000-0000-4000-a000-000000000001', true)->>'status', 'late_cancelled',
@@ -229,7 +233,7 @@ select throws_ok($$select public.withdraw_meeting_request('a0000000-0000-4000-a0
 select pg_temp.act_as(:user_grace);
 select is(public.withdraw_meeting_request('a0000000-0000-4000-a000-000000000007')->>'status', 'withdrawn', 'client withdraws');
 
-select lives_ok(format('select public.request_meeting_change(%L, %L, ''reschedule'', ''Earlier?'', now() + interval ''3 days'')',
+select lives_ok(format('select public.request_meeting_change(%L, %L, ''reschedule'', ''Earlier?'', date_bin(''15 minutes'', now() + interval ''3 days'', timestamptz ''2000-01-01 00:00+00''))',
   'a0000000-0000-4000-a000-000000000008', :'far4'), 'client asks to reschedule');
 select pg_temp.reset_role();
 update public.meetings set starts_at = now() - interval '1 minute' where id = :'far4';

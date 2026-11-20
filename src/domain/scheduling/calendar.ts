@@ -1,4 +1,4 @@
-import { addDays, isoWeekday, mondayOf } from './pattern';
+import { addDays, isoWeekday, mondayOf, zonedDateTime, zonedToInstant } from './pattern';
 
 /**
  * The coach's Meetings calendar (decision 0040): month, week and day views over calendar dates
@@ -84,4 +84,24 @@ export function layoutDay(events: DayEvent[]): Map<string, { lane: number; lanes
   }
   close();
   return result;
+}
+
+/**
+ * The minutes after local midnight that availability windows cover on one calendar date, clipped
+ * to that date, for shading the week and day views (decision 0050). A window running to or past
+ * midnight ends at 1440 even on a daylight-saving day.
+ */
+export function dayWindows(windows: { startsAt: string; endsAt: string }[], day: string, timeZone: string): { start: number; end: number }[] {
+  const dayStart = zonedToInstant(day, '00:00', timeZone).getTime();
+  const dayEnd = zonedToInstant(addDays(day, 1), '00:00', timeZone).getTime();
+  const minutes = (ms: number) => {
+    const time = zonedDateTime(new Date(ms), timeZone).time;
+    return Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
+  };
+  return windows.flatMap((window) => {
+    const start = Math.max(Date.parse(window.startsAt), dayStart);
+    const end = Math.min(Date.parse(window.endsAt), dayEnd);
+    if (end <= start) return [];
+    return [{ start: start === dayStart ? 0 : minutes(start), end: end === dayEnd ? 1440 : minutes(end) }];
+  });
 }

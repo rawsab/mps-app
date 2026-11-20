@@ -4,6 +4,7 @@ import { useViewer, type Viewer } from '@/app/auth';
 import { Avatar } from '@/components/Avatar';
 import { ComboboxField } from '@/components/ComboboxField';
 import { Alert, Button, Card, PageHeader, Spinner, TextField } from '@/components/ui';
+import { AvailabilityCard } from '@/features/scheduling/AvailabilityCard';
 import { deviceTimeZone, timeZoneOptions } from '@/lib/timeZones';
 import { changePhoto, saveProfile, saveSchedulingSettings, saveTimeZone } from './api';
 import { localDate, profileSchema, schedulingSchema, validatePhoto } from './validation';
@@ -161,6 +162,7 @@ function ProfileForm({ viewer }: { viewer: Viewer }) {
             </form>
           </Card>
         ) : null}
+        {viewer.scheduling ? <AvailabilityCard /> : null}
       </div>
     </div>
   );

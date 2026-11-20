@@ -24,3 +24,12 @@ export function validatePhoto(file: Pick<File, 'size' | 'type'>) {
   if (!PHOTO_TYPES.includes(file.type)) throw new Error('Choose a JPEG, PNG, or WebP image.');
   if (!file.size || file.size > PHOTO_MAX_BYTES) throw new Error('Choose an image smaller than 5 MB.');
 }
+
+// Same bounds as the profiles booking_* checks (migration 00049). A blank field is an error, never 0.
+const wholeNumber = (min: number, max: number, message: string) =>
+  z.string().trim().regex(/^\d{1,3}$/, message).transform(Number).refine((n) => n >= min && n <= max, message);
+export const bookingRulesSchema = z.object({
+  bookingNoticeHours: wholeNumber(0, 168, 'Enter whole hours from 0 to 168.'),
+  bookingHorizonDays: wholeNumber(1, 90, 'Enter whole days from 1 to 90.'),
+  bookingBufferMinutes: wholeNumber(0, 120, 'Enter whole minutes from 0 to 120.'),
+});

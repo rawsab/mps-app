@@ -362,3 +362,82 @@ export async function openResourceUrl(path: string): Promise<string> {
   if (error) throw error;
   return data.signedUrl;
 }
+
+// ---------------------------------------------------------------------------------------------
+// Coach availability and client requests (migration 00049, decision 0050)
+
+const HoursSchema = z.array(z.object({ weekday: z.number().int(), startTime: z.string(), endTime: z.string() }));
+const ExceptionSchema = z.object({
+  id: z.string(), kind: z.enum(['time_off', 'extra_hours']), startsAt: z.string(), endsAt: z.string(), allDay: z.boolean(), note: z.string(),
+});
+export type AvailabilityException = z.infer<typeof ExceptionSchema>;
+const BookingRulesSchema = z.object({ bookingNoticeHours: z.number().int(), bookingHorizonDays: z.number().int(), bookingBufferMinutes: z.number().int() });
+export type BookingRules = z.infer<typeof BookingRulesSchema>;
+const AvailabilitySchema = BookingRulesSchema.extend({ timezone: z.string(), hours: HoursSchema, exceptions: z.array(ExceptionSchema) });
+export type Availability = z.infer<typeof AvailabilitySchema>;
+const WindowsSchema = z.array(z.object({ startsAt: z.string(), endsAt: z.string() }));
+export type AvailabilityWindow = z.infer<typeof WindowsSchema>[number];
+const OpenTimesSchema = z.object({
+  meetingId: z.string(), coachTimezone: z.string(), durationMinutes: z.number().int(), lateCancelHours: z.number().int(),
+  billable: z.boolean(), hasAvailability: z.boolean(), times: z.array(z.string()),
+});
+export type OpenTimes = z.infer<typeof OpenTimesSchema>;
+
+const availabilityKey = [...meetingsKey, 'availability'];
+
+/** The signed-in coach's hours, time off, extra hours and booking rules. */
+export function useMyAvailability() {
+  return useQuery({ queryKey: availabilityKey, queryFn: () => rpc('get_my_availability', {}, AvailabilitySchema) });
+}
+
+export function useSaveWorkingHours() {
+  return useMeetingMutation((hours: z.infer<typeof HoursSchema>) => rpc('save_working_hours', { p_hours: hours }, HoursSchema));
+}
+
+export function useSaveBookingRules() {
+  return useMeetingMutation((rules: BookingRules) => rpc('save_booking_rules', {
+    p_notice_hours: rules.bookingNoticeHours, p_horizon_days: rules.bookingHorizonDays, p_buffer_minutes: rules.bookingBufferMinutes,
+  }, BookingRulesSchema));
+}
+
+/** Adds or updates (the id is chosen once per dialog). Time off replies with the meetings inside it. */
+export function useSaveAvailabilityException() {
+  return useMeetingMutation((input: AvailabilityException) => rpc('save_availability_exception', {
+    p_id: input.id, p_kind: input.kind, p_starts_at: input.startsAt, p_ends_at: input.endsAt, p_all_day: input.allDay, p_note: input.note,
+  }, z.object({ exception: ExceptionSchema, overlaps: Overlaps })));
+}
+
+export function useRemoveAvailabilityException() {
+  return useMeetingMutation((id: string) => rpc('remove_availability_exception', { p_id: id }, z.object({ removed: z.boolean() })));
+}
+
+/** The coach's own available time, for shading the calendar. */
+export function useAvailabilityWindows(from: Date, to: Date) {
+  return useQuery({
+    queryKey: [...availabilityKey, 'windows', from.toISOString(), to.toISOString()],
+    placeholderData: keepPreviousData,
+    queryFn: () => rpc('list_availability_windows', { p_from: from.toISOString(), p_to: to.toISOString() }, WindowsSchema),
+  });
+}
+
+/** Times a meeting could move to. Clients see only these, never the coach's calendar. */
+export function useOpenTimes(meetingId: string | null) {
+  return useQuery({
+    queryKey: [...meetingsKey, 'open-times', meetingId],
+    enabled: !!meetingId,
+    queryFn: () => rpc('list_open_times', { p_meeting_id: meetingId }, OpenTimesSchema),
+  });
+}
+
+/** Clients: one open cancel or reschedule request per meeting. The id is chosen once per dialog, so retries are safe. */
+export function useRequestMeetingChange() {
+  return useMeetingMutation((input: { requestId: string; meetingId: string; kind: 'cancel' | 'reschedule'; message: string; preferredStartsAt: string | null }) =>
+    rpc('request_meeting_change', {
+      p_request_id: input.requestId, p_meeting_id: input.meetingId, p_kind: input.kind, p_message: input.message,
+      p_preferred_starts_at: input.preferredStartsAt,
+    }, RequestSchema));
+}
+
+export function useWithdrawMeetingRequest() {
+  return useMeetingMutation((requestId: string) => rpc('withdraw_meeting_request', { p_request_id: requestId }, RequestSchema));
+}

@@ -9,10 +9,15 @@ import { programPath } from '@/features/programs/CurrentProgram';
 import { SERVICE_SHORT_LABELS } from '@/lib/services';
 import { Checkbox, SegmentedControl } from '@/components/controls';
 import { Alert, Badge, Card, Button, PageHeader, Skeleton, Spinner } from '@/components/ui';
-import { CALENDAR_VIEWS, countdown, layoutDay, stepDate, viewDays, type CalendarView } from '@/domain/scheduling/calendar';
+import { timeOffOn } from '@/domain/scheduling/availability';
+import { CALENDAR_VIEWS, countdown, dayWindows, layoutDay, stepDate, viewDays, type CalendarView } from '@/domain/scheduling/calendar';
 import { addDays, isoWeekday, weekdayShort, zonedDateTime, zonedToInstant } from '@/domain/scheduling/pattern';
 import { capitalize } from '@/lib/format';
-import { schedulingError, useMeeting, useMeetingsBetween, useMeetingsNeedingAttendance, usePendingMeetingRequests, useRecordAttendance, type Meeting } from './api';
+import {
+  schedulingError, useAvailabilityWindows, useMeeting, useMeetingsBetween, useMeetingsNeedingAttendance, useMyAvailability, usePendingMeetingRequests,
+  useRecordAttendance, type Meeting,
+} from './api';
+import { AvailabilityExceptions } from './AvailabilityExceptions';
 import { MeetingDialogHost } from './MeetingDialogHost';
 import { RecordAttendance } from './RecordAttendance';
 import { topicLabel } from './MeetingTopic';
@@ -83,6 +88,7 @@ function MeetingsPageBody({ timeZone }: { timeZone: string }) {
         <MeetingTodos timeZone={timeZone} />
       </div>
       <MeetingCalendar timeZone={timeZone} />
+      <AvailabilityExceptions timeZone={timeZone} onSaved={(message) => toast.show(message)} />
       {openMeeting ? (
         <MeetingDialogHost key={openMeeting} meetingId={openMeeting} onClose={closeMeeting}
           onSaved={(message, options) => { closeMeeting(); if (options?.toast) toast.show(message, options); else setNotice(message); }} />
@@ -412,6 +418,14 @@ function MeetingCalendar({ timeZone }: { timeZone: string }) {
     to: zonedToInstant(addDays(days.at(-1)!, 1), '00:00', timeZone),
   }), [days[0], days.at(-1), timeZone]);
   const meetings = useMeetingsBetween(range.from, range.to);
+  // Shade time outside the coach's availability (decision 0050), once they have set any.
+  const availability = useMyAvailability();
+  const windows = useAvailabilityWindows(range.from, range.to);
+  const shade = !!availability.data && (availability.data.hours.length > 0 || availability.data.exceptions.some((x) => x.kind === 'extra_hours'));
+  const available = useMemo(() => shade && windows.data ? new Map(days.map((day) => [day, dayWindows(windows.data, day, timeZone)])) : null,
+    [shade, windows.data, days.join(), timeZone]);
+  const timeOff = useMemo(() => new Set(days.filter((day) => timeOffOn(availability.data?.exceptions ?? [], day, timeZone))),
+    [availability.data, days.join(), timeZone]);
   const visible = (meetings.data ?? []).filter((m) => !hideCancelled || !isCancelled(m));
   const byDay = useMemo(() => {
     const map = new Map<string, Meeting[]>();
@@ -447,17 +461,20 @@ function MeetingCalendar({ timeZone }: { timeZone: string }) {
         </div>
       </div>
       <Alert visible={!!meetings.error} className="mb-3" title="Could not load meetings">{schedulingError(meetings.error)}</Alert>
+      {available && view !== 'month' ? (
+        <p className="mb-2 text-xs text-muted">Shaded times are outside your availability. Change your week in <Link to="/coach/profile" className="text-gold-fg underline underline-offset-2">Profile settings</Link>.</p>
+      ) : null}
       {view === 'month'
-        ? <MonthGrid days={days} month={date.slice(0, 7)} today={today} byDay={byDay} timeZone={timeZone} onDay={(day) => go({ view: 'day', date: day })} onMeeting={setPreview} />
-        : <TimeGrid days={days} today={today} byDay={byDay} timeZone={timeZone} now={now} onDay={(day) => go({ view: 'day', date: day })} onMeeting={setPreview} />}
+        ? <MonthGrid days={days} month={date.slice(0, 7)} today={today} byDay={byDay} timeOff={timeOff} timeZone={timeZone} onDay={(day) => go({ view: 'day', date: day })} onMeeting={setPreview} />
+        : <TimeGrid days={days} today={today} byDay={byDay} available={available} timeZone={timeZone} now={now} onDay={(day) => go({ view: 'day', date: day })} onMeeting={setPreview} />}
       {preview ? <MeetingPreviewDialog meeting={preview} timeZone={timeZone} onClose={() => setPreview(null)} /> : null}
       {meetings.isFetching && !meetings.data ? <Spinner label="Loading meetings" /> : null}
     </section>
   );
 }
 
-function MonthGrid({ days, month, today, byDay, timeZone, onDay, onMeeting }: {
-  days: string[]; month: string; today: string; byDay: Map<string, Meeting[]>; timeZone: string; onDay: (day: string) => void; onMeeting: (meeting: Meeting) => void;
+function MonthGrid({ days, month, today, byDay, timeOff, timeZone, onDay, onMeeting }: {
+  days: string[]; month: string; today: string; byDay: Map<string, Meeting[]>; timeOff: Set<string>; timeZone: string; onDay: (day: string) => void; onMeeting: (meeting: Meeting) => void;
 }) {
   return (
     <div className="overflow-hidden rounded-card border border-line">
@@ -474,6 +491,7 @@ function MonthGrid({ days, month, today, byDay, timeZone, onDay, onMeeting }: {
                 className={`mb-1 grid size-7 place-items-center rounded-full text-xs tabular-nums hover:bg-surface-raised ${day === today ? 'bg-gold font-semibold text-on-gold hover:bg-gold-hover' : outside ? 'text-muted' : ''}`}>
                 {Number(day.slice(8))}
               </button>
+              {timeOff.has(day) ? <p className="mb-0.5 truncate px-1 text-[11px] text-muted">Time off</p> : null}
               <ul className="grid gap-0.5">
                 {items.slice(0, MONTH_CHIPS).map((meeting) => (
                   <li key={meeting.id}>
@@ -496,8 +514,8 @@ function MonthGrid({ days, month, today, byDay, timeZone, onDay, onMeeting }: {
 }
 
 /** Week and day views: a 24-hour grid, meetings placed by start and length, overlaps side by side. */
-function TimeGrid({ days, today, byDay, timeZone, now, onDay, onMeeting }: {
-  days: string[]; today: string; byDay: Map<string, Meeting[]>; timeZone: string; now: number; onDay: (day: string) => void; onMeeting: (meeting: Meeting) => void;
+function TimeGrid({ days, today, byDay, available, timeZone, now, onDay, onMeeting }: {
+  days: string[]; today: string; byDay: Map<string, Meeting[]>; available: Map<string, { start: number; end: number }[]> | null; timeZone: string; now: number; onDay: (day: string) => void; onMeeting: (meeting: Meeting) => void;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
   const nowAt = zonedDateTime(new Date(now), timeZone);
@@ -538,7 +556,12 @@ function TimeGrid({ days, today, byDay, timeZone, now, onDay, onMeeting }: {
             });
             const lanes = layoutDay(placed.map((p) => ({ id: p.meeting.id, start: p.start, end: p.end })));
             return (
-              <div key={day} className="relative border-l border-line" style={{ height: 24 * HOUR_PX }}>
+              <div key={day} className={`relative border-l border-line ${available ? 'bg-surface-raised/60' : ''}`} style={{ height: 24 * HOUR_PX }}>
+                {/* Open time shows the page background; the rest stays shaded. */}
+                {available?.get(day)?.map((window) => (
+                  <div key={window.start} aria-hidden className="absolute inset-x-0 bg-ink"
+                    style={{ top: (window.start / 60) * HOUR_PX, height: ((window.end - window.start) / 60) * HOUR_PX }} />
+                ))}
                 {Array.from({ length: 23 }, (_, i) => i + 1).map((hour) => (
                   <div key={hour} aria-hidden className="absolute inset-x-0 border-t border-line/60" style={{ top: hour * HOUR_PX }} />
                 ))}
