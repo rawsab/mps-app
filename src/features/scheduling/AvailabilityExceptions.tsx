@@ -3,7 +3,7 @@ import { ActionItem, ActionsMenu } from '@/components/ActionsMenu';
 import { Checkbox, SegmentedControl } from '@/components/controls';
 import { ConfirmDialog, Dialog, DialogBody } from '@/components/Dialog';
 import { CalendarIcon, PlusIcon } from '@/components/icons';
-import { Alert, Badge, Button, SectionHeading, Spinner, TextAreaField, TextField } from '@/components/ui';
+import { Alert, Button, SectionHeading, Spinner, TextAreaField, TextField } from '@/components/ui';
 import { exceptionFields, exceptionInstants, type ExceptionFields } from '@/domain/scheduling/availability';
 import {
   schedulingError, useMyAvailability, useRemoveAvailabilityException, useSaveAvailabilityException, type AvailabilityException, type Overlap,
@@ -31,7 +31,7 @@ export function exceptionLabel(exception: AvailabilityException, timeZone: strin
  */
 export function AvailabilityExceptions({ timeZone, onSaved }: { timeZone: string; onSaved: (message: string) => void }) {
   const availability = useMyAvailability();
-  const [editing, setEditing] = useState<AvailabilityException | 'new' | null>(null);
+  const [editing, setEditing] = useState<AvailabilityException | Kind | null>(null);
   const [removing, setRemoving] = useState<AvailabilityException | null>(null);
   const remove = useRemoveAvailabilityException();
   const now = Date.now();
@@ -39,37 +39,52 @@ export function AvailabilityExceptions({ timeZone, onSaved }: { timeZone: string
 
   return (
     <section aria-labelledby="availability-exceptions" className="min-w-0">
-      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-        <SectionHeading id="availability-exceptions" icon={<CalendarIcon />}>Time off &amp; extra hours</SectionHeading>
-        <Button variant="secondary" onClick={() => setEditing('new')}><PlusIcon />Add</Button>
-      </div>
+      <SectionHeading id="availability-exceptions" icon={<CalendarIcon />} className="mb-3">Time off &amp; extra hours</SectionHeading>
       {availability.isPending ? <Spinner label="Loading time off" /> : null}
       <Alert visible={!!availability.error} title="Could not load time off">{schedulingError(availability.error)}</Alert>
-      {availability.data && !upcoming.length ? (
-        <p className="text-sm text-muted">Nothing coming up. Add time off for holidays, or extra hours outside your usual week.</p>
-      ) : null}
-      {upcoming.length ? (
-        <ul className="divide-y divide-line rounded-card border border-line">
-          {upcoming.map((exception) => (
-            <li key={exception.id} className="flex min-w-0 items-center gap-3 py-1 pl-3 pr-1">
-              {/* Centred on the menu button, whose 44px target sets the shortest row. */}
-              <span className="min-w-0 flex-1 py-1.5">
-                <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                  <span className="text-sm font-medium">{exceptionLabel(exception, timeZone)}</span>
-                  <Badge tone={exception.kind === 'time_off' ? 'neutral' : 'gold-soft'}>{KIND_LABEL[exception.kind]}</Badge>
-                </span>
-                {exception.note ? <span className="mt-1 block break-words text-xs text-muted">{exception.note}</span> : null}
-              </span>
-              <ActionsMenu label={`Options for ${KIND_LABEL[exception.kind].toLowerCase()} ${exceptionLabel(exception, timeZone)}`}>
-                <ActionItem onClick={() => setEditing(exception)}>Edit</ActionItem>
-                <ActionItem danger onClick={() => setRemoving(exception)}>Remove</ActionItem>
-              </ActionsMenu>
-            </li>
-          ))}
-        </ul>
+      {availability.data ? (
+        // Side by side with a divider on wide screens, stacked on phones (like To-dos and Record attendance).
+        <div className="grid lg:grid-cols-2 lg:gap-x-9">
+          {(['time_off', 'extra_hours'] as const).map((kind, index) => {
+            const rows = upcoming.filter((x) => x.kind === kind);
+            return (
+              <div key={kind} className={`min-w-0 ${index ? 'mt-6 border-t border-line pt-4 lg:mt-0 lg:border-l lg:border-t-0 lg:pl-9 lg:pt-0' : ''}`}>
+                <div className="mb-2 flex items-center justify-between gap-2">
+                  <h3 className="text-xs font-medium text-muted">
+                    {KIND_LABEL[kind]}{rows.length ? <span className="ml-2 tabular-nums">{rows.length}</span> : null}
+                  </h3>
+                  <Button variant="ghost" className="-mr-3" onClick={() => setEditing(kind)}>
+                    <PlusIcon />{kind === 'time_off' ? 'Add time off' : 'Add extra hours'}
+                  </Button>
+                </div>
+                {rows.length ? (
+                  <ul className="divide-y divide-line rounded-card border border-line">
+                    {rows.map((exception) => (
+                      <li key={exception.id} className="flex min-w-0 items-center gap-3 py-1 pl-3 pr-1">
+                        {/* Centred on the menu button, whose 44px target sets the shortest row. */}
+                        <span className="min-w-0 flex-1 py-1.5">
+                          <span className="block text-sm font-medium">{exceptionLabel(exception, timeZone)}</span>
+                          {exception.note ? <span className="mt-1 block break-words text-xs text-muted">{exception.note}</span> : null}
+                        </span>
+                        <ActionsMenu label={`Options for ${KIND_LABEL[kind].toLowerCase()} ${exceptionLabel(exception, timeZone)}`}>
+                          <ActionItem onClick={() => setEditing(exception)}>Edit</ActionItem>
+                          <ActionItem danger onClick={() => setRemoving(exception)}>Remove</ActionItem>
+                        </ActionsMenu>
+                      </li>
+                    ))}
+                  </ul>
+                ) : (
+                  <p className="text-sm text-muted">
+                    {kind === 'time_off' ? 'No time off coming up. Add holidays or appointments here.' : 'No extra hours coming up. Add times outside your usual week.'}
+                  </p>
+                )}
+              </div>
+            );
+          })}
+        </div>
       ) : null}
       {editing ? (
-        <ExceptionDialog exception={editing === 'new' ? null : editing} timeZone={timeZone} onClose={() => setEditing(null)}
+        <ExceptionDialog exception={typeof editing === 'string' ? null : editing} initialKind={typeof editing === 'string' ? editing : editing.kind} timeZone={timeZone} onClose={() => setEditing(null)}
           onSaved={(message) => { setEditing(null); onSaved(message); }} />
       ) : null}
       {removing ? (
@@ -86,15 +101,15 @@ export function AvailabilityExceptions({ timeZone, onSaved }: { timeZone: string
   );
 }
 
-function ExceptionDialog({ exception, timeZone, onClose, onSaved }: {
-  exception: AvailabilityException | null; timeZone: string; onClose: () => void; onSaved: (message: string) => void;
+function ExceptionDialog({ exception, initialKind, timeZone, onClose, onSaved }: {
+  exception: AvailabilityException | null; initialKind: Kind; timeZone: string; onClose: () => void; onSaved: (message: string) => void;
 }) {
   // Chosen once, so a retried save updates the same row.
   const [id] = useState(() => exception?.id ?? crypto.randomUUID());
-  const [kind, setKind] = useState<Kind>(exception?.kind ?? 'time_off');
+  const [kind, setKind] = useState<Kind>(initialKind);
   const [fields, setFields] = useState<ExceptionFields>(() => exception ? exceptionFields(exception, timeZone) : (() => {
     const today = todayIn(timeZone);
-    return { allDay: true, fromDate: today, toDate: today, startTime: '09:00', endTime: '17:00' };
+    return { allDay: initialKind === 'time_off', fromDate: today, toDate: today, startTime: '09:00', endTime: '17:00' };
   })());
   const [note, setNote] = useState(exception?.note ?? '');
   const [problem, setProblem] = useState<string | null>(null);
