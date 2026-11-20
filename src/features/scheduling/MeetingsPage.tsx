@@ -461,12 +461,12 @@ function MeetingCalendar({ timeZone }: { timeZone: string }) {
         </div>
       </div>
       <Alert visible={!!meetings.error} className="mb-3" title="Could not load meetings">{schedulingError(meetings.error)}</Alert>
-      {available && view !== 'month' ? (
-        <p className="mb-2 text-xs text-muted">Striped times are outside your availability. Change your week in <Link to="/coach/profile" className="text-gold-fg underline underline-offset-2">Profile settings</Link>.</p>
-      ) : null}
       {view === 'month'
         ? <MonthGrid days={days} month={date.slice(0, 7)} today={today} byDay={byDay} timeOff={timeOff} timeZone={timeZone} onDay={(day) => go({ view: 'day', date: day })} onMeeting={setPreview} />
         : <TimeGrid days={days} today={today} byDay={byDay} available={available} timeZone={timeZone} now={now} onDay={(day) => go({ view: 'day', date: day })} onMeeting={setPreview} />}
+      {available && view !== 'month' ? (
+        <p className="mt-2 text-xs text-muted">Striped times are outside your availability. Change your week in <Link to="/coach/profile" className="text-gold-fg underline underline-offset-2">Profile settings</Link>.</p>
+      ) : null}
       {preview ? <MeetingPreviewDialog meeting={preview} timeZone={timeZone} onClose={() => setPreview(null)} /> : null}
       {meetings.isFetching && !meetings.data ? <Spinner label="Loading meetings" /> : null}
     </section>
