@@ -29,6 +29,15 @@ pnpm only (npm 10.9 crashes resolving vitest peers). Docker must be running for 
 - Zod 4 (`z.email()`, `z.url()`, `z.iso.date()`). Tailwind 4 tokens live in `src/index.css` `@theme`. Use `rounded-card` (7px), `gold`, `ink`, `surface`. Light/dark themes swap the same variables (`html[data-theme]`), so never hard-code colors. Use `text-gold-fg` for gold text and `text-on-gold` on gold fills; `text-gold` fails contrast in light mode.
 - The importer (`src/domain/imports/`) must stay DOM-free. It runs in Node tests now and in a Web Worker in M7.
 
+## UI components
+
+Build pages from `src/components/` before writing styles (decision 0049). A call-site `className` should only add layout (margin, width, grid placement). Tailwind doesn't let it reliably override a component's own size or padding, so add a variant instead.
+
+- Buttons: `Button` (text), `IconButton` (icon only; `label` is required), `Chip` (filter pills), `ToggleButton` (gold on/off), `SegmentedControl`, `Tabs` (with a tabpanel).
+- Forms: `TextField`, `TextAreaField`, `SelectField`, `ComboboxField`, `Checkbox`. For a custom control, use `FieldShell` and `controlClass`.
+- Overlays: `Dialog`, `ConfirmDialog` and `DialogBody`; `ActionsMenu` with `ActionItem`; `PopupMenu` for context menus; `InfoTip`; `ChartTooltip`.
+- Content: `Card`, `SectionHeading`, `PageHeader`, `Badge`, `Alert`, `EmptyState`, `AnimatedDisclosure`, `DisclosureSummary`, `Spinner`, `Skeleton`.
+
 ## Invariants Claude is likely to get wrong
 
 - RIR/RPE `1-2` is a numeric min/max range, never a date. Scalars use equal endpoints.
