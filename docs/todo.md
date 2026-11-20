@@ -10,22 +10,22 @@ Open work from the 2026-11-20 planning session. Done so far: answered requests l
 
 ## PT sessions: coach view (plan item 4)
 
-Record as decision 0047: a scope addition on top of 0037. It brings attendance forward from phase 4; billing stays out.
+Done: decision 0047. Manual UI checks pending. One change from the plan: the attendance to-dos are one card per meeting, under a "N past sessions need attendance" heading.
 
-- [ ] **Attendance.** Once a meeting has started, its dialog offers **Completed** and **No-show** (existing `completed` and `no_show` statuses, already frozen at the DB layer).
-  - [ ] `correct_attendance(id, status, reason)` writes to a new `meeting_attendance_changes` audit table and can set a meeting back to "not recorded".
-  - [ ] Meetings page to-do: "N past sessions need attendance", reusing the existing to-do list.
-- [ ] **Shared notes.** A new `meeting_shared_notes` table, separate from the staff-only `meeting_notes`, so no policy change can expose private notes.
-  - [ ] Written by `save_meeting_shared_notes`. Clients read their own; staff read clients they can access.
-  - [ ] `meeting_document` gains `sharedNotes`. The meeting dialog gets a "Shared with client" field; existing notes are labelled "Private to staff".
-- [ ] **Resources** (always shared with the client).
-  - [ ] Private `meeting-resources` bucket (images, video, PDF; 50 MB cap) and a `meeting_resources` table. Link resources too, for long videos.
-  - [ ] Uploads go to `{client}/{meeting}/{uuid}.ext`; `add_meeting_resource` checks the path and records the row. Clients read through signed URLs, as with profile photos.
-  - [ ] The meeting dialog lists resources, with upload, add link and remove. Removing deletes the file and the row.
-- [ ] **Meetings card:** an Upcoming / Past switch. Past shows the latest 5, then "View all", which opens a full history page, `/coach/clients/:id/meetings`, modelled on Recent updates → activity history.
-- [ ] **Pattern changes:** ending a pattern also keeps meetings that have shared notes, resources or recorded attendance.
-- [ ] RLS, grants and pgTAP tests in the same migration for every new table, function and bucket.
-- [ ] Backlog note: cascading deletes (client or service) remove resource rows but not their stored files.
+- [x] **Attendance.** Once a meeting has started, its dialog offers **Completed** and **No-show** (existing `completed` and `no_show` statuses, already frozen at the DB layer).
+  - [x] `correct_attendance(id, status, reason)` writes to a new `meeting_attendance_changes` audit table and can set a meeting back to "not recorded".
+  - [x] Meetings page to-do: "N past sessions need attendance", reusing the existing to-do list.
+- [x] **Shared notes.** A new `meeting_shared_notes` table, separate from the staff-only `meeting_notes`, so no policy change can expose private notes.
+  - [x] Written by `save_meeting_shared_notes`. Clients read their own; staff read clients they can access.
+  - [x] `meeting_document` gains `sharedNotes`. The meeting dialog gets a "Shared with client" field; existing notes are labelled "Private to staff".
+- [x] **Resources** (always shared with the client).
+  - [x] Private `meeting-resources` bucket (images, video, PDF; 50 MB cap) and a `meeting_resources` table. Link resources too, for long videos.
+  - [x] Uploads go to `{client}/{meeting}/{uuid}.ext`; `add_meeting_resource` checks the path and records the row. Clients read through signed URLs, as with profile photos.
+  - [x] The meeting dialog lists resources, with upload, add link and remove. Removing deletes the file and the row.
+- [x] **Meetings card:** an Upcoming / Past switch. Past shows the latest 5, then "View all", which opens a full history page, `/coach/clients/:id/meetings`, modelled on Recent updates → activity history.
+- [x] **Pattern changes:** ending a pattern also keeps meetings that have shared notes, resources or recorded attendance.
+- [x] RLS, grants and pgTAP tests in the same migration for every new table, function and bucket.
+- [x] Backlog note: cascading deletes (client or service) remove resource rows but not their stored files.
 
 ## Client Personal training page and navigation (plan item 3)
 

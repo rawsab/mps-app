@@ -9,7 +9,7 @@ import { describePattern } from '@/domain/scheduling/pattern';
 import { useClientPrograms } from '@/features/programs/api';
 import { formatDate } from '@/lib/format';
 import { SERVICE_SHORT_LABELS } from '@/lib/services';
-import { schedulingError, useClientMeetings, useEndPattern, useMeetingContext, useSavePatternNotes, useStopMeetings, type Meeting, type MeetingContext, type MeetingSchedule } from './api';
+import { schedulingError, useClientMeetings, useEndPattern, useMeetingContext, usePastMeetings, useSavePatternNotes, useStopMeetings, type Meeting, type MeetingContext, type MeetingSchedule } from './api';
 import { MeetingDialog, NewMeetingDialog } from './MeetingDialog';
 import { topicLabel } from './MeetingTopic';
 import { PatternDialog } from './PatternDialog';
@@ -19,6 +19,8 @@ import { isCancelled, useHideCancelled } from './useHideCancelled';
 const DAY_MS = 86_400_000;
 const LIST_DAYS = 31;
 const LIST_LIMIT = 8;
+/** Past meetings shown on the card before "View all" (decision 0047). */
+const PAST_LIMIT = 5;
 type Open =
   | { kind: 'meeting'; id: string }
   | { kind: 'new' }
@@ -51,6 +53,7 @@ export function MeetingsCard({ clientId, heading, focusMeetingId, onFocusClosed 
   const [notice, setNotice] = useState('');
   const [showAll, setShowAll] = useState(false);
   const [hideCancelled, setHideCancelled] = useHideCancelled();
+  const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
 
   const current: Open | null = focusMeetingId ? { kind: 'meeting', id: focusMeetingId } : open;
   const close = () => { if (focusMeetingId) onFocusClosed(); setOpen(null); };
@@ -123,27 +126,40 @@ export function MeetingsCard({ clientId, heading, focusMeetingId, onFocusClosed 
       ) : null}
 
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-        <h3 className="text-sm font-medium text-muted">Next {LIST_DAYS} days</h3>
-        {cancelledCount > 0 || hideCancelled ? (
+        <div role="group" aria-label="Meetings to show" className="flex rounded-card border border-line p-0.5">
+          {(['upcoming', 'past'] as const).map((option) => (
+            <button key={option} type="button" aria-pressed={tab === option} onClick={() => setTab(option)}
+              className={`min-h-9 rounded-[5px] px-3 text-sm transition-colors ${tab === option ? 'bg-surface-raised font-medium text-text' : 'text-muted hover:text-text'}`}>
+              {option === 'upcoming' ? `Next ${LIST_DAYS} days` : 'Past'}
+            </button>
+          ))}
+        </div>
+        {tab === 'upcoming' && (cancelledCount > 0 || hideCancelled) ? (
           <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-muted">
             <input type="checkbox" className="size-4 accent-gold" checked={hideCancelled} onChange={(event) => setHideCancelled(event.target.checked)} />
             Hide cancelled{cancelledCount ? ` (${cancelledCount})` : ''}
           </label>
         ) : null}
       </div>
-      {meetings.isPending ? <Spinner label="Loading meetings" /> : null}
-      <Alert visible={!!meetings.error} title="Could not load meetings">{schedulingError(meetings.error)}</Alert>
-      {meetings.data && list.length === 0 ? (
-        <p className="text-sm text-muted">{all.length ? 'Only cancelled meetings in the next 31 days.' : `No meetings in the next ${LIST_DAYS} days.`}</p>
-      ) : null}
-      {visible.length ? (
-        <ul className="divide-y divide-line">
-          {visible.map((meeting) => <MeetingRow key={meeting.id} meeting={meeting} timeZone={c.timezone} onOpen={() => setOpen({ kind: 'meeting', id: meeting.id })} />)}
-        </ul>
-      ) : null}
-      {list.length > LIST_LIMIT ? (
-        <Button variant="ghost" className="mt-1" onClick={() => setShowAll((value) => !value)}>{showAll ? 'Show fewer' : `Show all ${list.length} meetings`}</Button>
-      ) : null}
+      {tab === 'past' ? (
+        <PastMeetings clientId={clientId} timeZone={c.timezone} onOpen={(id) => setOpen({ kind: 'meeting', id })} />
+      ) : (
+        <>
+          {meetings.isPending ? <Spinner label="Loading meetings" /> : null}
+          <Alert visible={!!meetings.error} title="Could not load meetings">{schedulingError(meetings.error)}</Alert>
+          {meetings.data && list.length === 0 ? (
+            <p className="text-sm text-muted">{all.length ? 'Only cancelled meetings in the next 31 days.' : `No meetings in the next ${LIST_DAYS} days.`}</p>
+          ) : null}
+          {visible.length ? (
+            <ul className="divide-y divide-line">
+              {visible.map((meeting) => <MeetingRow key={meeting.id} meeting={meeting} timeZone={c.timezone} onOpen={() => setOpen({ kind: 'meeting', id: meeting.id })} />)}
+            </ul>
+          ) : null}
+          {list.length > LIST_LIMIT ? (
+            <Button variant="ghost" className="mt-1" onClick={() => setShowAll((value) => !value)}>{showAll ? 'Show fewer' : `Show all ${list.length} meetings`}</Button>
+          ) : null}
+        </>
+      )}
 
       {current?.kind === 'meeting' ? (
         <MeetingDialog meetingId={current.id} context={c} programs={programRows} onClose={close} onSaved={saved}
@@ -158,6 +174,30 @@ export function MeetingsCard({ clientId, heading, focusMeetingId, onFocusClosed 
       {current?.kind === 'end' ? <EndPatternDialog schedule={current.schedule} onClose={close} onSaved={saved} /> : null}
       {current?.kind === 'stop' ? <StopDialog clientId={clientId} context={c} onClose={close} onSaved={saved} /> : null}
     </section>
+  );
+}
+
+/** The latest few started meetings, then a link to the full history page. */
+function PastMeetings({ clientId, timeZone, onOpen }: { clientId: string; timeZone: string; onOpen: (id: string) => void }) {
+  // One extra row says whether there is more than the card shows.
+  const past = usePastMeetings(clientId, PAST_LIMIT + 1);
+  const rows = past.data?.pages[0] ?? [];
+  return (
+    <>
+      {past.isPending ? <Spinner label="Loading past meetings" /> : null}
+      <Alert visible={!!past.error} title="Could not load past meetings">{schedulingError(past.error)}</Alert>
+      {past.data && rows.length === 0 ? <p className="text-sm text-muted">No past meetings yet.</p> : null}
+      {rows.length ? (
+        <ul className="divide-y divide-line">
+          {rows.slice(0, PAST_LIMIT).map((meeting) => <MeetingRow key={meeting.id} meeting={meeting} timeZone={timeZone} onOpen={() => onOpen(meeting.id)} />)}
+        </ul>
+      ) : null}
+      {rows.length > PAST_LIMIT ? (
+        <Link to={`/coach/clients/${clientId}/meetings`} className="mt-1 inline-flex min-h-11 items-center px-2 text-sm text-gold-fg">
+          <span className="link">View all past meetings</span>
+        </Link>
+      ) : null}
+    </>
   );
 }
 
@@ -188,28 +228,45 @@ function SetupNotices({ context: c, onStop }: { context: MeetingContext; onStop:
   );
 }
 
-function MeetingRow({ meeting, timeZone, onOpen }: { meeting: Meeting; timeZone: string; onOpen: () => void }) {
+/** One meeting in a list. Opens the meeting dialog, or links to it (`to`) from other pages. */
+export function MeetingRow({ meeting, timeZone, onOpen, to }: { meeting: Meeting; timeZone: string; onOpen?: () => void; to?: string }) {
   const cancelled = meeting.status === 'cancelled' || meeting.status === 'late_cancelled';
   const pending = meeting.request?.status === 'pending' ? meeting.request : null;
   const programs = meeting.programs.filter((p) => p.programId).map((p) => p.title?.trim() || 'Untitled program');
+  const past = new Date(meeting.startsAt).getTime() <= Date.now();
+  const unrecorded = meeting.status === 'scheduled' && new Date(meeting.startsAt).getTime() + meeting.durationMinutes * 60_000 <= Date.now();
+  const files = meeting.resources.length;
+  const markers = [
+    meeting.notes || meeting.patternNotes ? 'Notes' : '',
+    meeting.sharedNotes ? 'Shared notes' : '',
+    files ? `${files} ${files === 1 ? 'resource' : 'resources'}` : '',
+  ];
+  const className = 'row-link group flex min-h-14 w-full min-w-0 items-center gap-3 rounded-card py-2 pl-2 pr-2 text-left hover:bg-surface-raised';
+  const body = (
+    <>
+      {/* Gold for meetings still to come, muted grey once started, faint for cancelled. */}
+      <span aria-hidden className={`w-1 shrink-0 self-stretch rounded-full ${cancelled ? 'bg-line' : past ? 'bg-muted/40' : 'bg-gold'}`} />
+      <span className={`w-28 shrink-0 text-sm font-medium ${cancelled ? 'text-muted' : ''}`}>{sessionDay(meeting.startsAt, timeZone)}</span>
+      <span className="min-w-0 flex-1">
+        <span className={`block text-sm tabular-nums ${cancelled ? 'text-muted line-through' : ''}`}>{sessionRange(meeting.startsAt, meeting.durationMinutes, timeZone)}</span>
+        <span className="block truncate text-xs text-muted">
+          {[topicLabel(meeting.services), ...programs, meeting.scheduleId ? (meeting.modified ? '↻ Changed' : '↻ Repeating') : 'One-off', ...markers].filter(Boolean).join(' · ')}
+        </span>
+      </span>
+      <span className="flex shrink-0 flex-wrap justify-end gap-1">
+        {pending ? <Badge tone="gold">{pending.kind === 'cancel' ? 'Cancellation requested' : 'Reschedule requested'}</Badge> : null}
+        {meeting.status === 'cancelled' ? <Badge>Cancelled</Badge> : null}
+        {meeting.status === 'late_cancelled' ? <Badge tone="danger">Late cancellation</Badge> : null}
+        {meeting.status === 'completed' ? <Badge tone="success">Attended</Badge> : null}
+        {meeting.status === 'no_show' ? <Badge tone="danger">No-show</Badge> : null}
+        {unrecorded && !pending ? <Badge tone="gold">Record attendance</Badge> : null}
+      </span>
+      <span aria-hidden className="text-xs text-muted group-hover:text-text">→</span>
+    </>
+  );
   return (
     <li>
-      <button type="button" onClick={onOpen} className="row-link group flex min-h-14 w-full min-w-0 items-center gap-3 rounded-card py-2 pl-2 pr-2 text-left hover:bg-surface-raised">
-        <span aria-hidden className={`w-1 shrink-0 self-stretch rounded-full ${cancelled ? 'bg-line' : 'bg-gold'}`} />
-        <span className={`w-28 shrink-0 text-sm font-medium ${cancelled ? 'text-muted' : ''}`}>{sessionDay(meeting.startsAt, timeZone)}</span>
-        <span className="min-w-0 flex-1">
-          <span className={`block text-sm tabular-nums ${cancelled ? 'text-muted line-through' : ''}`}>{sessionRange(meeting.startsAt, meeting.durationMinutes, timeZone)}</span>
-          <span className="block truncate text-xs text-muted">
-            {[topicLabel(meeting.services), ...programs, meeting.scheduleId ? (meeting.modified ? '↻ Changed' : '↻ Repeating') : 'One-off', meeting.notes || meeting.patternNotes ? 'Notes' : ''].filter(Boolean).join(' · ')}
-          </span>
-        </span>
-        <span className="flex shrink-0 flex-wrap justify-end gap-1">
-          {pending ? <Badge tone="gold">{pending.kind === 'cancel' ? 'Cancellation requested' : 'Reschedule requested'}</Badge> : null}
-          {meeting.status === 'cancelled' ? <Badge>Cancelled</Badge> : null}
-          {meeting.status === 'late_cancelled' ? <Badge tone="danger">Late cancellation</Badge> : null}
-        </span>
-        <span aria-hidden className="text-xs text-muted group-hover:text-text">→</span>
-      </button>
+      {to ? <Link to={to} className={className}>{body}</Link> : <button type="button" onClick={onOpen} className={className}>{body}</button>}
     </li>
   );
 }
@@ -252,7 +309,7 @@ function EndPatternDialog({ schedule, onClose, onSaved }: { schedule: MeetingSch
       </>}>
       <div className="grid gap-3 p-4 sm:p-5">
         <TextField label="No meetings from" type="date" value={from} min={earliest} onChange={(event) => setFrom(event.target.value)}
-          hint="Meetings before this date stay. Meetings you changed, or that have notes or client requests, stay as they are." />
+          hint="Meetings before this date stay. Meetings you changed, or that have notes, resources, attendance or client requests, stay as they are." />
         <Alert visible={!!end.error} title="Not stopped">{schedulingError(end.error)}</Alert>
       </div>
     </Dialog>

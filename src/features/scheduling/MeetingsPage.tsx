@@ -3,7 +3,6 @@ import { Link, useSearchParams } from 'react-router';
 import { useViewer } from '@/app/auth';
 import { Avatar } from '@/components/Avatar';
 import { Dialog } from '@/components/Dialog';
-import { ScrollStripButtons, ScrollStripList, useScrollStrip } from '@/components/ScrollStrip';
 import { ArrowUpRightIcon, PencilIcon, StepIcon } from '@/components/icons';
 import { useClient, useClientPhoto } from '@/features/clients/api';
 import { programPath } from '@/features/programs/CurrentProgram';
@@ -12,7 +11,9 @@ import { Alert, Badge, Button, PageHeader, Skeleton, Spinner } from '@/component
 import { CALENDAR_VIEWS, countdown, layoutDay, stepDate, viewDays, type CalendarView } from '@/domain/scheduling/calendar';
 import { addDays, isoWeekday, weekdayShort, zonedDateTime, zonedToInstant } from '@/domain/scheduling/pattern';
 import { capitalize } from '@/lib/format';
-import { schedulingError, useMeetingsBetween, usePendingMeetingRequests, type Meeting } from './api';
+import { schedulingError, useMeeting, useMeetingsBetween, useMeetingsNeedingAttendance, usePendingMeetingRequests, useRecordAttendance, type Meeting } from './api';
+import { MeetingDialogHost } from './MeetingDialogHost';
+import { RecordAttendance } from './RecordAttendance';
 import { topicLabel } from './MeetingTopic';
 import { sessionDay, sessionMoment, sessionRange, sessionTime, todayIn, zoneLabel } from './time';
 import { isCancelled, useHideCancelled } from './useHideCancelled';
@@ -23,7 +24,18 @@ const UPCOMING_COUNT = 4;
 const HOUR_PX = 48;
 const MONTH_CHIPS = 3;
 
-const meetingLink = (meeting: Pick<Meeting, 'id' | 'clientId'>) => `/coach/clients/${meeting.clientId}?${new URLSearchParams({ session: meeting.id })}`;
+/**
+ * Opens a meeting's full dialog on this page (`?meeting=`), keeping the calendar's view and date
+ * behind it. The dialog links to the client's page.
+ */
+function useMeetingHref() {
+  const [params] = useSearchParams();
+  return (id: string) => {
+    const next = new URLSearchParams(params);
+    next.set('meeting', id);
+    return `?${next}`;
+  };
+}
 
 /** Chip colours by the meeting's first service: Personal training gold, Nutrition green, Mesocycle neutral. */
 function chipTone(meeting: Meeting) {
@@ -49,78 +61,109 @@ export function MeetingsPage() {
   const viewer = useViewer();
   if (viewer.isPending) return <Spinner label="Loading meetings" />;
   const timeZone = viewer.data?.timezone ?? 'UTC';
+  return <MeetingsPageBody timeZone={timeZone} />;
+}
+
+function MeetingsPageBody({ timeZone }: { timeZone: string }) {
+  const [params, setParams] = useSearchParams();
+  const openMeeting = params.get('meeting');
+  const [notice, setNotice] = useState('');
+  const closeMeeting = () => setParams((p) => { p.delete('meeting'); return p; }, { replace: true });
   return (
     <div className="grid gap-8">
       <PageHeader title="Meetings" subtitle={`All your clients’ meetings. Times in ${zoneLabel(timeZone)}.`} />
+      <Alert visible={!!notice} tone="success" onDismiss={() => setNotice('')} className="-mb-4">{notice}</Alert>
       {/* One grid cell, so the to-dos' spacing folds away with them. */}
       <div className="min-w-0">
         <AtAGlance timeZone={timeZone} />
         <MeetingTodos timeZone={timeZone} />
       </div>
       <MeetingCalendar timeZone={timeZone} />
+      {openMeeting ? (
+        <MeetingDialogHost key={openMeeting} meetingId={openMeeting} onClose={closeMeeting}
+          onSaved={(message) => { closeMeeting(); setNotice(message); }} />
+      ) : null}
     </div>
   );
 }
 
+type PendingRequest = NonNullable<ReturnType<typeof usePendingMeetingRequests>['data']>[number];
+
+/** Requests shown before "Show all". */
+const REQUESTS_SHOWN = 4;
+
 /**
- * Pending reschedule and cancellation requests, laid out like the Clients page's service requests:
- * one sideways-scrolling row of cards with ‹ › to reveal more. Folds away once none are left.
+ * To-dos (pending reschedule and cancellation requests) beside Record attendance (decision 0048),
+ * paired like Next meeting and Upcoming. A side with nothing in it gives the other the full width;
+ * with neither, the row folds away and the calendar moves up.
  */
 function MeetingTodos({ timeZone }: { timeZone: string }) {
   const requests = usePendingMeetingRequests();
-  const list = requests.data ?? [];
-  // While the row folds away after the last reply, it keeps showing the cards it had.
-  const lastShown = useRef(list);
-  if (list.length) lastShown.current = list;
-  const shown = list.length ? list : lastShown.current;
-  const empty = list.length === 0;
-  const strip = useScrollStrip(shown.length);
+  const attendance = useMeetingsNeedingAttendance();
+  const meetingHref = useMeetingHref();
+  // Once shown, Record attendance stays for this visit, so recording the last meeting keeps its Undo.
+  const attendanceShown = useRef(false);
+  if (attendance.data?.length) attendanceShown.current = true;
+  const hasRequests = !!requests.data?.length;
+  const hasAttendance = attendanceShown.current;
+  const empty = !hasRequests && !hasAttendance;
 
   if (requests.error) return <Alert className="mt-8" title="Could not load meeting requests">{schedulingError(requests.error)}</Alert>;
-  // Nothing until the first answer, so an empty list never flashes in; it mounts already in place.
-  if (!requests.data) return null;
+  if (attendance.error) return <Alert className="mt-8" title="Could not load meetings that need attendance">{schedulingError(attendance.error)}</Alert>;
+  // Nothing until both answer, so an empty row never flashes in; it mounts already in place.
+  if (!requests.data || !attendance.data) return null;
   return (
-    // Hidden with no requests. Answering the last one folds the row and the calendar moves up.
     <div className="collapsible" data-collapsed={empty || undefined} inert={empty}>
       <div className="min-h-0 min-w-0 overflow-hidden">
-        <section aria-labelledby="meeting-todos" className="mt-8 w-full min-w-0 max-w-full border-t border-line pt-3">
-          <div className="mb-2 flex min-h-8 flex-wrap items-center justify-between gap-2">
-            <h2 id="meeting-todos" className="text-xs font-medium text-muted">
-              To-dos{list.length ? <span className="ml-2 text-gold-fg">{list.length} waiting</span> : null}
-            </h2>
-            <ScrollStripButtons strip={strip} backLabel="Show earlier requests" forwardLabel="Show more requests" />
-          </div>
-          {shown.length ? (
-            <ScrollStripList strip={strip}>
-              {shown.map((meeting) => {
-                const { request } = meeting;
-                return (
-                  // At least the usual card width, and wider when the name and pill need it to share a line.
-                  <li key={request.id} className="flex min-w-72 max-w-[85%] shrink-0">
-                    <Link to={meetingLink(meeting)}
-                      className="row-link group flex w-full min-w-0 items-start gap-3 rounded-card border border-line px-4 py-3.5 text-left transition-colors hover:bg-surface-raised">
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-center gap-2 whitespace-nowrap">
-                          <span className="min-w-0 truncate text-sm font-medium text-text">{meeting.clientName}</span>
-                          <span className="flex shrink-0"><Badge tone="gold">{request.kind === 'reschedule' ? 'Reschedule request' : 'Cancellation request'}</Badge></span>
-                        </span>
-                        {/* Zero intrinsic width, so only the line above sets how wide the card grows. */}
-                        <span className="block w-0 min-w-full">
-                          <span className="mt-1 block text-xs text-muted">{sessionMoment(meeting.startsAt, timeZone)} · {topicLabel(meeting.services)}</span>
-                          {request.preferredStartsAt ? <span className="mt-0.5 block text-xs text-muted">Prefers {sessionMoment(request.preferredStartsAt, timeZone)}</span> : null}
-                          {request.message.trim() ? <span className="mt-2.5 line-clamp-2 break-words text-xs leading-relaxed text-muted">“{request.message}”</span> : null}
-                        </span>
-                      </span>
-                      <span aria-hidden className="pt-0.5 text-xs text-muted group-hover:text-text">→</span>
-                    </Link>
-                  </li>
-                );
-              })}
-            </ScrollStripList>
+        <div className={`mt-8 grid gap-6 border-t border-line pt-3 lg:gap-9 ${hasRequests && hasAttendance ? 'lg:grid-cols-2' : ''}`}>
+          {hasRequests ? <MeetingRequests requests={requests.data} timeZone={timeZone} /> : null}
+          {hasAttendance ? (
+            <div className={hasRequests ? 'min-w-0 border-t border-line pt-4 lg:border-l lg:border-t-0 lg:pl-9 lg:pt-0' : 'min-w-0'}>
+              <RecordAttendance meetings={attendance.data} timeZone={timeZone} meetingHref={meetingHref} />
+            </div>
           ) : null}
-        </section>
+        </div>
       </div>
     </div>
+  );
+}
+
+/** Pending reschedule and cancellation requests, soonest meeting first. Rows open the meeting. */
+function MeetingRequests({ requests, timeZone }: { requests: PendingRequest[]; timeZone: string }) {
+  const [showAll, setShowAll] = useState(false);
+  const meetingHref = useMeetingHref();
+  const shown = showAll ? requests : requests.slice(0, REQUESTS_SHOWN);
+  return (
+    <section aria-labelledby="meeting-todos" className="min-w-0">
+      <h2 id="meeting-todos" className="mb-2 flex min-h-8 items-center text-xs font-medium text-muted">
+        To-dos<span className="ml-2 text-gold-fg">{requests.length} waiting</span>
+      </h2>
+      {/* Clipped, so a hovered first or last row follows the box's rounded corners. */}
+      <ul className="divide-y divide-line overflow-hidden rounded-card border border-line">
+        {shown.map((meeting) => {
+          const { request } = meeting;
+          return (
+            <li key={request.id}>
+              <Link to={meetingHref(meeting.id)} className="row-link group flex min-w-0 items-start gap-3 px-3 py-3 hover:bg-surface-raised">
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                    <span className="min-w-0 truncate text-sm font-medium text-text">{meeting.clientName}</span>
+                    <Badge tone="gold">{request.kind === 'reschedule' ? 'Reschedule request' : 'Cancellation request'}</Badge>
+                  </span>
+                  <span className="mt-1 block text-xs text-muted">{sessionMoment(meeting.startsAt, timeZone)} · {topicLabel(meeting.services)}</span>
+                  {request.preferredStartsAt ? <span className="mt-0.5 block text-xs text-muted">Prefers {sessionMoment(request.preferredStartsAt, timeZone)}</span> : null}
+                  {request.message.trim() ? <span className="mt-1.5 line-clamp-2 break-words text-xs leading-relaxed text-muted">“{request.message}”</span> : null}
+                </span>
+                <span aria-hidden className="pt-0.5 text-xs text-muted group-hover:text-text">→</span>
+              </Link>
+            </li>
+          );
+        })}
+      </ul>
+      {requests.length > REQUESTS_SHOWN ? (
+        <Button variant="ghost" className="mt-1" onClick={() => setShowAll((value) => !value)}>{showAll ? 'Show fewer' : `Show all ${requests.length}`}</Button>
+      ) : null}
+    </section>
   );
 }
 
@@ -131,6 +174,7 @@ function AtAGlance({ timeZone }: { timeZone: string }) {
   const [from] = useState(() => new Date(Math.floor(Date.now() / HOUR_MS) * HOUR_MS));
   const range = useMemo(() => ({ from, to: new Date(from.getTime() + 100 * DAY_MS) }), [from]);
   const meetings = useMeetingsBetween(range.from, range.to);
+  const meetingHref = useMeetingHref();
   const scheduled = (meetings.data ?? []).filter((m) => m.status === 'scheduled');
   const running = scheduled.find((m) => new Date(m.startsAt).getTime() <= now && new Date(m.startsAt).getTime() + m.durationMinutes * 60_000 > now);
   const ahead = scheduled.filter((m) => new Date(m.startsAt).getTime() > now);
@@ -166,7 +210,7 @@ function AtAGlance({ timeZone }: { timeZone: string }) {
         <ul>
           {ahead.slice(0, UPCOMING_COUNT).map((meeting) => (
             <li key={meeting.id}>
-              <Link to={meetingLink(meeting)} className="row-link group flex min-h-11 min-w-0 items-center gap-3 rounded-card py-2 pl-2 pr-2 hover:bg-surface-raised">
+              <Link to={meetingHref(meeting.id)} className="row-link group flex min-h-11 min-w-0 items-center gap-3 rounded-card py-2 pl-2 pr-2 hover:bg-surface-raised">
                 <span aria-hidden className="w-1 shrink-0 self-stretch rounded-full bg-gold" />
                 <span className="w-24 shrink-0 text-sm">
                   <span className="block font-medium">{sessionDay(meeting.startsAt, timeZone)}</span>
@@ -292,11 +336,12 @@ function UpcomingSkeleton() {
 }
 
 function NextMeetingCard({ meeting, timeZone }: { meeting: Meeting; timeZone: string }) {
+  const meetingHref = useMeetingHref();
   return (
     <div className="mt-3 rounded-card border border-line bg-surface p-4">
       <MeetingSummary meeting={meeting} timeZone={timeZone} />
       <div className="mt-3 flex flex-wrap gap-2">
-        <Link to={meetingLink(meeting)} className="inline-flex min-h-11 items-center rounded-card border border-line bg-surface-raised px-4 text-sm font-medium hover:border-muted/70">Open meeting</Link>
+        <Link to={meetingHref(meeting.id)} className="inline-flex min-h-11 items-center rounded-card border border-line bg-surface-raised px-4 text-sm font-medium hover:border-muted/70">Open meeting</Link>
         <Link to={`/coach/clients/${meeting.clientId}`} className="inline-flex min-h-11 items-center rounded-card px-4 text-sm font-medium text-muted hover:bg-surface-raised hover:text-text">Client page</Link>
         {joinCall(meeting)}
       </div>
@@ -304,14 +349,33 @@ function NextMeetingCard({ meeting, timeZone }: { meeting: Meeting; timeZone: st
   );
 }
 
-/** A calendar meeting's preview. Editing happens in the meeting dialog on the client's page. */
-function MeetingPreviewDialog({ meeting, timeZone, onClose }: { meeting: Meeting; timeZone: string; onClose: () => void }) {
+/**
+ * A calendar meeting's preview. Once a meeting has started without attendance, it can be marked
+ * Completed or No-show here (decision 0047); everything else happens in the full meeting dialog,
+ * which opens on this page.
+ */
+function MeetingPreviewDialog({ meeting: snapshot, timeZone, onClose }: { meeting: Meeting; timeZone: string; onClose: () => void }) {
+  // The live meeting, so the status updates in place after recording attendance.
+  const live = useMeeting(snapshot.id);
+  const meeting = live.data ?? snapshot;
+  const record = useRecordAttendance();
+  const meetingHref = useMeetingHref();
+  const canRecord = meeting.status === 'scheduled' && new Date(meeting.startsAt).getTime() <= Date.now() && meeting.request?.status !== 'pending';
   return (
-    <Dialog title="Meeting" onClose={onClose} footer={<>
+    <Dialog title="Meeting" onClose={() => { if (!record.isPending) onClose(); }} footer={<>
       {joinCall(meeting)}
-      <Link to={meetingLink(meeting)} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-card bg-gold px-4 text-sm font-semibold text-on-gold hover:bg-gold-hover"><PencilIcon />Edit meeting</Link>
+      {canRecord ? <>
+        <Button variant="secondary" className="text-danger!" busy={record.isPending && record.variables?.status === 'no_show'} disabled={record.isPending}
+          onClick={() => record.mutate({ id: meeting.id, status: 'no_show' })}>No-Show</Button>
+        <Button variant="secondary" busy={record.isPending && record.variables?.status === 'completed'} disabled={record.isPending}
+          onClick={() => record.mutate({ id: meeting.id, status: 'completed' })}>Mark Completed</Button>
+      </> : null}
+      <Link to={meetingHref(meeting.id)} onClick={onClose} className="inline-flex min-h-11 items-center justify-center gap-2 rounded-card bg-gold px-4 text-sm font-semibold text-on-gold hover:bg-gold-hover"><PencilIcon />Edit meeting</Link>
     </>}>
-      <div className="p-4 sm:p-5"><MeetingSummary meeting={meeting} timeZone={timeZone} /></div>
+      <div className="grid gap-3 p-4 sm:p-5">
+        <MeetingSummary meeting={meeting} timeZone={timeZone} />
+        <Alert visible={!!record.error} title="Not recorded">{schedulingError(record.error)}</Alert>
+      </div>
     </Dialog>
   );
 }

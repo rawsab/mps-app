@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router';
 import { ProfileSettingsPage } from '@/features/profile/ProfileSettingsPage';
 import { MeetingsPage } from '@/features/scheduling/MeetingsPage';
+import { MeetingHistoryPage } from '@/features/scheduling/MeetingHistoryPage';
 import { NutritionPage, NutritionProgressPage } from '@/features/nutrition/NutritionPages';
 import { NutritionProgramPage } from '@/features/nutrition/NutritionProgramPage';
 import { AuthCallbackPage, ForgotPasswordPage, SignInPage } from '@/features/auth/AuthPages';
@@ -62,6 +63,7 @@ export const router = createBrowserRouter([
               { path: '/coach/profile', element: <ProfileSettingsPage /> },
               { path: '/coach/clients/:clientId', element: <ClientDetailPage /> },
               { path: '/coach/clients/:clientId/activity', element: <ClientActivityPage /> },
+              { path: '/coach/clients/:clientId/meetings', element: <MeetingHistoryPage /> },
               { path: '/coach/clients/:clientId/nutrition', element: <NutritionPage coach /> },
               { path: '/coach/clients/:clientId/nutrition/:programId', element: <NutritionProgramPage coach /> },
               { path: '/coach/clients/:clientId/nutrition/:programId/log', element: <NutritionProgramPage coach published /> },

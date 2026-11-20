@@ -83,6 +83,8 @@ function Empty({ range }: { range: TrendRange }) {
 function ColumnTrend({ slots, counts, unit }: { slots: TrendSlot[]; counts: number[]; unit: 'hour' | 'day' }) {
   const max = Math.max(1, ...counts);
   const [hover, setHover] = useState<number | null>(null);
+  // The pointer inside the plot, so the tooltip sits just above the cursor.
+  const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null);
   const plotRef = useRef<HTMLDivElement>(null);
   const columns = slots.map((slot, index) => ({ slot, count: counts[index] ?? 0 }));
   const hovered = hover === null ? undefined : columns[hover];
@@ -90,7 +92,11 @@ function ColumnTrend({ slots, counts, unit }: { slots: TrendSlot[]; counts: numb
   return (
     <div className="min-w-0">
       <div className="flex gap-2">
-        <div ref={plotRef} className="relative h-32 min-w-0 flex-1" onPointerLeave={() => setHover(null)}>
+        <div ref={plotRef} className="relative h-32 min-w-0 flex-1" onPointerLeave={() => { setHover(null); setPointer(null); }}
+          onPointerMove={(event) => {
+            const box = event.currentTarget.getBoundingClientRect();
+            setPointer({ x: event.clientX - box.left, y: event.clientY - box.top });
+          }}>
           {/* Recessive grid: the top line marks the tallest count, the baseline closes the bars. */}
           <span aria-hidden className="absolute inset-x-0 top-0 border-t border-dashed border-line" />
           <span aria-hidden className="absolute inset-x-0 bottom-0 h-px bg-line" />
@@ -103,9 +109,9 @@ function ColumnTrend({ slots, counts, unit }: { slots: TrendSlot[]; counts: numb
               </li>
             ))}
           </ul>
-          {hovered ? (
-            <span aria-hidden style={{ left: `${((hover! + 0.5) / columns.length) * 100}%` }}
-              className="pointer-events-none absolute top-0 z-10 flex -translate-x-1/2 -translate-y-[calc(100%+6px)] flex-col items-center whitespace-nowrap rounded-card border border-line bg-surface-raised px-2 py-1 text-xs shadow-lg">
+          {hovered && pointer ? (
+            <span aria-hidden style={{ left: pointer.x, top: pointer.y }}
+              className="pointer-events-none absolute z-10 flex -translate-x-1/2 -translate-y-[calc(100%+10px)] flex-col items-center whitespace-nowrap rounded-card border border-line bg-surface-raised px-2 py-1 text-xs shadow-lg">
               <span className="text-muted">{hovered.slot.label}</span>
               <span className="font-medium tabular-nums">{plural(hovered.count, 'notification')}</span>
             </span>

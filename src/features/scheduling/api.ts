@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
-import { keepPreviousData, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { z } from 'zod';
 import type { PatternSlot } from '@/domain/scheduling/pattern';
+import { resourceExtension } from '@/domain/scheduling/resources';
 import { requireSupabase } from '@/lib/supabase';
 
 // ---------------------------------------------------------------------------------------------
@@ -25,10 +26,23 @@ const RequestSchema = z.object({
 });
 export type MeetingRequest = z.infer<typeof RequestSchema>;
 
+const StatusSchema = z.enum(['scheduled', 'completed', 'cancelled', 'late_cancelled', 'no_show']);
+
+/** Files in the meeting-resources bucket, or https links (migration 00046). Always shared with the client. */
+const ResourceSchema = z.object({
+  id: z.string(), kind: z.enum(['file', 'link']), title: z.string(), storagePath: z.string().nullable(), mimeType: z.string().nullable(),
+  sizeBytes: z.number().nullable(), url: z.string().nullable(), createdAt: z.string(),
+});
+export type MeetingResource = z.infer<typeof ResourceSchema>;
+
+const AttendanceChangeSchema = z.object({
+  fromStatus: StatusSchema, toStatus: StatusSchema, reason: z.string(), changedAt: z.string(), changedByName: z.string().nullable(),
+});
+
 export const MeetingSchema = z.object({
   id: z.string(), clientId: z.string(), clientName: z.string(), coachId: z.string().nullable(),
   startsAt: z.string(), durationMinutes: z.number().int(), timezone: z.string(),
-  status: z.enum(['scheduled', 'completed', 'cancelled', 'late_cancelled', 'no_show']), modified: z.boolean(),
+  status: StatusSchema, modified: z.boolean(),
   services: z.array(Service), billable: z.boolean(),
   /** One per service: the chosen program (pinned) or the service's current program. */
   programs: z.array(z.object({ service: Service, programId: z.string().nullable(), title: z.string().nullable(), pinned: z.boolean() })),
@@ -39,6 +53,10 @@ export const MeetingSchema = z.object({
   coachName: z.string().nullable(), coachAvatarPath: z.string().nullable(),
   /** The repeating pattern's notes (staff only). */
   patternNotes: z.string().nullable(), request: RequestSchema.nullable(),
+  /** Notes the client can read (migration 00046), kept apart from the staff-only `notes`. */
+  sharedNotes: z.string().nullable(), resources: z.array(ResourceSchema),
+  /** Every attendance recording and correction, oldest first (staff only; empty for clients). */
+  attendanceChanges: z.array(AttendanceChangeSchema),
 });
 export type Meeting = z.infer<typeof MeetingSchema>;
 
@@ -136,6 +154,33 @@ export function useClientMeetings(clientId: string, from: Date, to: Date) {
     queryKey: [...meetingsKey, 'list', clientId, from.toISOString(), to.toISOString()],
     refetchInterval: 60_000,
     queryFn: () => rpc('list_meetings', { p_from: from.toISOString(), p_to: to.toISOString(), p_client_id: clientId }, z.array(MeetingSchema)),
+  });
+}
+
+export const PAST_PAGE = 25;
+
+/** Started meetings, newest first, a page at a time (migration 00046). */
+export function usePastMeetings(clientId: string, pageSize = PAST_PAGE) {
+  return useInfiniteQuery({
+    queryKey: [...meetingsKey, 'past', clientId, pageSize],
+    refetchInterval: 60_000,
+    initialPageParam: undefined as Meeting | undefined,
+    queryFn: ({ pageParam }) => rpc('list_past_meetings', {
+      p_client_id: clientId, p_before_at: pageParam?.startsAt ?? null, p_before_id: pageParam?.id ?? null, p_limit: pageSize,
+    }, z.array(MeetingSchema)),
+    getNextPageParam: (page) => (page.length === pageSize ? page.at(-1) : undefined),
+  });
+}
+
+const NeedsAttendanceSchema = MeetingSchema.pick({ id: true, clientId: true, clientName: true, startsAt: true, durationMinutes: true, services: true });
+export type NeedsAttendance = z.infer<typeof NeedsAttendanceSchema>;
+
+/** Ended meetings with no attendance yet, oldest first (Meetings page to-dos). */
+export function useMeetingsNeedingAttendance() {
+  return useQuery({
+    queryKey: [...meetingsKey, 'needs-attendance'],
+    refetchInterval: 60_000,
+    queryFn: () => rpc('list_meetings_needing_attendance', {}, z.array(NeedsAttendanceSchema)),
   });
 }
 
@@ -243,4 +288,72 @@ export function useRespondToRequest() {
 
 export function useStopMeetings(clientId: string) {
   return useMeetingMutation(() => rpc('stop_meetings', { p_client_id: clientId }, z.object({ cancelledMeetings: z.number().int() })));
+}
+
+export type Attendance = 'completed' | 'no_show';
+
+export function useRecordAttendance() {
+  return useMeetingMutation(({ id, status }: { id: string; status: Attendance }) =>
+    rpc('record_attendance', { p_meeting_id: id, p_status: status }, MeetingSchema));
+}
+
+/** All or nothing: every meeting is recorded, or none is (migration 00047). */
+export function useRecordAttendanceMany() {
+  return useMeetingMutation(({ ids, status }: { ids: string[]; status: Attendance }) =>
+    rpc('record_attendance_many', { p_meeting_ids: ids, p_status: status }, z.object({ recorded: z.number().int() })));
+}
+
+/** `scheduled` sets the meeting back to "not recorded". */
+export function useCorrectAttendance() {
+  return useMeetingMutation(({ id, status, reason }: { id: string; status: Attendance | 'scheduled'; reason: string }) =>
+    rpc('correct_attendance', { p_meeting_id: id, p_status: status, p_reason: reason }, MeetingSchema));
+}
+
+export function useSaveSharedNotes() {
+  return useMeetingMutation(({ id, notes }: { id: string; notes: string }) =>
+    rpc('save_meeting_shared_notes', { p_meeting_id: id, p_notes: notes }, MeetingSchema));
+}
+
+export const MEETING_RESOURCES_BUCKET = 'meeting-resources';
+
+/** Uploads to `{client}/{meeting}/{uuid}.ext`, then records it. A file that can't be recorded is removed again. */
+export function useAddMeetingFile() {
+  return useMeetingMutation(async ({ meeting, file, title }: { meeting: Meeting; file: File; title: string }) => {
+    const storage = requireSupabase().storage.from(MEETING_RESOURCES_BUCKET);
+    const path = `${meeting.clientId}/${meeting.id}/${crypto.randomUUID()}.${resourceExtension(file.type)}`;
+    const upload = await storage.upload(path, file, { contentType: file.type, upsert: false });
+    if (upload.error) throw upload.error;
+    try {
+      return await rpc('add_meeting_resource', { p_meeting_id: meeting.id, p_path: path, p_title: title }, MeetingSchema);
+    } catch (error) {
+      await storage.remove([path]);
+      throw error;
+    }
+  });
+}
+
+export function useAddMeetingLink() {
+  return useMeetingMutation(({ id, url, title }: { id: string; url: string; title: string }) =>
+    rpc('add_meeting_link', { p_meeting_id: id, p_url: url, p_title: title }, MeetingSchema));
+}
+
+/**
+ * Removes the row, then the stored file. If only the file delete fails, the resource is already gone
+ * for everyone and the reply says the file was left behind.
+ */
+export function useRemoveMeetingResource() {
+  return useMeetingMutation(async (resourceId: string) => {
+    const result = await rpc('remove_meeting_resource', { p_resource_id: resourceId },
+      z.object({ storagePath: z.string().nullable(), meeting: MeetingSchema }));
+    if (!result.storagePath) return { meeting: result.meeting, fileLeft: false };
+    const cleanup = await requireSupabase().storage.from(MEETING_RESOURCES_BUCKET).remove([result.storagePath]);
+    return { meeting: result.meeting, fileLeft: !!cleanup.error };
+  });
+}
+
+/** A short-lived link to open a stored resource (signed URLs, as with profile photos). */
+export async function openResourceUrl(path: string): Promise<string> {
+  const { data, error } = await requireSupabase().storage.from(MEETING_RESOURCES_BUCKET).createSignedUrl(path, 3600);
+  if (error) throw error;
+  return data.signedUrl;
 }

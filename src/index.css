@@ -527,6 +527,48 @@ details[open] > .disclosure-summary > .disclosure-chevron {
     margin-block-start 280ms 100ms var(--ease-ui),
     margin-block-end 280ms 100ms var(--ease-ui);
 }
+/*
+ * Record attendance rows: a recorded row only fades out, then the rows below glide up (a transform,
+ * in RecordAttendance). A row brought back by Undo fades in after the others have made room.
+ */
+@keyframes row-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes row-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+.row-fade-out {
+  animation: row-fade-out 180ms ease-out both;
+}
+.row-fade-in {
+  animation: row-fade-in 220ms 120ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .row-fade-out,
+  .row-fade-in {
+    animation: none;
+  }
+}
+
+/* A notice replaced while shown: the new text fades and rises in over the old. */
+@keyframes notice-swap-in {
+  from {
+    opacity: 0;
+    transform: translateY(3px);
+  }
+}
+.notice-swap {
+  animation: notice-swap-in 220ms var(--ease-ui) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .notice-swap {
+    animation: none;
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   /* 1ms, not none, so transitionend still fires and the notice unmounts. */
   .notice-motion,

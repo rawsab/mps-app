@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router';
 import { Dialog } from '@/components/Dialog';
 import { Alert, Badge, Button, Spinner, TextAreaField, TextField } from '@/components/ui';
 import { addDays, zonedDateTime, zonedToInstant } from '@/domain/scheduling/pattern';
@@ -7,6 +8,7 @@ import {
   schedulingError, useAddMeeting, useCancelMeeting, useMeeting, useReinstateMeeting, useRespondToRequest, useSaveMeetingNotes, useUpdateMeeting,
   type Meeting, type MeetingContext, type MeetingSchedule, type MeetingTopic, type Overlap, type ProgramChoice,
 } from './api';
+import { AttendanceSection, ResourcesSection, SharedNotesField } from './MeetingRecord';
 import { defaultTopic, MeetingTopicFields, topicLabel } from './MeetingTopic';
 import { sessionDay, sessionMoment, sessionRange, sessionTime, todayIn, zoneLabel } from './time';
 
@@ -36,7 +38,7 @@ function WhenFields({ when, onChange }: { when: When; onChange: (when: When) => 
   );
 }
 
-const NOTES_HINT = 'Private to staff. The client never sees these.';
+const NOTES_HINT = 'The client never sees these.';
 
 /** Adds a one-off meeting. */
 export function NewMeetingDialog({ clientId, context, programs, onClose, onSaved }: {
@@ -67,7 +69,7 @@ export function NewMeetingDialog({ clientId, context, programs, onClose, onSaved
       <div className="grid gap-5 p-4 sm:p-5">
         <WhenFields when={when} onChange={setWhen} />
         <MeetingTopicFields context={context} programs={programs} value={topic} onChange={setTopic} />
-        <TextAreaField label="Notes (optional)" rows={3} maxLength={5000} value={notes} onChange={(event) => setNotes(event.target.value)} hint={NOTES_HINT} />
+        <TextAreaField label="Private notes (optional)" rows={3} maxLength={5000} value={notes} onChange={(event) => setNotes(event.target.value)} hint={NOTES_HINT} />
         <Alert visible={!!problem}>{problem}</Alert>
         <Alert visible={!!add.error} title="Not added">{schedulingError(add.error)}</Alert>
       </div>
@@ -143,7 +145,8 @@ function MeetingDetails({ meeting, context, programs, onClose, onSaved, onChange
   const started = new Date(meeting.startsAt).getTime() <= Date.now();
   const schedule = context.schedules.find((s) => s.id === meeting.scheduleId);
   const error = update.error ?? cancel.error ?? reinstate.error ?? respond.error ?? saveNotes.error;
-  const status = STATUS[meeting.status];
+  // A started meeting still marked scheduled has no attendance yet.
+  const status = started && meeting.status === 'scheduled' ? { label: 'Attendance not recorded', tone: 'neutral' as const } : STATUS[meeting.status];
 
   function saveChanges() {
     const parsed = parseWhen(when, timeZone);
@@ -173,7 +176,10 @@ function MeetingDetails({ meeting, context, programs, onClose, onSaved, onChange
 
   return (
     <Dialog wide title={`${sessionDay(meeting.startsAt, timeZone)} · ${sessionRange(meeting.startsAt, meeting.durationMinutes, timeZone)}`}
-      description={`${meeting.clientName} · ${topicLabel(meeting.services)} · ${meeting.scheduleId ? 'Repeating' : 'One-off'} · Times in ${zoneLabel(timeZone)}`}
+      description={<>
+        <Link to={`/coach/clients/${meeting.clientId}`} className="text-gold-fg"><span className="link">{meeting.clientName}</span></Link>
+        {` · ${topicLabel(meeting.services)} · ${meeting.scheduleId ? 'Repeating' : 'One-off'} · Times in ${zoneLabel(timeZone)}`}
+      </>}
       onClose={() => { if (!busy) onClose(); }}>
       <div className="grid gap-5 p-4 sm:p-5">
         <div className="flex flex-wrap items-center gap-2 text-sm">
@@ -258,6 +264,8 @@ function MeetingDetails({ meeting, context, programs, onClose, onSaved, onChange
           </section>
         ) : null}
 
+        <AttendanceSection meeting={meeting} onSaved={onSaved} />
+
         {meeting.status === 'cancelled' || meeting.status === 'late_cancelled' ? (
           <section className="grid gap-3">
             <p className="text-sm">
@@ -272,19 +280,25 @@ function MeetingDetails({ meeting, context, programs, onClose, onSaved, onChange
           </section>
         ) : null}
 
-        <section aria-labelledby="meeting-notes" className="grid gap-2 border-t border-line pt-4">
+        <section aria-labelledby="meeting-notes" className="grid gap-4 border-t border-line pt-4">
+          <h3 id="meeting-notes" className="text-base font-semibold">Notes</h3>
+          <SharedNotesField meeting={meeting} onSaved={onSaved} />
           {meeting.patternNotes ? (
             <div className="rounded-card border border-line bg-ink p-3 text-sm">
-              <p className="text-xs font-medium text-muted">Repeating pattern notes</p>
+              <p className="text-xs font-medium text-muted">Repeating pattern notes · Private to staff</p>
               <p className="mt-1 whitespace-pre-wrap break-words">{meeting.patternNotes}</p>
             </div>
           ) : null}
-          <TextAreaField label={meeting.scheduleId ? 'Notes for this meeting' : 'Notes'} rows={3} maxLength={5000} value={notes} onChange={(event) => setNotes(event.target.value)} hint={NOTES_HINT} />
-          <div>
-            <Button variant="secondary" busy={saveNotes.isPending} disabled={busy || notes.trim() === (meeting.notes ?? '')}
-              onClick={() => saveNotes.mutate({ id: meeting.id, notes }, { onSuccess: () => onSaved('Notes saved.') })}>Save notes</Button>
+          <div className="grid gap-2">
+            <TextAreaField label="Private to staff" rows={3} maxLength={5000} value={notes} onChange={(event) => setNotes(event.target.value)} hint={NOTES_HINT} />
+            <div>
+              <Button variant="secondary" busy={saveNotes.isPending} disabled={busy || notes.trim() === (meeting.notes ?? '')}
+                onClick={() => saveNotes.mutate({ id: meeting.id, notes }, { onSuccess: () => onSaved('Private notes saved.') })}>Save private notes</Button>
+            </div>
           </div>
         </section>
+
+        <ResourcesSection meeting={meeting} />
 
         <Alert visible={!!problem}>{problem}</Alert>
         <Alert visible={!!error} title="Not saved">{schedulingError(error)}</Alert>

@@ -1,6 +1,6 @@
 import { Avatar } from '@/components/Avatar';
 import { ActionsMenu, actionItemClass } from '@/components/ActionsMenu';
-import { ArchiveIcon, CalendarIcon, ServicesIcon, TrashIcon } from '@/components/icons';
+import { ArchiveIcon, CalendarIcon, ServicesIcon, SettingsIcon, TrashIcon } from '@/components/icons';
 import { Dialog } from '@/components/Dialog';
 import { useState, type FormEvent } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
@@ -92,7 +92,7 @@ function ClientSettings({ client }: { client: ClientRow }) {
   const disabled = client.status === 'disabled';
 
   return (
-    <AnimatedDisclosure label="Client settings" className="mt-4 border-t border-line pt-3">
+    <AnimatedDisclosure label={<SectionTitle icon={<SettingsIcon />}>Client settings</SectionTitle>} className="mt-4 border-t border-line pt-3">
       <div className="rounded-card border border-line bg-surface">
         <dl className="grid gap-x-6 gap-y-3 p-4 text-sm sm:grid-cols-[10rem_1fr] sm:p-5">
           <dt className="text-muted">Email</dt>

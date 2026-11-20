@@ -86,7 +86,8 @@ export function ActivityRow({ clientId, item, from, review, leaving = false, com
     <li style={{ transitionDuration: `${READ_FADE_MS}ms` }}
       className={`transition-opacity motion-reduce:transition-none ${leaving ? 'opacity-0' : read ? 'opacity-60 hover:opacity-100 focus-within:opacity-100' : ''}`}>
       <Link to={activityLink(clientId, item)} state={from} onClick={() => markRead.mutate(item)}
-        className="row-link group flex min-h-14 min-w-0 items-start gap-3 rounded-card py-3 pl-3 pr-2 hover:bg-surface-raised">
+        // Square on the Activity page, so hovered rows meet the dividers edge to edge.
+        className={`row-link group flex min-h-14 min-w-0 items-start gap-3 py-3 pl-3 pr-2 hover:bg-surface-raised ${inline ? '' : 'rounded-card'}`}>
         <ActivityAvatar clientId={clientId} name={review?.clientName} />
         <div className="min-w-0 flex-1">
           {review ? <p className="flex items-center gap-2 break-words text-sm font-semibold">

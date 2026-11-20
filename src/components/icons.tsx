@@ -108,6 +108,13 @@ export const CheckIcon = () => (
   </Icon>
 );
 
+/** A cross, the same weight as CheckIcon (No-show). */
+export const CrossIcon = () => (
+  <Icon className="size-4 shrink-0" strokeWidth={2.2}>
+    <path d="m6.5 6.5 11 11M17.5 6.5l-11 11" />
+  </Icon>
+);
+
 export const CheckCircleIcon = () => (
   <Icon className="size-5 shrink-0" strokeWidth={2}>
     <circle cx="12" cy="12" r="9" />
