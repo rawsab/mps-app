@@ -309,6 +309,11 @@ export function useCorrectAttendance() {
     rpc('correct_attendance', { p_meeting_id: id, p_status: status, p_reason: reason }, MeetingSchema));
 }
 
+/** Takes back the caller's own latest change (within 15 minutes) without logging it (migration 00048). */
+export function useUndoAttendance() {
+  return useMeetingMutation((id: string) => rpc('undo_attendance', { p_meeting_id: id }, MeetingSchema));
+}
+
 export function useSaveSharedNotes() {
   return useMeetingMutation(({ id, notes }: { id: string; notes: string }) =>
     rpc('save_meeting_shared_notes', { p_meeting_id: id, p_notes: notes }, MeetingSchema));

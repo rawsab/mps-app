@@ -7,7 +7,7 @@ import { CheckIcon, CrossIcon } from '@/components/icons';
 import { Alert, Button, Spinner } from '@/components/ui';
 import { groupAttendanceByDay, nextFocus } from '@/domain/scheduling/attendance';
 import { formatDate } from '@/lib/format';
-import { schedulingError, useCorrectAttendance, useRecordAttendance, useRecordAttendanceMany, type Attendance, type NeedsAttendance } from './api';
+import { schedulingError, useRecordAttendance, useRecordAttendanceMany, useUndoAttendance, type Attendance, type NeedsAttendance } from './api';
 import { topicLabel } from './MeetingTopic';
 import { sessionDay, sessionTime } from './time';
 
@@ -30,13 +30,15 @@ const GLIDE_MS = 260;
 /**
  * Ended meetings without attendance, newest first by day (decision 0048). One click marks each
  * Completed or No-show; the row leaves at once, focus moves to the same button on the next row, and
- * a notice offers Undo (a logged correction back to "not recorded").
+ * a notice offers Undo, which takes the recording back without logging either (undo_attendance).
  */
-export function RecordAttendance({ meetings, timeZone, meetingHref }: {
+export function RecordAttendance({ meetings, timeZone, meetingHref, onEmptyChange }: {
   meetings: NeedsAttendance[]; timeZone: string; meetingHref: (id: string) => string;
+  /** Whether no rows are left on screen (after any leaving row has gone), so the parent can fold the section. */
+  onEmptyChange?: (empty: boolean) => void;
 }) {
   const record = useRecordAttendance();
-  const undo = useCorrectAttendance();
+  const undo = useUndoAttendance();
   const recordAll = useRecordAttendanceMany();
   // Rows recorded here, hidden before the list refetches without them.
   const [hidden, setHidden] = useState<ReadonlySet<string>>(new Set());
@@ -92,6 +94,8 @@ export function RecordAttendance({ meetings, timeZone, meetingHref }: {
   const ordered = days.flatMap((day) => day.meetings);
   const shown = new Set((showAll ? ordered : ordered.slice(0, SHOWN)).map((m) => m.id));
   const error = record.error ?? undo.error ?? recordAll.error;
+  const nothingDrawn = drawn.length === 0;
+  useEffect(() => { onEmptyChange?.(nothingDrawn); }, [nothingDrawn, onEmptyChange]);
 
   const toggle = (set: ReadonlySet<string>, id: string, on: boolean) => {
     const next = new Set(set);
@@ -136,7 +140,7 @@ export function RecordAttendance({ meetings, timeZone, meetingHref }: {
   function undoLast() {
     const id = done?.id;
     if (!id) return;
-    undo.mutate({ id, status: 'scheduled', reason: '' }, {
+    undo.mutate(id, {
       onSuccess: () => {
         // The notice folds away first; the meeting comes back once it has gone.
         setDone(null);

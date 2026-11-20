@@ -101,12 +101,13 @@ function MeetingTodos({ timeZone }: { timeZone: string }) {
   const requests = usePendingMeetingRequests();
   const attendance = useMeetingsNeedingAttendance();
   const meetingHref = useMeetingHref();
-  // Once shown, Record attendance stays for this visit, so recording the last meeting keeps its Undo.
-  const attendanceShown = useRef(false);
-  if (attendance.data?.length) attendanceShown.current = true;
+  // Whether Record attendance has anything left on screen. It says so itself once a recorded row has
+  // faded and slid away, so the section folds only after that. Until then, the server's list decides.
+  const [attendanceEmpty, setAttendanceEmpty] = useState<boolean | null>(null);
   const hasRequests = !!requests.data?.length;
-  const hasAttendance = attendanceShown.current;
-  const empty = !hasRequests && !hasAttendance;
+  const noAttendance = attendanceEmpty ?? !attendance.data?.length;
+  const both = hasRequests && !noAttendance;
+  const empty = !hasRequests && noAttendance;
 
   if (requests.error) return <Alert className="mt-8" title="Could not load meeting requests">{schedulingError(requests.error)}</Alert>;
   if (attendance.error) return <Alert className="mt-8" title="Could not load meetings that need attendance">{schedulingError(attendance.error)}</Alert>;
@@ -115,13 +116,20 @@ function MeetingTodos({ timeZone }: { timeZone: string }) {
   return (
     <div className="collapsible" data-collapsed={empty || undefined} inert={empty}>
       <div className="min-h-0 min-w-0 overflow-hidden">
-        <div className={`mt-8 grid gap-6 border-t border-line pt-3 lg:gap-9 ${hasRequests && hasAttendance ? 'lg:grid-cols-2' : ''}`}>
+        {/* No row gap: stacked, Record attendance carries its own top spacing, so it folds away with it. */}
+        <div className={`mt-8 grid border-t border-line pt-3 lg:gap-x-9 ${both ? 'lg:grid-cols-2' : ''}`}>
           {hasRequests ? <MeetingRequests requests={requests.data} timeZone={timeZone} /> : null}
-          {hasAttendance ? (
-            <div className={hasRequests ? 'min-w-0 border-t border-line pt-4 lg:border-l lg:border-t-0 lg:pl-9 lg:pt-0' : 'min-w-0'}>
-              <RecordAttendance meetings={attendance.data} timeZone={timeZone} meetingHref={meetingHref} />
+          {/*
+            Always mounted, so its Undo notice outlives the last row. When it empties it folds away
+            smoothly (.collapsible), like the to-dos row, and comes back the same way on Undo.
+          */}
+          <div className="collapsible min-w-0" data-collapsed={noAttendance || undefined} inert={noAttendance}>
+            <div className="min-h-0 min-w-0 overflow-hidden">
+              <div className={hasRequests ? 'mt-6 border-t border-line pt-4 lg:mt-0 lg:border-l lg:border-t-0 lg:pl-9 lg:pt-0' : ''}>
+                <RecordAttendance meetings={attendance.data} timeZone={timeZone} meetingHref={meetingHref} onEmptyChange={setAttendanceEmpty} />
+              </div>
             </div>
-          ) : null}
+          </div>
         </div>
       </div>
     </div>

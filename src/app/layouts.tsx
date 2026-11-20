@@ -77,7 +77,7 @@ function ProfileLink({ coach = false, collapsed = false, onNavigate }: { coach?:
   const viewer = useViewer().data;
   return (
     <NavLink to={coach ? '/coach/profile' : '/profile'} onClick={onNavigate} aria-label="Profile settings" title="Profile settings"
-      className={`btn-motion flex min-h-11 min-w-11 items-center gap-3 rounded-card text-sm text-text hover:bg-surface-raised ${collapsed ? 'justify-center' : 'px-2 py-2'}`}>
+      className={`btn-motion flex min-h-11 min-w-11 items-center gap-3 rounded-card text-sm text-text ${coach ? 'hover:bg-surface-raised/60' : 'hover:bg-surface-raised'} ${collapsed ? 'justify-center' : 'px-2 py-2'}`}>
       <Avatar url={viewer?.avatarUrl} name={viewer?.displayName ?? ''} />
       {coach && !collapsed ? <span className="min-w-0"><span className="block truncate font-medium">{viewer?.displayName || 'Your profile'}</span><span className="block text-xs text-muted">Profile settings</span></span> : null}
     </NavLink>
