@@ -568,19 +568,22 @@ function TimeGrid({ days, today, byDay, available, timeZone, now, onDay, onMeeti
                 {placed.map(({ meeting, start, end }) => {
                   const lane = lanes.get(meeting.id) ?? { lane: 0, lanes: 1 };
                   return (
-                    <button key={meeting.id} type="button" onClick={() => onMeeting(meeting)}
-                      title={`${sessionRange(meeting.startsAt, meeting.durationMinutes, timeZone)} · ${meeting.clientName} · ${topicLabel(meeting.services)}`}
-                      className={`absolute overflow-hidden rounded-inner border-l-[3px] px-1.5 text-left py-0.5 text-[11px] leading-tight hover:z-10 hover:brightness-110 ${chipTone(meeting)} ${isCancelled(meeting) ? 'opacity-60' : ''}`}
+                    // Opaque page-coloured backing, so the translucent block hides unavailable stripes behind it.
+                    <div key={meeting.id} className="absolute rounded-inner bg-ink hover:z-10"
                       style={{
                         top: (start / 60) * HOUR_PX + 1,
                         height: Math.max(((end - start) / 60) * HOUR_PX - 2, 18),
                         left: `calc(${(lane.lane / lane.lanes) * 100}% + 2px)`,
                         width: `calc(${100 / lane.lanes}% - 4px)`,
                       }}>
-                      <span className={`block truncate font-medium ${isCancelled(meeting) ? 'line-through' : ''}`}>{meeting.clientName}</span>
-                      <span className="block truncate text-muted">{sessionRange(meeting.startsAt, meeting.durationMinutes, timeZone)}</span>
-                      {days.length === 1 ? <span className="block truncate text-muted">{topicLabel(meeting.services)}</span> : null}
-                    </button>
+                      <button type="button" onClick={() => onMeeting(meeting)}
+                        title={`${sessionRange(meeting.startsAt, meeting.durationMinutes, timeZone)} · ${meeting.clientName} · ${topicLabel(meeting.services)}`}
+                        className={`block size-full overflow-hidden rounded-inner border-l-[3px] px-1.5 text-left py-0.5 text-[11px] leading-tight hover:brightness-110 ${chipTone(meeting)} ${isCancelled(meeting) ? 'opacity-60' : ''}`}>
+                        <span className={`block truncate font-medium ${isCancelled(meeting) ? 'line-through' : ''}`}>{meeting.clientName}</span>
+                        <span className="block truncate text-muted">{sessionRange(meeting.startsAt, meeting.durationMinutes, timeZone)}</span>
+                        {days.length === 1 ? <span className="block truncate text-muted">{topicLabel(meeting.services)}</span> : null}
+                      </button>
+                    </div>
                   );
                 })}
                 {day === today ? (
