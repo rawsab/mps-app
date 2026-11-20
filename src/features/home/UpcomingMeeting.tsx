@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
 import { Avatar } from '@/components/Avatar';
 import { ArrowUpRightIcon, CalendarIcon } from '@/components/icons';
-import { Alert, Badge, SectionTitle, Spinner } from '@/components/ui';
+import { Alert, Badge, Card, SectionHeading, Spinner } from '@/components/ui';
 import { countdown } from '@/domain/scheduling/calendar';
 import { photoUrl } from '@/features/profile/api';
 import { schedulingError, type Meeting } from '@/features/scheduling/api';
@@ -20,11 +20,11 @@ export function UpcomingMeeting({ timeZone, now }: { timeZone: string; now: numb
   const meeting = meetings.next;
   return (
     <section aria-labelledby="home-meeting" className="min-w-0">
-      <h2 id="home-meeting" className="mb-3 flex items-center gap-2 text-lg font-semibold"><SectionTitle icon={<CalendarIcon />}>Upcoming meeting</SectionTitle></h2>
+      <SectionHeading id="home-meeting" icon={<CalendarIcon />} className="mb-3">Upcoming meeting</SectionHeading>
       {meetings.isPending ? <Spinner label="Loading meetings" /> : null}
       <Alert visible={!!meetings.error} title="Could not load meetings">{schedulingError(meetings.error)}</Alert>
       {meetings.data && !meeting ? (
-        <div className="rounded-card border border-line bg-surface p-4 text-sm text-muted">No meetings scheduled. Your coach will add them here.</div>
+        <Card as="div" padding="sm" className="text-sm text-muted">No meetings scheduled. Your coach will add them here.</Card>
       ) : null}
       {meeting ? <MeetingCard meeting={meeting} timeZone={timeZone} now={now} /> : null}
     </section>
@@ -40,7 +40,7 @@ function MeetingCard({ meeting, timeZone, now }: { meeting: Meeting; timeZone: s
   const coach = meeting.coachName ?? 'Your coach';
   const photo = useCoachPhoto(meeting.coachAvatarPath);
   return (
-    <div className="rounded-card border border-line bg-surface p-4">
+    <Card as="div" padding="sm">
       {/* Who, when and what, laid out like the coach's next-meeting card. */}
       <div className="flex items-start gap-3">
         <Avatar url={photo.data} name={coach} className="size-12 shrink-0" />
@@ -76,7 +76,7 @@ function MeetingCard({ meeting, timeZone, now }: { meeting: Meeting; timeZone: s
           </a>
         ) : <p className="text-sm text-muted">Your coach will share the call link.</p>}
       </div>
-    </div>
+    </Card>
   );
 }
 

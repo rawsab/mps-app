@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import { AnimatedDisclosure } from '@/components/AnimatedDisclosure';
 import { DisclosureSummary } from '@/components/DisclosureSummary';
-import { ChevronIcon, ProgressionIcon, StimulusIcon } from '@/components/icons';
+import { ProgressionIcon, StimulusIcon } from '@/components/icons';
 import { SaveStatus } from '@/components/SaveStatus';
 import type { ProgramDraft } from '@/domain/programs/contract';
 import {
@@ -19,33 +20,20 @@ export function StimulusFatigue({ programId, program, sessions, session, staff }
   programId: string; program: ProgramDraft; sessions: TrainingSession[]; session: TrainingSession; staff: boolean;
 }) {
   const muscles = dayFeedback(program, sessions, session.dayId);
-  const [open, setOpen] = useState(false);
   if (!muscles.length) return null;
   const rated = muscles.filter((m) => Object.values(m.answers).some((v) => v !== null)).length;
-  const id = `feedback-${session.id}`;
   return (
-    <section aria-labelledby={`${id}-trigger`} className="mb-6 rounded-card border border-line px-3">
-      <h3>
-        <button type="button" id={`${id}-trigger`} aria-expanded={open} aria-controls={`${id}-content`} onClick={() => setOpen((value) => !value)}
-          className="flex min-h-11 w-full items-center gap-2 py-3 text-left font-semibold">
-          <span className="inline-flex text-muted"><ChevronIcon open={open} /></span>
-          <span className="flex-1">Stimulus &amp; Fatigue <span className="text-sm font-normal text-muted">(optional)</span></span>
-          <span className="text-xs font-normal tabular-nums text-muted">{rated} of {muscles.length} rated</span>
-        </button>
-      </h3>
-      <div id={`${id}-content`} role="region" aria-labelledby={`${id}-trigger`} aria-hidden={!open} inert={!open}
-        data-open={open} className="animated-disclosure-content">
-        <div className="min-h-0 overflow-hidden">
-          <p className="mb-3 text-xs text-muted">
-            Rate each muscle from 0 to 3. Skip anything you’re unsure of. Tap a selected score again to clear it.
-          </p>
-          <ScaleGuide />
-          <ul className="divide-y divide-line">
-            {muscles.map((muscle) => <MuscleCard key={muscle.key} programId={programId} session={session} muscle={muscle} staff={staff} />)}
-          </ul>
-        </div>
-      </div>
-    </section>
+    <AnimatedDisclosure heading="h3" size="md" className="mb-6 rounded-card border border-line px-3"
+      label={<>Stimulus &amp; Fatigue <span className="text-sm font-normal text-muted">(optional)</span></>}
+      meta={<span className="text-xs font-normal tabular-nums text-muted">{rated} of {muscles.length} rated</span>}>
+      <p className="mb-3 text-xs text-muted">
+        Rate each muscle from 0 to 3. Skip anything you’re unsure of. Tap a selected score again to clear it.
+      </p>
+      <ScaleGuide />
+      <ul className="divide-y divide-line">
+        {muscles.map((muscle) => <MuscleCard key={muscle.key} programId={programId} session={session} muscle={muscle} staff={staff} />)}
+      </ul>
+    </AnimatedDisclosure>
   );
 }
 

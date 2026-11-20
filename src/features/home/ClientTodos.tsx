@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
 import { CheckCircleIcon, TodoIcon } from '@/components/icons';
-import { Alert, SectionTitle, Spinner } from '@/components/ui';
+import { Alert, SectionHeading, Spinner } from '@/components/ui';
 import { activeNutritionProgram, dailyNutritionStatus, nextWorkout } from '@/domain/clientHome';
 import { nutritionError, useNutrition } from '@/features/nutrition/api';
 import { useNutritionPrograms } from '@/features/nutrition/programApi';
@@ -11,7 +11,7 @@ import { useCurrentMesocycle } from './api';
 export function ClientTodos({ clientId, nutrition, mesocycle, today }: { clientId: string; nutrition: boolean; mesocycle: boolean; today: string }) {
   return (
     <section aria-labelledby="home-todos" className="min-w-0">
-      <h2 id="home-todos" className="mb-2 flex items-center gap-2 text-lg font-semibold"><SectionTitle icon={<TodoIcon />}>Your to-dos</SectionTitle></h2>
+      <SectionHeading id="home-todos" icon={<TodoIcon />} className="mb-2">Your to-dos</SectionHeading>
       <ul className="divide-y divide-line">
         {nutrition ? <NutritionTodo clientId={clientId} /> : null}
         {mesocycle ? <WorkoutTodo today={today} /> : null}

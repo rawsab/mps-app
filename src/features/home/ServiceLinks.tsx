@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { Link } from 'react-router';
 import { Dialog } from '@/components/Dialog';
 import { ArrowUpRightIcon, PlusIcon, ServicesIcon } from '@/components/icons';
-import { Alert, Button, SectionTitle, TextAreaField } from '@/components/ui';
+import { Alert, Button, SectionHeading, TextAreaField } from '@/components/ui';
 import type { ServiceKind } from '@/domain/programs/contract';
 import { schedulingError } from '@/features/scheduling/api';
 import { SERVICE_LABELS, SERVICES } from '@/lib/services';
@@ -29,7 +29,7 @@ export function ServiceLinks({ services, className = '' }: { services: ServiceKi
 
   return (
     <section aria-labelledby="home-services" className={`min-w-0 ${className}`}>
-      <h2 id="home-services" className="mb-3 flex items-center gap-2 text-lg font-semibold"><SectionTitle icon={<ServicesIcon />}>Your services</SectionTitle></h2>
+      <SectionHeading id="home-services" icon={<ServicesIcon />} className="mb-3">Your services</SectionHeading>
       {links.length === 0 ? <p className="mb-2 text-sm text-muted">No services are active yet.</p> : null}
       <ul className="grid gap-2">
         {links.map((link) => (

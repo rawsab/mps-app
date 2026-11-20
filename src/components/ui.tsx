@@ -25,8 +25,9 @@ export function Button({ variant = 'primary', busy, className = '', children, di
   );
 }
 
-export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <section className={`rounded-card border border-line bg-surface p-4 sm:p-5 ${className}`}>{children}</section>;
+/** A bordered surface. `sm` padding for a compact card inside a list or sidebar. */
+export function Card({ children, className = '', padding = 'md', as: Tag = 'section' }: { children: ReactNode; className?: string; padding?: 'sm' | 'md'; as?: 'section' | 'div' | 'dl' }) {
+  return <Tag className={`rounded-card border border-line bg-surface ${padding === 'sm' ? 'p-4' : 'p-4 sm:p-5'} ${className}`}>{children}</Tag>;
 }
 
 /** The look shared by every text control: ink fill, gold border and ring on focus. Add height, padding and a border colour. */
@@ -224,7 +225,12 @@ export function Badge({ children, tone = 'neutral', size = 'md', className = '' 
   return <span className={`inline-flex items-center rounded-full border px-2 py-0.5 ${size === 'sm' ? 'text-[11px] font-medium leading-4' : 'text-xs'} ${BADGE_STYLES[tone]} ${className}`}>{children}</span>;
 }
 
-/** A section heading's icon and text; put it inside an h2 with `flex items-center gap-2`. */
+/** A page section's h2: gold icon, then the title. Add spacing with `className`. */
+export function SectionHeading({ id, icon, children, className = '' }: { id?: string; icon: ReactNode; children: ReactNode; className?: string }) {
+  return <h2 id={id} className={`flex items-center gap-2 text-lg font-semibold ${className}`}><SectionTitle icon={icon}>{children}</SectionTitle></h2>;
+}
+
+/** A section heading's icon and text; put it inside an h2 with `flex items-center gap-2`, or use SectionHeading. */
 export function SectionTitle({ icon, children }: { icon: ReactNode; children: ReactNode }) {
   return <><span aria-hidden className="inline-flex shrink-0 text-gold-fg">{icon}</span><span className="min-w-0">{children}</span></>;
 }

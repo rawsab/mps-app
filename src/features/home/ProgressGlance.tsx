@@ -1,6 +1,6 @@
 import { Link } from 'react-router';
 import { ProgressIcon } from '@/components/icons';
-import { Alert, SectionTitle, Spinner } from '@/components/ui';
+import { Alert, SectionHeading, Spinner } from '@/components/ui';
 import { activeNutritionProgram } from '@/domain/clientHome';
 import { nutritionWeeks } from '@/domain/nutritionProgram';
 import { nutritionError } from '@/features/nutrition/api';
@@ -15,7 +15,7 @@ export function ProgressGlance({ clientId, nutrition, mesocycle, today }: { clie
   return (
     <section aria-labelledby="home-progress" className="min-w-0">
       <div className="mb-3 flex flex-wrap items-baseline justify-between gap-2">
-        <h2 id="home-progress" className="flex items-center gap-2 text-lg font-semibold"><SectionTitle icon={<ProgressIcon />}>Progress</SectionTitle></h2>
+        <SectionHeading id="home-progress" icon={<ProgressIcon />}>Progress</SectionHeading>
         <Link to="/progress" className="-my-3 inline-flex min-h-11 items-center text-sm text-gold-fg"><span className="link">View all progress</span></Link>
       </div>
       <div className="grid gap-6">

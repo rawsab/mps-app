@@ -8,7 +8,7 @@ import { useClient, useClientPhoto } from '@/features/clients/api';
 import { programPath } from '@/features/programs/CurrentProgram';
 import { SERVICE_SHORT_LABELS } from '@/lib/services';
 import { Checkbox, SegmentedControl } from '@/components/controls';
-import { Alert, Badge, Button, PageHeader, Skeleton, Spinner } from '@/components/ui';
+import { Alert, Badge, Card, Button, PageHeader, Skeleton, Spinner } from '@/components/ui';
 import { CALENDAR_VIEWS, countdown, layoutDay, stepDate, viewDays, type CalendarView } from '@/domain/scheduling/calendar';
 import { addDays, isoWeekday, weekdayShort, zonedDateTime, zonedToInstant } from '@/domain/scheduling/pattern';
 import { capitalize } from '@/lib/format';
@@ -305,7 +305,7 @@ function NextMeetingSkeleton() {
     <div role="status">
       <span className="sr-only">Loading meetings</span>
       <span className="flex h-[1.875rem] items-center"><Skeleton className="h-6 w-44" /></span>
-      <div className="mt-3 rounded-card border border-line bg-surface p-4">
+      <Card as="div" padding="sm" className="mt-3">
         <div className="flex items-start gap-3">
           <Skeleton className="size-12 shrink-0 rounded-full" />
           <div className="min-w-0 flex-1">
@@ -318,7 +318,7 @@ function NextMeetingSkeleton() {
           <Skeleton className="h-11 w-32" />
           <Skeleton className="h-11 w-28" />
         </div>
-      </div>
+      </Card>
     </div>
   );
 }
@@ -347,14 +347,14 @@ function UpcomingSkeleton() {
 function NextMeetingCard({ meeting, timeZone }: { meeting: Meeting; timeZone: string }) {
   const meetingHref = useMeetingHref();
   return (
-    <div className="mt-3 rounded-card border border-line bg-surface p-4">
+    <Card as="div" padding="sm" className="mt-3">
       <MeetingSummary meeting={meeting} timeZone={timeZone} />
       <div className="mt-3 flex flex-wrap gap-2">
         <Link to={meetingHref(meeting.id)} className="inline-flex min-h-11 items-center rounded-card border border-line bg-surface-raised px-4 text-sm font-medium hover:border-muted/70">Open meeting</Link>
         <Link to={`/coach/clients/${meeting.clientId}`} className="inline-flex min-h-11 items-center rounded-card px-4 text-sm font-medium text-muted hover:bg-surface-raised hover:text-text">Client page</Link>
         {joinCall(meeting)}
       </div>
-    </div>
+    </Card>
   );
 }
 

@@ -6,7 +6,7 @@ import { useState, type FormEvent } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { AnimatedDisclosure } from '@/components/AnimatedDisclosure';
 import { useViewer } from '@/app/auth';
-import { Alert, Badge, Button, EmptyState, PageHeader, SectionTitle, SelectField, Spinner, TextAreaField, TextField } from '@/components/ui';
+import { Alert, Badge, Button, EmptyState, PageHeader, SectionHeading, SectionTitle, SelectField, Spinner, TextAreaField, TextField } from '@/components/ui';
 import { IconButton } from '@/components/controls';
 import type { ServiceKind } from '@/domain/programs/contract';
 import { RecentUpdatesCard } from '@/features/activity/ActivityViews';
@@ -174,7 +174,7 @@ function ServicesCard({
 
   return (
     <section className="min-w-0">
-      <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold"><SectionTitle icon={<ServicesIcon />}>Services</SectionTitle></h2>
+      <SectionHeading icon={<ServicesIcon />} className="mb-3">Services</SectionHeading>
       {requests.data?.length ? <div className="mb-3"><ServiceRequestRows requests={requests.data} /></div> : null}
       <Alert visible={!!requests.error} className="mb-3" title="Could not load service requests">{friendlyError(requests.error)}</Alert>
       {visible.length === 0 ? <p className="text-sm text-muted">No services to show.</p> : null}

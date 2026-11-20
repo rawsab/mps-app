@@ -6,7 +6,7 @@ import { DisclosureSummary } from '@/components/DisclosureSummary';
 import { DraftSaveIndicator, type DraftSaveState } from '@/components/DraftSaveIndicator';
 import { UseNotice } from '@/components/LegalFooter';
 import { SpreadsheetIcon } from '@/components/icons';
-import { Alert, Badge, Button, PageHeader, RequiredNote, Spinner, SelectField, TextAreaField, TextField } from '@/components/ui';
+import { Alert, Badge, Card, Button, PageHeader, RequiredNote, Spinner, SelectField, TextAreaField, TextField } from '@/components/ui';
 import { optionalNumber, shiftDate } from '@/domain/nutrition';
 import { NutritionDailyEntry } from './NutritionDailyEntry';
 import { draftFromRevision, NutritionProgramDraft, nutritionHasUnpublishedChanges, nutritionPublishProblems, startingPrediction, type NutritionProgramSnapshot } from '@/domain/nutritionProgram';
@@ -168,12 +168,12 @@ function NutritionWorkspace({ snapshot, coach, published, embedded }: { snapshot
 function ReadonlyDetails({ draft }: { draft: NutritionProgramDraft }) {
   return <section className="grid gap-4"><h2 className="text-lg font-semibold">Program details</h2>
     <p className="text-sm text-muted">Start Date {draft.start_date ? formatDate(draft.start_date) : '—'} · {draft.week_count} weeks</p>
-    <dl className="grid gap-5 rounded-card border border-line bg-surface p-4 sm:p-5 lg:grid-cols-3">
+    <Card as="dl" className="grid gap-5 lg:grid-cols-3">
       <div><dt className="text-sm text-muted">Weight unit</dt><dd className="mt-2 text-xl font-medium">{draft.weight_unit}</dd></div>
       <div><dt className="text-sm text-muted">Starting Predicted Maintenance Calories</dt><dd className="mt-2 text-xl font-medium tabular-nums">{nutritionNumber(draft.maintenance, 0)} <span className="text-sm text-muted">kcal</span></dd></div>
       <div><dt className="text-sm text-muted">Starting Predicted Daily Caloric Goal</dt><dd className="mt-2 text-xl font-medium tabular-nums">{nutritionNumber(draft.calorie_goal, 0)} <span className="text-sm text-muted">kcal</span></dd></div>
       <div><dt className="text-sm text-muted">Starting Predicted Weight Change Per Week</dt><dd className="mt-2 text-xl font-medium tabular-nums">{nutritionNumber(startingPrediction(draft), 2)} <span className="text-sm text-muted">{draft.weight_unit} · estimate</span></dd></div>
-    </dl>
+    </Card>
     {draft.notes ? <p className="whitespace-pre-wrap break-words text-sm">{draft.notes}</p> : null}
   </section>;
 }
