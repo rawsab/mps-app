@@ -5,7 +5,7 @@ import { CopyIcon, TrashIcon, StimulusIcon, ProgressIcon } from '@/components/ic
 import { Alert, Button } from '@/components/ui';
 import { nutritionTotals, nutritionWeeks, type NutritionProgramDraft, type NutritionProgramSnapshot, type NutritionWeek } from '@/domain/nutritionProgram';
 import { NUTRITION_GRID_COLUMNS, nutritionGridLabels, nutritionGridCoachEdited, nutritionGridEditable, nutritionGridMissing, nutritionGridText } from '@/domain/nutritionGrid';
-import { GridPopupMenu } from '@/features/programs/GridPopupMenu';
+import { PopupMenu } from '@/components/PopupMenu';
 import { formatDate, formatDateTime } from '@/lib/format';
 import { NutritionTrendChart } from './NutritionTrendChart';
 import { useNutritionGrid } from './useNutritionGrid';
@@ -125,7 +125,7 @@ function WeeklySheet({ week, snapshot, onDirty, showMissingEntries }: {
     {grid.paste?<Dialog title="Review pasted values" description="Only editable input cells will change. Dates and calculated cells are kept." onClose={()=>grid.setPaste(null)} footer={<><Button variant="secondary" onClick={()=>grid.setPaste(null)}>Cancel</Button><Button onClick={()=>grid.applyPaste()}>Apply paste</Button></>}>
       <SpreadsheetViewport><table className="w-full text-sm"><thead><tr>{['Cell','Before','After'].map((label)=><th key={label} className="border-b border-line px-4 py-2 text-left text-xs text-muted">{label}</th>)}</tr></thead><tbody>{grid.paste.map((edit)=><tr key={`${edit.date}:${edit.column}`}><th scope="row" className="border-b border-line p-3 text-left text-xs font-normal">{formatDate(edit.date)} · {labels[NUTRITION_GRID_COLUMNS.indexOf(edit.column)]}</th><td className="border-b border-line p-3">{nutritionGridText(week,{exerciseId:edit.date,column:NUTRITION_GRID_COLUMNS.indexOf(edit.column)})||'—'}</td><td className="border-b border-line p-3">{edit.text||'—'}</td></tr>)}</tbody></table></SpreadsheetViewport>
     </Dialog>:null}
-    {grid.menu?<GridPopupMenu x={grid.menu.x} y={grid.menu.y} label="Spreadsheet cells" onClose={(restore)=>{grid.setMenu(null);if(restore)grid.focus(grid.active);}} onAction={grid.menuAction} items={[
+    {grid.menu?<PopupMenu x={grid.menu.x} y={grid.menu.y} label="Spreadsheet cells" onClose={(restore)=>{grid.setMenu(null);if(restore)grid.focus(grid.active);}} onAction={grid.menuAction} items={[
       {action:'copy',label:'Copy selection',icon:<CopyIcon/>},
       {action:'cut',label:'Cut selection',icon:<CopyIcon/>,disabled:!grid.canWrite},
       {action:'paste',label:'Paste…',icon:<CopyIcon/>,disabled:!grid.canWrite},

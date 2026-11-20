@@ -1,7 +1,7 @@
 import { Avatar } from '@/components/Avatar';
-import { ActionsMenu, actionItemClass } from '@/components/ActionsMenu';
+import { ActionItem, ActionsMenu } from '@/components/ActionsMenu';
 import { ArchiveIcon, CalendarIcon, ServicesIcon, SettingsIcon, TrashIcon } from '@/components/icons';
-import { Dialog } from '@/components/Dialog';
+import { ConfirmDialog, DialogBody } from '@/components/Dialog';
 import { useState, type FormEvent } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { AnimatedDisclosure } from '@/components/AnimatedDisclosure';
@@ -196,12 +196,12 @@ function ServicesCard({
                   <ArchiveIcon />
                 </IconButton>
               ) : <ActionsMenu label={`Options for ${SERVICE_LABELS[enrollment.service]}`}>
-                <button type="button" className={actionItemClass} disabled={setStatus.isPending}
+                <ActionItem disabled={setStatus.isPending}
                   onClick={() => setStatus.mutate({ id: enrollment.id, status: enrollment.status === 'paused' ? 'active' : 'paused' })}>
                   {enrollment.status === 'paused' ? 'Resume' : 'Pause'}
-                </button>
-                <button type="button" className={`${actionItemClass} text-danger`} disabled={setStatus.isPending}
-                  onClick={() => setStatus.mutate({ id: enrollment.id, status: 'ended' })}>End</button>
+                </ActionItem>
+                <ActionItem danger disabled={setStatus.isPending}
+                  onClick={() => setStatus.mutate({ id: enrollment.id, status: 'ended' })}>End</ActionItem>
               </ActionsMenu> : null}
             </div>
             <CurrentProgramBox clientId={clientId} enrollment={enrollment} programs={programs.data ?? []} />
@@ -278,15 +278,11 @@ function DeleteServiceDialog({ enrollment, onClose }: { enrollment: EnrollmentRo
   const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`;
 
   return (
-    <Dialog title={`Delete archived ${label}?`} description="This permanently removes the service record."
-      onClose={() => { if (!remove.isPending) onClose(); }} footer={<>
-        <Button variant="secondary" disabled={remove.isPending} onClick={onClose}>Keep service</Button>
-        <Button variant="danger" busy={remove.isPending} disabled={contents.isPending || (linked > 0 && !withPrograms) || !confirmed}
-          onClick={() => remove.mutate({ id: enrollment.id, deletePrograms: withPrograms }, { onSuccess: onClose })}>
-          <TrashIcon />{withPrograms ? 'Delete service and programs' : 'Delete service'}
-        </Button>
-      </>}>
-      <div className="grid gap-4 p-4 sm:p-5">
+    <ConfirmDialog title={`Delete archived ${label}?`} description="This permanently removes the service record."
+      cancelLabel="Keep service" confirmLabel={<><TrashIcon />{withPrograms ? 'Delete service and programs' : 'Delete service'}</>}
+      tone="danger" pending={remove.isPending} disabled={contents.isPending || (linked > 0 && !withPrograms) || !confirmed}
+      onConfirm={() => remove.mutate({ id: enrollment.id, deletePrograms: withPrograms }, { onSuccess: onClose })} onClose={onClose}>
+      <DialogBody className="grid gap-4">
         {contents.isPending ? <Spinner label="Checking what this service has" /> : null}
         <Alert visible={!!contents.error} title="Could not check the service">{friendlyError(contents.error)}</Alert>
         {contents.data && linked === 0 ? <p className="text-sm text-muted">Nothing else is linked to it.</p> : null}
@@ -311,8 +307,8 @@ function DeleteServiceDialog({ enrollment, onClose }: { enrollment: EnrollmentRo
           </>
         ) : null}
         <Alert visible={!!remove.error} title="Could not delete service">{friendlyError(remove.error)}</Alert>
-      </div>
-    </Dialog>
+      </DialogBody>
+    </ConfirmDialog>
   );
 }
 
@@ -355,10 +351,11 @@ function NotesCard({ clientId }: { clientId: string }) {
       {notes.data && notes.data.length > 3 ? <Button variant="ghost" className="mb-3" onClick={() => setShowAll((value) => !value)}>{showAll ? 'Show recent notes' : `Show all ${notes.data.length} notes`}</Button> : null}
       {notes.data && notes.data.length === 0 ? <p className="mb-4 text-sm text-muted">No notes yet.</p> : null}
       <Alert visible={!!(remove.error && !deleting)} title="Could not delete note">{friendlyError(remove.error)}</Alert>
-      {deleting ? <Dialog title="Delete this note?" description="This permanently deletes your note." onClose={() => { if (!remove.isPending) setDeleting(null); }} footer={<>
-        <Button variant="secondary" disabled={remove.isPending} onClick={() => setDeleting(null)}>Keep note</Button>
-        <Button variant="danger" busy={remove.isPending} onClick={() => remove.mutate(deleting, { onSuccess: () => setDeleting(null) })}><TrashIcon />Delete note</Button>
-      </>}><Alert visible={!!remove.error} className="m-4" title="Could not delete note">{friendlyError(remove.error)}</Alert></Dialog> : null}
+      {deleting ? <ConfirmDialog title="Delete this note?" description="This permanently deletes your note."
+        cancelLabel="Keep note" confirmLabel={<><TrashIcon />Delete note</>} tone="danger" pending={remove.isPending}
+        onConfirm={() => remove.mutate(deleting, { onSuccess: () => setDeleting(null) })} onClose={() => setDeleting(null)}>
+        <Alert visible={!!remove.error} className="m-4" title="Could not delete note">{friendlyError(remove.error)}</Alert>
+      </ConfirmDialog> : null}
       <form onSubmit={submit} noValidate className="grid gap-3">
         <TextAreaField label="Add a note" rows={3} maxLength={5000} value={draft} onChange={(e) => setDraft(e.target.value)} error={error} />
         <Alert visible={!!add.error} title="Note not saved">{friendlyError(add.error)}</Alert>

@@ -1,6 +1,6 @@
 import { useCallback, useId, useRef, useState, type ReactNode } from 'react';
 import { SpreadsheetViewport } from '@/components/SpreadsheetViewport';
-import { GridPopupMenu } from './GridPopupMenu';
+import { PopupMenu } from '@/components/PopupMenu';
 import { PlusIcon, SectionIcon, DayIcon } from '@/components/icons';
 
 export type GridAddKind = 'exercise' | 'section' | 'day';
@@ -35,7 +35,7 @@ export function GridTableFrame({ children, onAdd, readOnly }: { children: ReactN
         className="flex h-7 w-full items-center justify-center border-t border-line bg-surface-raised text-gold-fg transition-colors hover:bg-gold/15 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-gold disabled:cursor-not-allowed disabled:opacity-40">
         <svg aria-hidden viewBox="0 0 20 20" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round"><path d="M10 4v12M4 10h12" /></svg>
       </button>
-      {menu && !readOnly ? <GridPopupMenu id={menuId} x={menu.x} y={menu.y} label="Add to spreadsheet" trigger={trigger}
+      {menu && !readOnly ? <PopupMenu id={menuId} x={menu.x} y={menu.y} label="Add to spreadsheet" trigger={trigger}
         items={[
           { action: 'exercise', label: 'New exercise', icon: <PlusIcon /> },
           { action: 'section', label: 'New section', icon: <SectionIcon /> },

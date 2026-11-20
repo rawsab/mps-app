@@ -15,6 +15,7 @@ import { friendlyError, useInviteClient, usePendingServiceRequests, type ClientR
 import { ServiceRequestRows } from './ServiceRequests';
 import { ALL_STATUSES, clientOverview, STATUS_LABELS } from './clientTable';
 import { statusBadge } from './ClientsTable';
+import { ChartTooltip } from '@/components/Tooltip';
 
 type FollowUp = 'notInvited' | 'inviteUnaccepted';
 
@@ -290,16 +291,12 @@ function ColumnChart({ items, total }: { items: Column[]; total: number }) {
         })}
       </ul>
       {hover && hovered ? (
-        <span
-          aria-hidden
-          className="pointer-events-none absolute z-10 flex -translate-x-1/2 -translate-y-full flex-col items-center gap-1 whitespace-nowrap rounded-card border border-line bg-surface-raised px-2 py-1.5 text-xs shadow-lg"
-          style={{ left: hover.x, top: hover.y - 8 }}
-        >
+        <ChartTooltip x={hover.x} y={hover.y - 8}>
           {hovered.badge ?? <span className="text-muted">{hovered.label}</span>}
           <span className="font-medium tabular-nums text-text">
             {hovered.count}/{total}
           </span>
-        </span>
+        </ChartTooltip>
       ) : null}
     </div>
   );

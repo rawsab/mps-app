@@ -1,12 +1,12 @@
 import { useEffect, useLayoutEffect, useRef, useState, type RefObject, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 
-export type GridPopupAction<T extends string> = { action: T; label: string; icon: ReactNode; disabled?: boolean; danger?: boolean; separator?: boolean };
+export type PopupMenuAction<T extends string> = { action: T; label: string; icon: ReactNode; disabled?: boolean; danger?: boolean; separator?: boolean };
 
-/** Shared, viewport-clamped popup for cell actions and the bottom add tab. */
-export function GridPopupMenu<T extends string>({ x, y, label, id, items, trigger, onAction, onClose }: {
+/** A viewport-clamped context menu at a point (right-click, cell actions, ⋯ on dense rows), with arrow-key navigation. Use ActionsMenu for a touch-sized ⋯ list that drops below its trigger. */
+export function PopupMenu<T extends string>({ x, y, label, id, items, trigger, onAction, onClose }: {
   x: number; y: number; label: string; id?: string;
-  items: GridPopupAction<T>[];
+  items: PopupMenuAction<T>[];
   trigger?: RefObject<HTMLButtonElement | null>;
   onAction: (action: T) => void;
   onClose: (restoreFocus: boolean) => void;

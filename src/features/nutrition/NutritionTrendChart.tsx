@@ -3,6 +3,7 @@ import { SelectField } from '@/components/ui';
 import { shiftDate } from '@/domain/nutrition';
 import type { NutritionWeek } from '@/domain/nutritionProgram';
 import { NUTRITION_TREND_METRICS, nutritionTrendPoints, nutritionTrendScale, type NutritionTrendMetric } from '@/domain/nutritionTrends';
+import { ChartTooltip } from '@/components/Tooltip';
 
 const dayLabel = (date: string) => new Date(`${date}T12:00:00Z`).toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
 const valueLabel = (value: number, weight: boolean) => value.toLocaleString(undefined, { maximumFractionDigits: weight ? 2 : 0 });
@@ -78,8 +79,8 @@ function TrendPlot({ weeks, today, weightUnit, metric, days }: { weeks: Nutritio
       </> : null}
     </svg>
     {!enough ? <p className="pointer-events-none absolute inset-x-16 top-1/2 -translate-y-1/2 text-center text-sm text-muted/60">Trends will be available when there is sufficient data.</p> : null}
-    {active && hover ? <span aria-hidden className="pointer-events-none absolute z-10 flex -translate-x-1/2 -translate-y-full flex-col items-center gap-1 whitespace-nowrap rounded-card border border-line bg-surface-raised px-2 py-1.5 text-xs shadow-lg" style={{ left: Math.max(66, Math.min(width - 66, hover.x)), top: Math.max(58, hover.y - 8) }}>
+    {active && hover ? <ChartTooltip x={Math.max(66, Math.min(width - 66, hover.x))} y={Math.max(58, hover.y - 8)}>
       <span className="font-medium tabular-nums text-text">{valueLabel(active.value, metric === 'weight')} {unit}</span><span className="text-muted">{dayLabel(active.date)}</span>
-    </span> : null}
+    </ChartTooltip> : null}
   </div>;
 }

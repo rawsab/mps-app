@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { createPortal, flushSync } from 'react-dom';
 import { Link } from 'react-router';
-import { Dialog } from '@/components/Dialog';
+import { ConfirmDialog } from '@/components/Dialog';
 import { NoticePresence } from '@/components/NoticePresence';
 import { CheckIcon, CrossIcon } from '@/components/icons';
 import { Alert, Button, Spinner } from '@/components/ui';
@@ -237,12 +237,10 @@ export function RecordAttendance({ meetings, timeZone, meetingHref, onEmptyChang
       <Alert visible={!!error} className="mt-2" title="Not saved">{schedulingError(error)}</Alert>
 
       {confirmAll ? (
-        <Dialog title={`Mark ${visible.length} meetings completed?`}
+        <ConfirmDialog title={`Mark ${visible.length} meetings completed?`}
           description="Every meeting in this list is recorded as attended. Use No-Show first for any the client missed. Each one can still be corrected from the meeting."
-          onClose={() => { if (!recordAll.isPending) setConfirmAll(false); }}
-          footer={<>
-            <Button variant="secondary" disabled={recordAll.isPending} onClick={() => setConfirmAll(false)}>Cancel</Button>
-            <Button busy={recordAll.isPending} onClick={() => {
+          confirmLabel="Mark all completed" pending={recordAll.isPending} onClose={() => setConfirmAll(false)}
+          onConfirm={() => {
               const ids = visible.slice(0, 200).map((m) => m.id);
               recordAll.mutate({ ids, status: 'completed' }, {
                 onSuccess: (result) => {
@@ -253,10 +251,7 @@ export function RecordAttendance({ meetings, timeZone, meetingHref, onEmptyChang
                 },
                 onError: () => setConfirmAll(false),
               });
-            }}>Mark all completed</Button>
-          </>}>
-          {null}
-        </Dialog>
+            }} />
       ) : null}
     </section>
   );

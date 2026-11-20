@@ -1,7 +1,7 @@
 import { useId, useRef, useState } from 'react';
 import { ArrowDownIcon, ArrowUpIcon, CopyIcon, MoreIcon, SectionsIcon, TrashIcon } from '@/components/icons';
 import { IconButton } from '@/components/controls';
-import { GridPopupMenu } from './GridPopupMenu';
+import { PopupMenu } from '@/components/PopupMenu';
 export type WeekAction = 'duplicate' | 'delete' | 'up' | 'down' | 'toggleSections';
 export function WeekGridMenu({ label, first, last, disabled, sectionsEnabled, onAction }: {
   label: string; first: boolean; last: boolean; disabled: boolean; sectionsEnabled: boolean; onAction: (action: WeekAction) => void;
@@ -16,7 +16,7 @@ export function WeekGridMenu({ label, first, last, disabled, sectionsEnabled, on
       onClick={() => { const rect = trigger.current!.getBoundingClientRect(); setPosition(position ? null : { x: rect.right - 208, y: rect.bottom }); }}>
       <MoreIcon />
     </IconButton>
-    {position ? <GridPopupMenu {...position} id={id} label={label} trigger={trigger} onClose={close}
+    {position ? <PopupMenu {...position} id={id} label={label} trigger={trigger} onClose={close}
       onAction={(action: WeekAction) => { close(true); onAction(action); }} items={[
         { action: 'toggleSections', label: `${sectionsEnabled ? 'Disable' : 'Enable'} sections`, icon: sectionsEnabled ? <span aria-hidden className="inline-grid size-4 place-items-center">✓</span> : <SectionsIcon /> },
         { action: 'duplicate', label: 'Duplicate week', icon: <CopyIcon /> },

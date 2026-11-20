@@ -1,4 +1,4 @@
-import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { useEffect, useId, useRef, useState, type ComponentPropsWithRef, type ReactNode } from 'react';
 import { IconButton } from './controls';
 import { MoreIcon } from './icons';
 
@@ -46,4 +46,9 @@ export function ActionsMenu({ label, children }: { label: string; children: Reac
   );
 }
 
-export const actionItemClass = 'flex min-h-11 w-full items-center gap-2 rounded-card px-3 text-left text-sm hover:bg-surface-raised disabled:cursor-not-allowed disabled:opacity-40';
+const actionItemClass = 'flex min-h-11 w-full items-center gap-2 rounded-card px-3 text-left text-sm hover:bg-surface-raised disabled:cursor-not-allowed disabled:opacity-40';
+
+/** One action in an ActionsMenu; `danger` for remove and delete. */
+export function ActionItem({ danger = false, className = '', type = 'button', ...rest }: ComponentPropsWithRef<'button'> & { danger?: boolean }) {
+  return <button type={type} className={`${actionItemClass} ${danger ? 'text-danger' : ''} ${className}`} {...rest} />;
+}

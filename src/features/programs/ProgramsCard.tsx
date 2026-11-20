@@ -8,7 +8,7 @@ import { formatDate } from '@/lib/format';
 import { SERVICE_LABELS } from '@/lib/services';
 import { programErrorMessage, useClientPrograms, useCreateProgram, type ProgramRow } from './api';
 
-import { ActionsMenu, actionItemClass } from '@/components/ActionsMenu';
+import { ActionItem, ActionsMenu } from '@/components/ActionsMenu';
 import { DeleteArchivedProgramDialog, RemoveProgramDialog } from './RemoveProgramDialog';
 import type { ServiceKind } from '@/domain/programs/contract';
 import { useCreateNutritionProgram } from '@/features/nutrition/programApi';
@@ -81,13 +81,13 @@ export function ProgramsCard({ clientId, enrollments }: { clientId: string; enro
                 </span>
               </Link>
               {p.archived_at ? <ActionsMenu label={`Options for ${programTitle(p)}`}>
-                <button type="button" className={actionItemClass} disabled={restore.isPending || !restorable(p)} title={restorable(p) ? undefined : 'Its service has ended'}
-                  onClick={() => restore.mutate(p.id)}>{restorable(p) ? 'Restore' : 'Restore (service ended)'}</button>
-                {isAdmin ? <button type="button" className={`${actionItemClass} text-danger`} onClick={() => setDeleting(p)}>Delete permanently</button> : null}
+                <ActionItem disabled={restore.isPending || !restorable(p)} title={restorable(p) ? undefined : 'Its service has ended'}
+                  onClick={() => restore.mutate(p.id)}>{restorable(p) ? 'Restore' : 'Restore (service ended)'}</ActionItem>
+                {isAdmin ? <ActionItem danger onClick={() => setDeleting(p)}>Delete permanently</ActionItem> : null}
               </ActionsMenu> : null}
               {!p.archived_at ? <ActionsMenu label={`Options for ${programTitle(p)}`}>{!currentIds.has(p.id) && enrollmentOf(p) && programCandidates(p.enrollment_id, programs.data ?? []).length > 1 ? (
-                <button type="button" className={actionItemClass} disabled={setCurrent.isPending} onClick={() => setCurrent.mutate({ enrollmentId: p.enrollment_id, programId: p.id })}>Make current</button>
-              ) : null}<button type="button" className={`${actionItemClass} text-danger`} onClick={() => setRemoval(p)}>{p.program_revisions.some((r) => r.status === 'published') ? 'Archive' : 'Delete'} program</button></ActionsMenu> : null}
+                <ActionItem disabled={setCurrent.isPending} onClick={() => setCurrent.mutate({ enrollmentId: p.enrollment_id, programId: p.id })}>Make current</ActionItem>
+              ) : null}<ActionItem danger onClick={() => setRemoval(p)}>{p.program_revisions.some((r) => r.status === 'published') ? 'Archive' : 'Delete'} program</ActionItem></ActionsMenu> : null}
             </li>
           ))}
         </ul>

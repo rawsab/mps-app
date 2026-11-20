@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
 import { IconButton } from './controls';
+import { Button } from './ui';
 import { CloseIcon } from './icons';
 
 /**
@@ -101,4 +102,35 @@ function leave(dialog: HTMLDialogElement, opener: Element | null) {
   const drop = () => dialog.remove();
   dialog.addEventListener('animationend', (e) => { if (e.target === dialog) drop(); });
   window.setTimeout(drop, 400);
+}
+
+/** The padded content area of a dialog. Lay out its children with `className`, e.g. `grid gap-4`. */
+export function DialogBody({ children, className = '' }: { children: ReactNode; className?: string }) {
+  return <div className={`p-4 sm:p-5 ${className}`}>{children}</div>;
+}
+
+/**
+ * Cancel plus one confirming action. While `pending` the dialog can't be dismissed and the
+ * confirming button shows a spinner; close it from `onConfirm`'s success handler.
+ */
+export function ConfirmDialog({ title, description, confirmLabel, cancelLabel = 'Cancel', tone = 'primary', pending = false, disabled = false, onConfirm, onClose, children }: {
+  title: string;
+  description?: ReactNode;
+  confirmLabel: ReactNode;
+  cancelLabel?: string;
+  tone?: 'primary' | 'danger';
+  pending?: boolean;
+  disabled?: boolean;
+  onConfirm: () => void;
+  onClose: () => void;
+  children?: ReactNode;
+}) {
+  return (
+    <Dialog title={title} description={description} onClose={() => { if (!pending) onClose(); }} footer={<>
+      <Button variant="secondary" disabled={pending} onClick={onClose}>{cancelLabel}</Button>
+      <Button variant={tone} busy={pending} disabled={disabled} onClick={onConfirm}>{confirmLabel}</Button>
+    </>}>
+      {children}
+    </Dialog>
+  );
 }

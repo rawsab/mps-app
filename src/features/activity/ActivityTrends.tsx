@@ -7,6 +7,7 @@ import { Avatar } from '@/components/Avatar';
 import { friendlyError, useClient, useClientPhoto } from '@/features/clients/api';
 import { capitalize } from '@/lib/format';
 import { useActivityStats } from './api';
+import { ChartTooltip } from '@/components/Tooltip';
 
 const CLIENT_ROWS = 6;
 const plural = (n: number, one: string) => `${n.toLocaleString()} ${one}${n === 1 ? '' : 's'}`;
@@ -105,11 +106,10 @@ function ColumnTrend({ slots, counts, unit }: { slots: TrendSlot[]; counts: numb
             ))}
           </ul>
           {hovered && pointer ? (
-            <span aria-hidden style={{ left: pointer.x, top: pointer.y }}
-              className="pointer-events-none absolute z-10 flex -translate-x-1/2 -translate-y-[calc(100%+10px)] flex-col items-center whitespace-nowrap rounded-card border border-line bg-surface-raised px-2 py-1 text-xs shadow-lg">
+            <ChartTooltip x={pointer.x} y={pointer.y - 10} dense>
               <span className="text-muted">{hovered.slot.label}</span>
               <span className="font-medium tabular-nums">{plural(hovered.count, 'notification')}</span>
-            </span>
+            </ChartTooltip>
           ) : null}
         </div>
         <span aria-hidden className="-mt-1.5 w-6 shrink-0 text-xs tabular-nums text-muted">{max}</span>

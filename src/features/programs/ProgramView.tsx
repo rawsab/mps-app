@@ -1,8 +1,8 @@
-import { useId, useState, type DragEvent, type FormEvent, type ReactNode } from 'react';
+import { useState, type DragEvent, type FormEvent, type ReactNode } from 'react';
 import { z } from 'zod';
 import { useSearchParams } from 'react-router';
 import { DayIcon, PlusIcon, TrainingIcon } from '@/components/icons';
-import { ActionsMenu, actionItemClass } from '@/components/ActionsMenu';
+import { ActionItem, ActionsMenu } from '@/components/ActionsMenu';
 import { programDestinations, selectedProgramItem } from './programNavigation';
 import { DisclosureSummary } from '@/components/DisclosureSummary';
 import { Dialog } from '@/components/Dialog';
@@ -25,6 +25,7 @@ import {
 import { useEditor } from './useDraftEditor';
 import { weekMuscles } from '@/domain/programs/muscles';
 import { planGridRowMove, type GridRowDrop } from '@/domain/programs/gridRowMoves';
+import { InfoTip } from '@/components/Tooltip';
 
 /**
  * Matt's Program view (FR-05): an outline and one focused workout workspace. It edits
@@ -237,10 +238,10 @@ function NodeActions({
   const commit = useCommandCommit();
   return (
     <ActionsMenu label={`Options for ${what}`}>
-      <button type="button" className={actionItemClass} disabled={index === 0} onClick={() => commit({ type: 'move', id, parentId, index: index - 1 })}><UpGlyph /> Move up</button>
-      <button type="button" className={actionItemClass} disabled={index === count - 1} onClick={() => commit({ type: 'move', id, parentId, index: index + 1 })}><DownGlyph /> Move down</button>
-      {duplicable ? <button type="button" className={actionItemClass} onClick={() => commit({ type: 'duplicate', id })}><CopyGlyph /> Duplicate</button> : null}
-      <button type="button" className={`${actionItemClass} text-danger`} onClick={() => onRemove({ id, what })}><RemoveGlyph /> Remove</button>
+      <ActionItem disabled={index === 0} onClick={() => commit({ type: 'move', id, parentId, index: index - 1 })}><UpGlyph /> Move up</ActionItem>
+      <ActionItem disabled={index === count - 1} onClick={() => commit({ type: 'move', id, parentId, index: index + 1 })}><DownGlyph /> Move down</ActionItem>
+      {duplicable ? <ActionItem onClick={() => commit({ type: 'duplicate', id })}><CopyGlyph /> Duplicate</ActionItem> : null}
+      <ActionItem danger onClick={() => onRemove({ id, what })}><RemoveGlyph /> Remove</ActionItem>
     </ActionsMenu>
   );
 }
@@ -255,7 +256,7 @@ function WeekEditor({ week, index, count, onRemove, onNavigate }: { week: Progra
         <CommitField label="Starts" type="date" value={week.startDate ?? ''} rejectKey={`${week.id}:startDate`} className="w-full sm:w-44" onCommit={(t) => commit({ type: 'updateWeek', id: week.id, patch: { startDate: t || null } })} />
         <div className="flex min-h-11 items-center gap-2 text-sm">
           <label className="flex items-center gap-2"><input type="checkbox" className="size-4 accent-[var(--color-gold)]" checked={week.useSections} onChange={(event) => commit({ type: 'updateWeek', id: week.id, patch: { useSections: event.target.checked } })} />Use sections</label>
-          <SectionsInfo />
+          <InfoTip label="About sections">Sections are used to create groups of exercises.</InfoTip>
         </div>
         <NodeActions id={week.id} index={index} count={count} parentId={null} what={name} onRemove={onRemove} />
       </div>
@@ -276,16 +277,6 @@ function WeekEditor({ week, index, count, onRemove, onNavigate }: { week: Progra
 
 type ExerciseDragProps = { canDrag: boolean; draggedExercise: string | null; onExerciseDragStart: (event: DragEvent<HTMLElement>, id: string) => void; onExerciseDrop: (event: DragEvent<HTMLElement>, target: GridRowDrop) => void; onExerciseDragEnd: () => void };
 
-function SectionsInfo() {
-  const tooltipId = useId();
-  return (
-    <span className="group/sections-info relative inline-flex">
-      <button type="button" aria-label="About sections" aria-describedby={tooltipId} className="inline-flex size-4 items-center justify-center rounded-full border border-muted/60 text-[10px] font-semibold leading-none text-muted outline-none transition-colors hover:border-gold hover:text-text focus-visible:border-gold focus-visible:text-text">i</button>
-      <span id={tooltipId} role="tooltip" className="invisible pointer-events-none absolute left-1/2 top-full z-30 mt-2 w-max max-w-52 -translate-x-1/2 rounded-card border border-line bg-surface-raised px-2.5 py-1.5 text-xs font-normal leading-4 text-text opacity-0 shadow-lg transition-opacity duration-150 group-hover/sections-info:visible group-hover/sections-info:opacity-100 group-focus-within/sections-info:visible group-focus-within/sections-info:opacity-100">Sections are used to create groups of exercises.</span>
-    </span>
-  );
-}
-
 function DayEditor({ day, weekId, index, count, rows, onRemove, useSections, canDrag, draggedExercise, onExerciseDragStart, onExerciseDrop, onExerciseDragEnd }: { day: WorkoutDay; weekId: string; index: number; count: number; rows: Map<string, GridRow>; onRemove: (r: Removal) => void; useSections: boolean } & ExerciseDragProps) {
   const commit = useCommandCommit();
   return (
@@ -302,7 +293,7 @@ function DayEditor({ day, weekId, index, count, rows, onRemove, useSections, can
         <CommitField label="Date (optional)" type="date" value={day.scheduledDate ?? ''} rejectKey={`${day.id}:scheduledDate`} className="w-full sm:w-44" onCommit={(t) => commit({ type: 'updateDay', id: day.id, patch: { scheduledDate: t || null } })} />
         <div className="flex min-h-11 items-center gap-2 text-sm">
           <label className="flex items-center gap-2"><input type="checkbox" className="size-4 accent-[var(--color-gold)]" checked={useSections} onChange={(event) => commit({ type: 'updateWeek', id: weekId, patch: { useSections: event.target.checked } })} />Use sections</label>
-          <SectionsInfo />
+          <InfoTip label="About sections">Sections are used to create groups of exercises.</InfoTip>
         </div>
         <NodeActions id={day.id} index={index} count={count} parentId={weekId} what={dayHeading(day, index)} onRemove={onRemove} />
       </div>
