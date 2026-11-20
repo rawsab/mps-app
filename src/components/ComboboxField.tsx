@@ -1,4 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
+import { controlClass } from './ui';
 
 type Option = { value: string; label: string; detail?: string };
 
@@ -109,7 +110,7 @@ export function ComboboxField({ label, name, options, defaultValue = '', hint, e
             setOpen(true);
           }}
           onKeyDown={onKeyDown}
-          className="min-h-11 w-full rounded-card border border-line bg-ink pl-3 pr-9 text-base text-text transition-[border-color,box-shadow] duration-150 placeholder:text-muted/60 focus:border-gold focus:shadow-[0_0_0_3px_color-mix(in_oklab,var(--color-gold)_22%,transparent)] focus:outline-none"
+          className={`min-h-11 w-full border-line pl-3 pr-9 ${controlClass}`}
         />
         <svg aria-hidden viewBox="0 0 16 16" className={`pointer-events-none absolute right-3 top-1/2 size-4 -translate-y-1/2 text-muted transition-transform duration-150 ${open ? 'rotate-180' : ''}`} fill="none" stroke="currentColor" strokeWidth="1.6">
           <path d="m4 6 4 4 4-4" strokeLinecap="round" strokeLinejoin="round" />
@@ -120,7 +121,7 @@ export function ComboboxField({ label, name, options, defaultValue = '', hint, e
           id={listId}
           role="listbox"
           aria-label={label}
-          className="filter-panel absolute left-0 right-0 top-full z-20 mt-1.5 max-h-64 overflow-y-auto rounded-card border border-line bg-surface p-1.5 shadow-[0_12px_32px_-12px_rgba(0,0,0,0.35)]"
+          className="filter-panel absolute left-0 right-0 top-full z-20 mt-1.5 max-h-64 overflow-y-auto rounded-card border border-line bg-surface p-1.5 shadow-popover"
         >
           {filtered.length === 0 ? <li className="px-2.5 py-2 text-sm text-muted">No matches</li> : null}
           {filtered.map((o, i) => (
@@ -134,7 +135,7 @@ export function ComboboxField({ label, name, options, defaultValue = '', hint, e
               onMouseDown={(e) => e.preventDefault()}
               onClick={() => pick(o)}
               onMouseMove={() => setActive(i)}
-              className={`flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-[5px] px-2.5 text-sm sm:min-h-9 ${
+              className={`flex min-h-11 cursor-pointer items-center justify-between gap-3 rounded-inner px-2.5 text-sm sm:min-h-9 ${
                 i === active ? 'bg-surface-raised text-text' : 'text-text'
               } ${o.value === value ? 'font-medium text-gold-fg' : ''}`}
             >

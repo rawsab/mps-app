@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { CloseIcon } from './icons';
 
 /**
  * Modal built on the native <dialog>: focus moves in and is trapped, Escape closes, and focus returns
@@ -73,9 +74,7 @@ export function Dialog({
             aria-label="Close"
             className="inline-flex size-9 shrink-0 items-center justify-center rounded-card text-muted hover:bg-surface-raised hover:text-text"
           >
-            <svg aria-hidden viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-              <path d="m4 4 8 8M12 4l-8 8" />
-            </svg>
+            <CloseIcon />
           </button>
         </header>
         <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>

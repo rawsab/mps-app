@@ -8,6 +8,7 @@ import {
   ProgressIcon,
   ReviewsIcon,
   CalendarIcon,
+  CloseIcon,
   SidebarIcon,
   SignOutIcon,
   TemplatesIcon,
@@ -301,9 +302,7 @@ function CoachDrawer({ onClose }: { onClose: () => void }) {
         <div className="flex items-center justify-between gap-2 pl-2">
           <img src="/logo/mps-full-logo.png" alt="Modern Physique Systems" className="brand-logo h-7 w-auto" />
           <button type="button" onClick={dismiss} aria-label="Close navigation" className={sidebarControl}>
-            <svg aria-hidden viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-              <path d="m4 4 8 8M12 4l-8 8" />
-            </svg>
+            <CloseIcon />
           </button>
         </div>
         <nav aria-label="Coach">

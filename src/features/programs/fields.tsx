@@ -3,7 +3,7 @@ import type { DraftCommand } from '@/domain/programs/commands';
 import { planEdits, type GridColumnKey } from '@/domain/programs/grid';
 import { useEditor } from './useDraftEditor';
 import { useMuscleSuggestions } from './MuscleSuggestions';
-import { RequiredMark } from '@/components/ui';
+import { controlClass, RequiredMark } from '@/components/ui';
 
 /** Shared key for a rejected edit, so the Program and Grid views show the same kept text. */
 export const cellKey = (exerciseId: string, column: GridColumnKey) => `${exerciseId}:${column}`;
@@ -37,7 +37,7 @@ export function useCommandCommit() {
 }
 
 const inputClass =
-  'w-full min-h-11 rounded-card border bg-ink px-3 text-base text-text transition-[border-color,box-shadow] duration-150 placeholder:text-muted/60 focus:border-gold focus:shadow-[0_0_0_3px_color-mix(in_oklab,var(--color-gold)_22%,transparent)] focus:outline-none sm:text-sm';
+  `w-full min-h-11 px-3 sm:text-sm ${controlClass}`;
 
 /**
  * A text field that commits on blur or Enter. Refused text stays in the field with its message,

@@ -443,7 +443,7 @@ function MeetingCalendar({ timeZone }: { timeZone: string }) {
           <div role="group" aria-label="Calendar view" className="flex rounded-card border border-line p-0.5">
             {CALENDAR_VIEWS.map((option) => (
               <button key={option} type="button" aria-pressed={view === option} onClick={() => go({ view: option })}
-                className={`min-h-10 flex-1 rounded-[5px] px-3 text-sm transition-colors sm:flex-none ${view === option ? 'bg-surface-raised font-medium text-text' : 'text-muted hover:text-text'}`}>
+                className={`min-h-10 flex-1 rounded-inner px-3 text-sm transition-colors sm:flex-none ${view === option ? 'bg-surface-raised font-medium text-text' : 'text-muted hover:text-text'}`}>
                 {capitalize(option)}
               </button>
             ))}
@@ -551,7 +551,7 @@ function TimeGrid({ days, today, byDay, timeZone, now, onDay, onMeeting }: {
                   return (
                     <button key={meeting.id} type="button" onClick={() => onMeeting(meeting)}
                       title={`${sessionRange(meeting.startsAt, meeting.durationMinutes, timeZone)} · ${meeting.clientName} · ${topicLabel(meeting.services)}`}
-                      className={`absolute overflow-hidden rounded-[5px] border-l-[3px] px-1.5 text-left py-0.5 text-[11px] leading-tight hover:z-10 hover:brightness-110 ${chipTone(meeting)} ${isCancelled(meeting) ? 'opacity-60' : ''}`}
+                      className={`absolute overflow-hidden rounded-inner border-l-[3px] px-1.5 text-left py-0.5 text-[11px] leading-tight hover:z-10 hover:brightness-110 ${chipTone(meeting)} ${isCancelled(meeting) ? 'opacity-60' : ''}`}
                       style={{
                         top: (start / 60) * HOUR_PX + 1,
                         height: Math.max(((end - start) / 60) * HOUR_PX - 2, 18),

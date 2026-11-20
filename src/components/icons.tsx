@@ -128,6 +128,12 @@ export const SendIcon = () => (
   </Icon>
 );
 
+/** Close and dismiss buttons. */
+export const CloseIcon = () => <Icon className="size-4" strokeWidth={2.4}><path d="m6 6 12 12M18 6 6 18" /></Icon>;
+/** A circled "i", for context that needs no action. */
+export const InfoIcon = ({ className = 'size-4 shrink-0' }: { className?: string }) => <Icon className={className} strokeWidth={1.92}><circle cx="12" cy="12" r="9.6" /><path d="M12 10.8v6M12 7.5v.01" /></Icon>;
+/** The "more actions" glyph on menu triggers. */
+export const MoreIcon = () => <span aria-hidden className="text-xl leading-none">⋯</span>;
 export const PlusIcon = () => <Icon className="size-4 shrink-0"><path d="M12 5v14M5 12h14" /></Icon>;
 export const TrashIcon = () => <Icon className="size-4 shrink-0"><path d="M3 6h18M9 6V3h6v3M5 6l1 15h12l1-15M10 10v7M14 10v7" /></Icon>;
 export const ArchiveIcon = () => <Icon className="size-4 shrink-0"><rect x="3" y="4" width="18" height="4" rx="1" /><path d="M5 8v12h14V8M10 12h4" /></Icon>;

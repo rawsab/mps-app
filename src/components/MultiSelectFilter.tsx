@@ -82,12 +82,12 @@ export function MultiSelectFilter<T extends string>({ label, options, selected, 
           id={panelId}
           role="group"
           aria-label={label}
-          className="filter-panel absolute left-0 top-full z-20 mt-1.5 w-64 max-w-[calc(100vw-2rem)] rounded-card border border-line bg-surface p-1.5 shadow-[0_12px_32px_-12px_rgba(0,0,0,0.35)]"
+          className="filter-panel absolute left-0 top-full z-20 mt-1.5 w-64 max-w-[calc(100vw-2rem)] rounded-card border border-line bg-surface p-1.5 shadow-popover"
         >
           {options.map((o) => (
             <label
               key={o.value}
-              className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-[5px] px-2.5 text-sm text-text hover:bg-surface-raised sm:min-h-9"
+              className="flex min-h-11 cursor-pointer items-center gap-2.5 rounded-inner px-2.5 text-sm text-text hover:bg-surface-raised sm:min-h-9"
             >
               <input type="checkbox" className="size-4 accent-gold" checked={selected.includes(o.value)} onChange={() => toggle(o.value)} />
               <span className="flex-1">{o.display ?? o.label}</span>
@@ -100,7 +100,7 @@ export function MultiSelectFilter<T extends string>({ label, options, selected, 
               type="button"
               disabled={selected.length === 0}
               onClick={() => onChange([])}
-              className="min-h-9 shrink-0 rounded-[5px] px-2 text-xs text-muted hover:text-text disabled:opacity-40"
+              className="min-h-9 shrink-0 rounded-inner px-2 text-xs text-muted hover:text-text disabled:opacity-40"
             >
               Clear
             </button>

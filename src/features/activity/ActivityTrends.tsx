@@ -33,7 +33,7 @@ export function ActivityTrends({ range, onRange }: { range: TrendRange; onRange:
         <div role="group" aria-label="Trend range" className="flex rounded-card border border-line p-0.5">
           {TREND_RANGES.map((option) => (
             <button key={option} type="button" aria-pressed={range === option} onClick={() => onRange(option)}
-              className={`min-h-9 rounded-[5px] px-3 text-sm transition-colors ${range === option ? 'bg-surface-raised font-medium text-text' : 'text-muted hover:text-text'}`}>
+              className={`min-h-9 rounded-inner px-3 text-sm transition-colors ${range === option ? 'bg-surface-raised font-medium text-text' : 'text-muted hover:text-text'}`}>
               {capitalize(option)}
             </button>
           ))}

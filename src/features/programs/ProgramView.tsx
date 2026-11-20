@@ -281,7 +281,7 @@ function SectionsInfo() {
   return (
     <span className="group/sections-info relative inline-flex">
       <button type="button" aria-label="About sections" aria-describedby={tooltipId} className="inline-flex size-4 items-center justify-center rounded-full border border-muted/60 text-[10px] font-semibold leading-none text-muted outline-none transition-colors hover:border-gold hover:text-text focus-visible:border-gold focus-visible:text-text">i</button>
-      <span id={tooltipId} role="tooltip" className="invisible pointer-events-none absolute left-1/2 top-full z-30 mt-2 w-max max-w-52 -translate-x-1/2 rounded-card border border-line bg-surface-raised px-2.5 py-1.5 text-xs font-normal leading-4 text-text opacity-0 shadow-card transition-opacity duration-150 group-hover/sections-info:visible group-hover/sections-info:opacity-100 group-focus-within/sections-info:visible group-focus-within/sections-info:opacity-100">Sections are used to create groups of exercises.</span>
+      <span id={tooltipId} role="tooltip" className="invisible pointer-events-none absolute left-1/2 top-full z-30 mt-2 w-max max-w-52 -translate-x-1/2 rounded-card border border-line bg-surface-raised px-2.5 py-1.5 text-xs font-normal leading-4 text-text opacity-0 shadow-lg transition-opacity duration-150 group-hover/sections-info:visible group-hover/sections-info:opacity-100 group-focus-within/sections-info:visible group-focus-within/sections-info:opacity-100">Sections are used to create groups of exercises.</span>
     </span>
   );
 }

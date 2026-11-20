@@ -129,7 +129,7 @@ export function MeetingsCard({ clientId, heading, focusMeetingId, onFocusClosed 
         <div role="group" aria-label="Meetings to show" className="flex rounded-card border border-line p-0.5">
           {(['upcoming', 'past'] as const).map((option) => (
             <button key={option} type="button" aria-pressed={tab === option} onClick={() => setTab(option)}
-              className={`min-h-9 rounded-[5px] px-3 text-sm transition-colors ${tab === option ? 'bg-surface-raised font-medium text-text' : 'text-muted hover:text-text'}`}>
+              className={`min-h-9 rounded-inner px-3 text-sm transition-colors ${tab === option ? 'bg-surface-raised font-medium text-text' : 'text-muted hover:text-text'}`}>
               {option === 'upcoming' ? `Next ${LIST_DAYS} days` : 'Past'}
             </button>
           ))}

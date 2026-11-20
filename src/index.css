@@ -40,6 +40,12 @@
   --color-sidebar-glow: color-mix(in oklab, var(--color-sidebar-gold) 8%, transparent);
   --sidebar-grain: 0.06;
   --radius-card: 7px;
+  /* Options inside a bordered group (segmented controls, dropdown rows) sit 2px inside the card radius. */
+  --radius-inner: 5px;
+  /* Dropdown panels and other surfaces that float over content. */
+  --shadow-popover: 0 12px 32px -12px rgba(0, 0, 0, 0.35);
+  /* The gold ring on a focused text control. */
+  --shadow-focus: 0 0 0 3px color-mix(in oklab, var(--color-gold) 22%, transparent);
   --font-sans: 'Hanken Grotesk Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
   --ease-ui: cubic-bezier(0.2, 0.8, 0.2, 1);
   --ease-enter: cubic-bezier(0.22, 1, 0.36, 1);

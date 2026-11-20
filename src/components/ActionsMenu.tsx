@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { MoreIcon } from './icons';
 
 /** A disclosure of ordinary buttons: Tab navigates actions; Escape returns to the trigger. */
 export function ActionsMenu({ label, children }: { label: string; children: ReactNode }) {
@@ -29,7 +30,7 @@ export function ActionsMenu({ label, children }: { label: string; children: Reac
         onMouseDown={(event) => event.preventDefault()}
         onClick={(event) => { event.currentTarget.focus(); setOpen((value) => !value); }}
         className="inline-flex size-11 items-center justify-center rounded-card text-muted transition-colors hover:bg-surface-raised hover:text-text">
-        <span aria-hidden className="text-xl leading-none">⋯</span>
+        <MoreIcon />
       </button>
       {open ? <div id={id} aria-label={label} className="absolute right-0 top-full z-30 grid w-52 max-w-[calc(100vw-2rem)] rounded-card border border-line bg-surface p-1 shadow-lg"
         onClick={(event) => {

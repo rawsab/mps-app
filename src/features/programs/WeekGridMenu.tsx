@@ -1,5 +1,5 @@
 import { useId, useRef, useState } from 'react';
-import { ArrowDownIcon, ArrowUpIcon, CopyIcon, SectionsIcon, TrashIcon } from '@/components/icons';
+import { ArrowDownIcon, ArrowUpIcon, CopyIcon, MoreIcon, SectionsIcon, TrashIcon } from '@/components/icons';
 import { GridPopupMenu } from './GridPopupMenu';
 export type WeekAction = 'duplicate' | 'delete' | 'up' | 'down' | 'toggleSections';
 export function WeekGridMenu({ label, first, last, disabled, sectionsEnabled, onAction }: {
@@ -13,7 +13,7 @@ export function WeekGridMenu({ label, first, last, disabled, sectionsEnabled, on
     <button ref={trigger} type="button" aria-label={`Options for ${label}`} aria-haspopup="menu" aria-expanded={!!position} aria-controls={position ? id : undefined}
       disabled={disabled} className="flex size-9 shrink-0 items-center justify-center rounded-card text-muted hover:bg-surface-raised hover:text-text disabled:opacity-40"
       onClick={() => { const rect = trigger.current!.getBoundingClientRect(); setPosition(position ? null : { x: rect.right - 208, y: rect.bottom }); }}>
-      <span aria-hidden className="text-xl leading-none">⋯</span>
+      <MoreIcon />
     </button>
     {position ? <GridPopupMenu {...position} id={id} label={label} trigger={trigger} onClose={close}
       onAction={(action: WeekAction) => { close(true); onAction(action); }} items={[

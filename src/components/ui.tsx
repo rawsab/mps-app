@@ -1,5 +1,6 @@
 import type { ComponentPropsWithRef, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { useId } from 'react';
+import { CloseIcon, InfoIcon } from './icons';
 import { NoticePresence } from './NoticePresence';
 
 type ButtonProps = ComponentPropsWithRef<'button'> & { variant?: 'primary' | 'secondary' | 'ghost' | 'danger'; busy?: boolean };
@@ -28,6 +29,9 @@ export function Card({ children, className = '' }: { children: ReactNode; classN
   return <section className={`rounded-card border border-line bg-surface p-4 sm:p-5 ${className}`}>{children}</section>;
 }
 
+/** The look shared by every text control: ink fill, gold border and ring on focus. Add height, padding and a border colour. */
+export const controlClass = 'rounded-card border bg-ink text-base text-text transition-[border-color,box-shadow] duration-150 placeholder:text-muted/60 focus:border-gold focus:shadow-focus focus:outline-none';
+
 type FieldProps = InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string | undefined; hint?: string };
 
 /** Marks a label whose field is required to publish. Fields use `aria-required`, not `required`, so incomplete drafts still autosave. */
@@ -54,7 +58,7 @@ export function TextField({ label, error, hint, className = '', required, ...res
         aria-required={required || undefined}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
-        className="min-h-11 rounded-card border border-line bg-ink px-3 text-base text-text transition-[border-color,box-shadow] duration-150 placeholder:text-muted/60 focus:border-gold focus:shadow-[0_0_0_3px_color-mix(in_oklab,var(--color-gold)_22%,transparent)] focus:outline-none"
+        className={`min-h-11 border-line px-3 ${controlClass}`}
         {...rest}
       />
       {hint ? (
@@ -85,7 +89,7 @@ export function TextAreaField({ label, error, hint, className = '', ...rest }: T
         id={id}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
-        className="min-h-24 resize-y rounded-card border border-line bg-ink px-3 py-2.5 text-base text-text transition-[border-color,box-shadow] duration-150 placeholder:text-muted/60 focus:border-gold focus:shadow-[0_0_0_3px_color-mix(in_oklab,var(--color-gold)_22%,transparent)] focus:outline-none"
+        className={`min-h-24 resize-y border-line px-3 py-2.5 ${controlClass}`}
         {...rest}
       />
       {hint ? (
@@ -143,10 +147,7 @@ function AlertBody({ tone = 'error', title, children, onDismiss }: AlertProps) {
   return (
     <div role={tone === 'error' ? 'alert' : 'status'} className={`flex items-start gap-2 rounded-card border px-3 py-2.5 text-sm ${styles}`}>
       {tone === 'note' ? (
-        <svg aria-hidden viewBox="0 0 20 20" className="mt-0.5 size-4 shrink-0 text-muted" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-          <circle cx="10" cy="10" r="8" />
-          <path d="M10 9v5M10 6.25v.01" />
-        </svg>
+        <InfoIcon className="mt-0.5 size-4 shrink-0 text-muted" />
       ) : null}
       <div className="min-w-0 flex-1">
         {title ? <p className="font-semibold">{title}</p> : null}
@@ -155,9 +156,7 @@ function AlertBody({ tone = 'error', title, children, onDismiss }: AlertProps) {
       {onDismiss ? (
         <button type="button" onClick={onDismiss} aria-label="Dismiss"
           className="-my-1.5 -mr-1.5 inline-flex size-8 shrink-0 items-center justify-center rounded-card opacity-80 hover:bg-current/10 hover:opacity-100">
-          <svg aria-hidden viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
-            <path d="m4 4 8 8M12 4l-8 8" />
-          </svg>
+          <CloseIcon />
         </button>
       ) : null}
     </div>

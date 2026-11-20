@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react';
 import { SaveStatus } from '@/components/SaveStatus';
+import { CloseIcon } from '@/components/icons';
 import { Button } from '@/components/ui';
 import type { Exercise, ProgramDraft } from '@/domain/programs/contract';
 import { dayMuscleChanges, formatChange, type LoggedSet, type TrainingSession } from '@/domain/training/volume';
@@ -155,7 +156,7 @@ function SetRow({ row, exerciseName, readOnly, canRemove, onChange, onCommit, on
         {!readOnly && canRemove ? (
           <button type="button" aria-label={`Remove ${label}`} onClick={onRemove}
             className="inline-flex size-11 items-center justify-center rounded-card text-muted hover:bg-surface-raised hover:text-danger">
-            <svg aria-hidden viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round"><path d="m4 4 8 8M12 4l-8 8" /></svg>
+            <CloseIcon />
           </button>
         ) : <span />}
       </div>
