@@ -5,7 +5,7 @@ Open work from the 2026-11-20 planning session. Done so far: answered requests l
 ## Housekeeping
 
 - [x] Commit the work so far (one commit, including the earlier MeetingsCard, sidebar glow and `index.css` changes, which share hunks with it).
-- [ ] Restore Maya's local services. Her Mesocycle and Nutrition enrollments were ended and archived at 06:28 on 2026-11-20 during manual testing. Older pgTAP suites (001, 004, 007, 010, 017 and others) fail until she has them again. Run `pnpm db:reset`, which wipes local data, or re-add the two services.
+- [x] Restore Maya's local services. `pnpm db:reset` on 2026-11-20; full pgTAP suite passes (834).
 - [ ] Manual UI checks for everything above (checklists in decisions 0043 and 0044 and in the chat).
 
 ## PT sessions: coach view (plan item 4)
