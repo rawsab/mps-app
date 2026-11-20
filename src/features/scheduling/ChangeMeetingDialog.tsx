@@ -59,7 +59,7 @@ export function ChangeMeetingDialog({ meeting, timeZone, initialKind, onClose, o
         <Button variant="secondary" disabled={send.isPending} onClick={onClose}>Back</Button>
         <Button busy={send.isPending} onClick={submit}>Send request</Button>
       </>}>
-      <DialogBody>
+      <DialogBody className="grid gap-4">
         <SegmentedControl label="Request" size="md" value={kind} optionClassName="flex-1" onChange={(next) => { setKind(next); setProblem(null); }}
           options={[{ value: 'reschedule', label: 'Reschedule' }, { value: 'cancel', label: 'Cancel' }]} />
         <Alert visible={!!send.error}>{schedulingError(send.error)}</Alert>

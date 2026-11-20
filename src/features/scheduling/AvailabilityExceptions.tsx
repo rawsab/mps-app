@@ -95,7 +95,7 @@ export function AvailabilityExceptions({ timeZone, onSaved }: { timeZone: string
         <ConfirmDialog title={`Remove ${KIND_LABEL[removing.kind].toLowerCase()}?`} tone="danger" confirmLabel="Remove" pending={remove.isPending}
           description={exceptionLabel(removing, timeZone)} onClose={() => { remove.reset(); setRemoving(null); }}
           onConfirm={() => remove.mutate(removing.id, { onSuccess: () => { setRemoving(null); onSaved(`${KIND_LABEL[removing.kind]} removed.`); } })}>
-          <DialogBody>
+          <DialogBody className="grid gap-4">
             <Alert visible={!!remove.error}>{schedulingError(remove.error)}</Alert>
             <p className="text-sm text-muted">{removing.kind === 'time_off' ? 'Clients will be able to pick these times again.' : 'Clients will no longer be able to pick these times.'}</p>
           </DialogBody>
@@ -134,7 +134,7 @@ function ExceptionDialog({ exception, initialKind, timeZone, onClose, onSaved }:
   if (overlaps) {
     return (
       <Dialog title={`${KIND_LABEL[kind]} saved`} onClose={() => onSaved(savedMessage)} footer={<Button onClick={() => onSaved(savedMessage)}>Done</Button>}>
-        <DialogBody>
+        <DialogBody className="grid gap-4">
           <p className="text-sm">{overlaps.length === 1 ? 'This meeting is still scheduled during it.' : `These ${overlaps.length} meetings are still scheduled during it.`} Move or cancel them from the calendar if needed.</p>
           <ul className="grid gap-1 text-sm">
             {overlaps.map((meeting) => <li key={meeting.id}>{meeting.clientName} · <span className="text-muted">{sessionMoment(meeting.startsAt, timeZone)}</span></li>)}
@@ -151,7 +151,7 @@ function ExceptionDialog({ exception, initialKind, timeZone, onClose, onSaved }:
         <Button variant="secondary" disabled={save.isPending} onClick={onClose}>Cancel</Button>
         <Button busy={save.isPending} onClick={submit}>Save</Button>
       </>}>
-      <DialogBody>
+      <DialogBody className="grid gap-4">
         <Alert visible={!!save.error}>{schedulingError(save.error)}</Alert>
         <SegmentedControl label="Kind" size="md" value={kind} onChange={setKind} optionClassName="flex-1"
           options={[{ value: 'time_off', label: KIND_LABEL.time_off }, { value: 'extra_hours', label: KIND_LABEL.extra_hours }]} />
