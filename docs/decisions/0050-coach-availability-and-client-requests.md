@@ -1,6 +1,6 @@
 # 0050 — Coach availability and client meeting requests
 
-Date: 2026-11-20 · Status: accepted (owner request) · Phase A built
+Date: 2026-11-20 · Status: accepted (owner request) · Phases A–B built
 
 - **Scope.** PRD §3 excludes booking. Decisions 0026 and 0037 recorded meeting scheduling as a scope addition, and this extends it so clients pick from the coach's open times when they ask to reschedule. It is still a request: nothing moves until the coach accepts, and only coaches refuse. The PRD has not been edited.
 - **Owner decisions (2026-11-20).**
@@ -35,4 +35,13 @@ Date: 2026-11-20 · Status: accepted (owner request) · Phase A built
   - Matt: Mon–Thu 9–5, Fri 10–4, a vacation week, a Saturday of extra hours, and a long lunch.
   - Priya: weekday mornings with a lunch break.
 
-**Phases.** A (done): migration 00049, 40 pgTAP assertions (`038_coach_availability.test.sql`), the coach screens above. B: the client's reschedule/cancel dialog on Home's next meeting. C: a client list of all upcoming meetings using the same dialog.
+- **Client screens (phase B).**
+  - Home's next meeting has **Reschedule** and **Cancel meeting** while it's scheduled, hasn't started and has no open request. Both open one dialog with a Reschedule | Cancel switch, and the request id is chosen once per dialog.
+  - Reschedule: the client picks a day, then a time, from `list_open_times`, shown in their own zone. "None of these work", a coach with no availability, or no open times leave a message-only request. If the time was taken meanwhile, the open times refresh and the message is kept.
+  - A billable meeting inside the late window shows a "Short notice" notice before sending. For a cancellation it says the cancellation will be marked late; for a reschedule it says the meeting goes ahead if the coach can't move it. Nothing is refused.
+  - A pending request shows on the card with the asked-for time, the message and **Withdraw request**.
+  - The latest answer (moved, cancelled, declined with the reply, or expired) shows above the card for 7 days. Dismissing it is remembered in this browser only.
+  - Coaches see "Short notice" on late reschedules in the meeting dialog and in Activity; "Late cancellation" stays for cancellations.
+- **Phase C (next).** A client `/meetings` list of every upcoming meeting, grouped by day (`upcomingByDay`), each with the same dialog, pending state and Withdraw, linked from Home as "All meetings". It needs no server changes.
+
+**Phases.** A (done): migration 00049, 40 pgTAP assertions (`038_coach_availability.test.sql`), the coach screens. B (done): the client dialog and Home card, `src/domain/scheduling/requests.ts` with unit tests. C: the upcoming-meetings list above.

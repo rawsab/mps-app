@@ -210,7 +210,12 @@ function MeetingDetails({ meeting, context, programs, onClose, onSaved, onChange
                 <p className="mt-2 text-sm">{!meeting.billable ? 'This meeting isn’t billed, so a cancellation is never late.'
                   : pending.late ? `Sent less than ${context.lateCancelHours} hours before the meeting, so accepting records a late cancellation.`
                   : 'Sent with enough notice, so accepting records an ordinary cancellation.'}</p>
-              ) : preferred ? <p className="mt-2 text-sm">Preferred time: {sessionMoment(pending.preferredStartsAt!, timeZone)}</p> : null}
+              ) : (
+                <>
+                  {preferred ? <p className="mt-2 text-sm">Preferred time: {sessionMoment(pending.preferredStartsAt!, timeZone)}</p> : null}
+                  {pending.late ? <p className="mt-2 text-sm">Short notice: sent less than {context.lateCancelHours} hours before the meeting.</p> : null}
+                </>
+              )}
             </div>
             {pending.kind === 'reschedule' ? (
               started ? <p className="text-sm text-muted">The meeting has started, so this request can only be declined.</p>

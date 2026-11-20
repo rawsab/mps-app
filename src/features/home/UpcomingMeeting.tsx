@@ -1,13 +1,18 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
 import { Avatar } from '@/components/Avatar';
 import { ArrowUpRightIcon, CalendarIcon } from '@/components/icons';
-import { Alert, Badge, Card, SectionHeading, Spinner } from '@/components/ui';
+import { ConfirmDialog, DialogBody } from '@/components/Dialog';
+import { Alert, Badge, Button, Card, SectionHeading, Spinner } from '@/components/ui';
 import { countdown } from '@/domain/scheduling/calendar';
+import { canRequestChange, recentRequestOutcome } from '@/domain/scheduling/requests';
 import { photoUrl } from '@/features/profile/api';
-import { schedulingError, type Meeting } from '@/features/scheduling/api';
+import { schedulingError, useWithdrawMeetingRequest, type Meeting } from '@/features/scheduling/api';
+import { ChangeMeetingDialog, type ChangeKind } from '@/features/scheduling/ChangeMeetingDialog';
+import { useMeetingToast } from '@/features/scheduling/useMeetingToast';
 import { topicLabel } from '@/features/scheduling/MeetingTopic';
-import { sessionDay, sessionRange } from '@/features/scheduling/time';
+import { sessionDay, sessionMoment, sessionRange } from '@/features/scheduling/time';
 import { SERVICE_SHORT_LABELS } from '@/lib/services';
 import { useNextMeeting } from './api';
 
@@ -18,20 +23,32 @@ const JOIN_EARLY_MS = 15 * 60_000;
 export function UpcomingMeeting({ timeZone, now }: { timeZone: string; now: number }) {
   const meetings = useNextMeeting(now);
   const meeting = meetings.next;
+  const toast = useMeetingToast();
+  const outcome = recentRequestOutcome(meetings.data ?? [], now);
+  const [dismissed, dismiss] = useDismissedOutcome();
   return (
     <section aria-labelledby="home-meeting" className="min-w-0">
       <SectionHeading id="home-meeting" icon={<CalendarIcon />} className="mb-3">Upcoming meeting</SectionHeading>
+      {toast.element}
+      <Alert visible={!!outcome && outcome.request.id !== dismissed} tone={outcome?.request.status === 'accepted' ? 'success' : 'note'} className="mb-3"
+        onDismiss={() => outcome && dismiss(outcome.request.id)}>
+        {outcome ? <OutcomeText meeting={outcome.meeting} timeZone={timeZone} /> : null}
+      </Alert>
       {meetings.isPending ? <Spinner label="Loading meetings" /> : null}
       <Alert visible={!!meetings.error} title="Could not load meetings">{schedulingError(meetings.error)}</Alert>
       {meetings.data && !meeting ? (
         <Card as="div" padding="sm" className="text-sm text-muted">No meetings scheduled. Your coach will add them here.</Card>
       ) : null}
-      {meeting ? <MeetingCard meeting={meeting} timeZone={timeZone} now={now} /> : null}
+      {meeting ? <MeetingCard meeting={meeting} timeZone={timeZone} now={now} onSent={(message) => toast.show(message)} /> : null}
     </section>
   );
 }
 
-function MeetingCard({ meeting, timeZone, now }: { meeting: Meeting; timeZone: string; now: number }) {
+function MeetingCard({ meeting, timeZone, now, onSent }: { meeting: Meeting; timeZone: string; now: number; onSent: (message: string) => void }) {
+  const [changing, setChanging] = useState<ChangeKind | null>(null);
+  const [withdrawing, setWithdrawing] = useState(false);
+  const withdraw = useWithdrawMeetingRequest();
+  const pending = meeting.request?.status === 'pending' ? meeting.request : null;
   const start = new Date(meeting.startsAt).getTime();
   const live = start <= now;
   const joinable = start - JOIN_EARLY_MS <= now;
@@ -51,8 +68,16 @@ function MeetingCard({ meeting, timeZone, now }: { meeting: Meeting; timeZone: s
         </div>
         {live ? <Badge tone="gold">Now</Badge> : wait ? <span className="shrink-0 pt-0.5 text-xs text-muted">In {wait.split(', ')[0]}</span> : null}
       </div>
-      {meeting.request?.status === 'pending' ? (
-        <p className="mt-2"><Badge tone="gold">{meeting.request.kind === 'cancel' ? 'Cancellation requested' : 'Reschedule requested'}</Badge></p>
+      {pending ? (
+        <div className="mt-3 rounded-card border border-gold/40 bg-gold/5 px-3 py-2.5 text-sm">
+          <p className="flex flex-wrap items-center gap-2">
+            <Badge tone="gold">{pending.kind === 'cancel' ? 'Cancellation requested' : 'Reschedule requested'}</Badge>
+            <span className="text-muted">Waiting for {meeting.coachName ?? 'your coach'}</span>
+          </p>
+          {pending.preferredStartsAt ? <p className="mt-1.5">Asked for {sessionMoment(pending.preferredStartsAt, timeZone)}</p> : null}
+          {pending.message ? <p className="mt-1.5 line-clamp-3 whitespace-pre-wrap break-words text-muted">“{pending.message}”</p> : null}
+          <Button variant="ghost" className="-ml-3 mt-1" onClick={() => setWithdrawing(true)}>Withdraw request</Button>
+        </div>
       ) : null}
       {programs.length ? (
         <ul className="mt-3 grid gap-1.5">
@@ -76,6 +101,24 @@ function MeetingCard({ meeting, timeZone, now }: { meeting: Meeting; timeZone: s
           </a>
         ) : <p className="text-sm text-muted">Your coach will share the call link.</p>}
       </div>
+      {canRequestChange(meeting, now) ? (
+        <div className="mt-2 flex flex-wrap gap-1">
+          <Button variant="ghost" className="-ml-3" onClick={() => setChanging('reschedule')}>Reschedule</Button>
+          <Button variant="ghost" onClick={() => setChanging('cancel')}>Cancel meeting</Button>
+        </div>
+      ) : null}
+      {changing ? (
+        <ChangeMeetingDialog meeting={meeting} timeZone={timeZone} initialKind={changing} onClose={() => setChanging(null)}
+          onSent={(message) => { setChanging(null); onSent(message); }} />
+      ) : null}
+      {withdrawing && pending ? (
+        <ConfirmDialog title="Withdraw your request?" confirmLabel="Withdraw" pending={withdraw.isPending}
+          description={pending.kind === 'cancel' ? 'The meeting stays as it is.' : 'The meeting stays at its current time, and any time you asked for is released.'}
+          onClose={() => { withdraw.reset(); setWithdrawing(false); }}
+          onConfirm={() => withdraw.mutate(pending.id, { onSuccess: () => { setWithdrawing(false); onSent('Request withdrawn.'); } })}>
+          <DialogBody><Alert visible={!!withdraw.error}>{schedulingError(withdraw.error)}</Alert></DialogBody>
+        </ConfirmDialog>
+      ) : null}
     </Card>
   );
 }
@@ -83,4 +126,33 @@ function MeetingCard({ meeting, timeZone, now }: { meeting: Meeting; timeZone: s
 /** Signed URLs last an hour; refreshing every 30 minutes keeps the picture loading. */
 function useCoachPhoto(path: string | null) {
   return useQuery({ queryKey: ['coach-photo', path], enabled: !!path, staleTime: 60_000, refetchInterval: 30 * 60_000, queryFn: () => photoUrl(path) });
+}
+
+/** The coach's answer to the client's latest request (decision 0050). */
+function OutcomeText({ meeting, timeZone }: { meeting: Meeting; timeZone: string }) {
+  const request = meeting.request!;
+  const coach = meeting.coachName ?? 'Your coach';
+  const when = sessionMoment(meeting.startsAt, timeZone);
+  const reply = request.response.trim() ? <span className="mt-1 block text-muted">“{request.response}”</span> : null;
+  if (request.status === 'expired') return <>Your reschedule request for the {when} meeting expired when it started, so it went ahead as planned.</>;
+  if (request.status === 'declined') {
+    return <>{coach} couldn’t {request.kind === 'cancel' ? 'cancel' : 'move'} your {when} meeting, so it stays as planned.{reply}</>;
+  }
+  if (request.kind === 'cancel') {
+    return <>{coach} cancelled your {when} meeting{meeting.status === 'late_cancelled' ? ' as a late cancellation' : ''}.{reply}</>;
+  }
+  return <>{coach} moved your meeting to {when}.{reply}</>;
+}
+
+const DISMISSED_KEY = 'mps.meeting-outcome-dismissed';
+
+/** The answer the client closed, remembered in this browser only. */
+function useDismissedOutcome(): [string | null, (id: string) => void] {
+  const [dismissed, setDismissed] = useState<string | null>(() => {
+    try { return localStorage.getItem(DISMISSED_KEY); } catch { return null; }
+  });
+  return [dismissed, (id) => {
+    setDismissed(id);
+    try { localStorage.setItem(DISMISSED_KEY, id); } catch { /* still hidden for this visit */ }
+  }];
 }

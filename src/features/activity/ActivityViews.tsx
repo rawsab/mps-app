@@ -105,7 +105,7 @@ export function ActivityRow({ clientId, item, from, review, leaving = false, com
             <span className={review ? 'text-sm' : 'font-medium'}>{activityTitle(item)}</span>
             {category ? <Badge tone={category.tone}>{category.label}</Badge> : null}
             {badge ? <Badge tone={badge.tone}>{badge.label}</Badge> : null}
-            {item.kind === 'request' && item.late ? <Badge tone="danger">Late cancellation</Badge> : null}
+            {item.kind === 'request' && item.late ? (item.requestKind === 'cancel' ? <Badge tone="danger">Late cancellation</Badge> : <Badge tone="gold">Short notice</Badge>) : null}
             {item.staffEdited ? <Badge>Edited by coach</Badge> : null}
           </p>
           {review && !compact ? <FactsCard item={item} /> : null}
