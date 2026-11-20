@@ -8,11 +8,12 @@ import { SERVICE_LABELS } from '@/lib/services';
 import { programErrorMessage, useClientPrograms, useCreateProgram, type ProgramRow } from './api';
 
 import { ActionsMenu, actionItemClass } from '@/components/ActionsMenu';
-import { RemoveProgramDialog } from './RemoveProgramDialog';
+import { DeleteArchivedProgramDialog, RemoveProgramDialog } from './RemoveProgramDialog';
 import type { ServiceKind } from '@/domain/programs/contract';
 import { useCreateNutritionProgram } from '@/features/nutrition/programApi';
 import { currentProgramId, programCandidates } from '@/domain/programs/current';
-import { useSetCurrentProgram } from './api';
+import { useRestoreProgram, useSetCurrentProgram } from './api';
+import { useViewer } from '@/app/auth';
 
 type ProgramFilter = 'all' | ServiceKind;
 const programFilters: { value: ProgramFilter; label: string }[] = [
@@ -32,10 +33,15 @@ export function ProgramsCard({ clientId, enrollments }: { clientId: string; enro
   const [removal, setRemoval] = useState<ProgramRow | null>(null);
   const [filter, setFilter] = useState<ProgramFilter>('all');
   const setCurrent = useSetCurrentProgram();
+  const restore = useRestoreProgram();
+  const [deleting, setDeleting] = useState<ProgramRow | null>(null);
+  const isAdmin = useViewer().data?.staffRole === 'admin';
   // Current program per live service (decision 0039), and services with a choice to make.
   const currentIds = new Set(enrollments.map((e) => currentProgramId(e, programs.data ?? [])).filter(Boolean));
   const enrollmentOf = (p: ProgramRow) => enrollments.find((e) => e.id === p.enrollment_id);
   const active = enrollments.filter((e) => e.status !== 'ended' && !e.archived_at);
+  // Archived programs come back only into a live service (decision 0045).
+  const restorable = (p: ProgramRow) => { const e = enrollmentOf(p); return !!e && e.status !== 'ended' && !e.archived_at; };
   const creating = create.isPending || createNutrition.isPending;
   const visiblePrograms = useMemo(() => (programs.data?.filter((program) => filter === 'all' || program.service === filter) ?? [])
     .sort((a, b) => programLastEditedAt(b) - programLastEditedAt(a)), [programs.data, filter]);
@@ -49,6 +55,7 @@ export function ProgramsCard({ clientId, enrollments }: { clientId: string; enro
       </div>
       {programs.isPending ? <Spinner label="Loading programs" /> : null}
       <Alert visible={!!setCurrent.error} className="mb-3" title="Current program not changed">{programErrorMessage(setCurrent.error)}</Alert>
+      <Alert visible={!!restore.error} className="mb-3" title="Program not restored">{programErrorMessage(restore.error)}</Alert>
       <Alert visible={!!programs.error} title="Could not load programs">{programErrorMessage(programs.error)}</Alert>
       {programs.data && visiblePrograms.length > 0 ? (
         <ul className="mb-4 divide-y divide-line">
@@ -72,6 +79,11 @@ export function ProgramsCard({ clientId, enrollments }: { clientId: string; enro
                   </span>
                 </span>
               </Link>
+              {p.archived_at ? <ActionsMenu label={`Options for ${programTitle(p)}`}>
+                <button type="button" className={actionItemClass} disabled={restore.isPending || !restorable(p)} title={restorable(p) ? undefined : 'Its service has ended'}
+                  onClick={() => restore.mutate(p.id)}>{restorable(p) ? 'Restore' : 'Restore (service ended)'}</button>
+                {isAdmin ? <button type="button" className={`${actionItemClass} text-danger`} onClick={() => setDeleting(p)}>Delete permanently</button> : null}
+              </ActionsMenu> : null}
               {!p.archived_at ? <ActionsMenu label={`Options for ${programTitle(p)}`}>{!currentIds.has(p.id) && enrollmentOf(p) && programCandidates(p.enrollment_id, programs.data ?? []).length > 1 ? (
                 <button type="button" className={actionItemClass} disabled={setCurrent.isPending} onClick={() => setCurrent.mutate({ enrollmentId: p.enrollment_id, programId: p.id })}>Make current</button>
               ) : null}<button type="button" className={`${actionItemClass} text-danger`} onClick={() => setRemoval(p)}>{p.program_revisions.some((r) => r.status === 'published') ? 'Archive' : 'Delete'} program</button></ActionsMenu> : null}
@@ -102,6 +114,7 @@ export function ProgramsCard({ clientId, enrollments }: { clientId: string; enro
       <Alert visible={!!create.error} className="mt-3" title="Program not created">{programErrorMessage(create.error)}</Alert>
       <Alert visible={!!createNutrition.error} className="mt-3" title="Program not created">{programErrorMessage(createNutrition.error)}</Alert>
       {removal ? <RemoveProgramDialog program={removal} onClose={() => setRemoval(null)} /> : null}
+      {deleting ? <DeleteArchivedProgramDialog program={deleting} title={programTitle(deleting)} onClose={() => setDeleting(null)} /> : null}
     </section>
   );
 }

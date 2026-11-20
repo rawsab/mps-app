@@ -1,12 +1,13 @@
 import { Link } from 'react-router';
 import { ProgressIcon } from '@/components/icons';
 import { Alert, SectionTitle, Spinner } from '@/components/ui';
-import { activeNutritionProgram, trainingProgress } from '@/domain/clientHome';
+import { activeNutritionProgram } from '@/domain/clientHome';
 import { nutritionWeeks } from '@/domain/nutritionProgram';
 import { nutritionError } from '@/features/nutrition/api';
 import { useNutritionProgram, useNutritionPrograms } from '@/features/nutrition/programApi';
 import { NutritionTrendChart } from '@/features/nutrition/NutritionTrendChart';
 import { trainingErrorMessage } from '@/features/training/api';
+import { TrainingProgressBar } from '@/features/training/TrainingProgress';
 import { useCurrentMesocycle } from './api';
 
 /** A short look at progress (decision 0042): nutrition trends and mesocycle completion. The Progress page has the rest. */
@@ -30,21 +31,7 @@ function MesocycleProgress({ today }: { today: string }) {
   if (meso.isPending) return <Spinner small label="Loading training progress" />;
   if (meso.error) return <Alert title="Training progress unavailable">{trainingErrorMessage(meso.error)}</Alert>;
   if (!meso.program || !meso.sessions) return null;
-  const p = trainingProgress(meso.program, meso.sessions, today);
-  const share = p.total ? p.completed / p.total : 0;
-  return (
-    <div className="min-w-0">
-      <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h3 className="text-base font-semibold">Mesocycle</h3>
-        <p className="text-sm text-muted">Week {p.week} of {p.weekCount}</p>
-      </div>
-      <div role="progressbar" aria-label="Workouts completed" aria-valuemin={0} aria-valuemax={p.total} aria-valuenow={p.completed}
-        className="mt-2 h-1.5 overflow-hidden rounded-full bg-line">
-        <div className="h-full rounded-full bg-gold" style={{ width: `${Math.round(share * 100)}%` }} />
-      </div>
-      <p className="mt-1.5 text-xs text-muted">{p.completed} of {p.total} workouts completed</p>
-    </div>
-  );
+  return <TrainingProgressBar program={meso.program} sessions={meso.sessions} today={today} />;
 }
 
 function NutritionProgress({ clientId, today }: { clientId: string; today: string }) {

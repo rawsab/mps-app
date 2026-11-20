@@ -29,11 +29,13 @@ import {
   useDeleteClientNote,
   useInviteClient,
   useSetEnrollmentStatus,
+  usePendingServiceRequests,
   useUpdateClientStatus,
   type ClientRow,
   type EnrollmentRow,
 } from './api';
 import { statusBadge } from './ClientsTable';
+import { ServiceRequestRows } from './ServiceRequests';
 
 export function ClientDetailPage() {
   const { clientId } = useParams();
@@ -158,17 +160,22 @@ function ServicesCard({
   const archive = useArchiveEnrollment();
   const remove = useDeleteArchivedService();
   const programs = useClientPrograms(clientId);
-  const visible = enrollments.filter((enrollment) => !enrollment.archived_at);
-  const archived = enrollments.filter((enrollment) => enrollment.archived_at);
+  const newestFirst = [...enrollments].sort((a, b) => b.created_at.localeCompare(a.created_at));
+  const visible = newestFirst.filter((enrollment) => !enrollment.archived_at);
+  const archived = newestFirst.filter((enrollment) => enrollment.archived_at);
   const [showArchived, setShowArchived] = useState(false);
   const [deleting, setDeleting] = useState<EnrollmentRow | null>(null);
   const live = enrollments.filter((e) => e.status !== 'ended');
   const available = SERVICES.filter((s) => !live.some((e) => e.service === s));
   const [service, setService] = useState<ServiceKind | ''>('');
+  // Any staff member with access can answer requests, not only admins (decision 0044).
+  const requests = usePendingServiceRequests(clientId);
 
   return (
     <section className="min-w-0">
       <h2 className="mb-3 flex items-center gap-2 text-lg font-semibold"><SectionTitle icon={<ServicesIcon />}>Services</SectionTitle></h2>
+      {requests.data?.length ? <div className="mb-3"><ServiceRequestRows requests={requests.data} /></div> : null}
+      <Alert visible={!!requests.error} className="mb-3" title="Could not load service requests">{friendlyError(requests.error)}</Alert>
       {visible.length === 0 ? <p className="text-sm text-muted">No services to show.</p> : null}
       <ul className="divide-y divide-line">
         {visible.map((enrollment) => (

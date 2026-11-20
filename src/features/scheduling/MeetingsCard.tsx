@@ -3,10 +3,12 @@ import { Link } from 'react-router';
 import { useViewer } from '@/app/auth';
 import { Dialog } from '@/components/Dialog';
 import { PencilIcon, PlusIcon, StopIcon } from '@/components/icons';
-import { Alert, Badge, Button, Spinner, TextAreaField, TextField } from '@/components/ui';
+import { Alert, Badge, Button, Spinner, TextAreaField, TextField, type BadgeTone } from '@/components/ui';
+import type { ServiceKind } from '@/domain/programs/contract';
 import { describePattern } from '@/domain/scheduling/pattern';
 import { useClientPrograms } from '@/features/programs/api';
 import { formatDate } from '@/lib/format';
+import { SERVICE_SHORT_LABELS } from '@/lib/services';
 import { schedulingError, useClientMeetings, useEndPattern, useMeetingContext, useSavePatternNotes, useStopMeetings, type Meeting, type MeetingContext, type MeetingSchedule } from './api';
 import { MeetingDialog, NewMeetingDialog } from './MeetingDialog';
 import { topicLabel } from './MeetingTopic';
@@ -24,6 +26,14 @@ type Open =
   | { kind: 'end'; schedule: MeetingSchedule }
   | { kind: 'notes'; schedule: MeetingSchedule }
   | { kind: 'stop' };
+
+/** One colour per service, so a pattern's services are told apart at a glance. */
+const SERVICE_TONES: Record<ServiceKind, BadgeTone> = { personal_training: 'gold', mesocycle: 'info', nutrition: 'success' };
+
+/** Pattern text with each "60 min" part dimmed. */
+function FadedDurations({ text }: { text: string }) {
+  return text.split(/(\d+ min)/).map((part, index) => index % 2 ? <span key={index} className="opacity-75">{part}</span> : part);
+}
 
 /**
  * Meetings on the coach's client page (decisions 0037, 0039): repeating patterns, the next month,
@@ -80,29 +90,32 @@ export function MeetingsCard({ clientId, heading, focusMeetingId, onFocusClosed 
             const description = describePattern(schedule);
             const today = todayIn(schedule.timezone);
             return (
-              <li key={schedule.id} className="flex items-start gap-2 p-3">
+              <li key={schedule.id} className="flex items-start gap-2 p-4">
                 <span aria-hidden className="pt-0.5 text-gold-fg">↻</span>
                 <div className="min-w-0 flex-1 text-sm">
                   <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                    <span className="font-medium">{description.summary}</span>
+                    <span className="font-medium"><FadedDurations text={description.summary} /></span>
                     {schedule.active ? null : <Badge>Paused</Badge>}
                   </p>
-                  {description.weeks.map((week) => <p key={week} className="text-muted">{week}</p>)}
-                  <p className="mt-0.5 text-xs text-muted">
-                    {topicLabel(schedule.services)} · {schedule.startsOn > today ? `starts ${formatDate(schedule.startsOn)}` : `since ${formatDate(schedule.startsOn)}`}
-                    {schedule.endsOn ? ` · until ${formatDate(schedule.endsOn)}` : ''}
-                    {schedule.active ? '' : ' · none of its services are active'}
+                  {description.weeks.map((week) => <p key={week} className="text-muted"><FadedDurations text={week} /></p>)}
+                  <p className="mt-2 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted">
+                    {schedule.services.map((service) => <Badge key={service} tone={SERVICE_TONES[service]}>{SERVICE_SHORT_LABELS[service]}</Badge>)}
+                    <span>
+                      {schedule.startsOn > today ? `Starts ${formatDate(schedule.startsOn)}` : `Since ${formatDate(schedule.startsOn)}`}
+                      {schedule.endsOn ? ` · until ${formatDate(schedule.endsOn)}` : ''}
+                      {schedule.active ? '' : ' · none of its services are active'}
+                    </span>
                   </p>
-                  {schedule.notes ? <p className="mt-1 line-clamp-2 whitespace-pre-wrap break-words text-xs text-muted">{schedule.notes}</p> : null}
+                  {schedule.notes ? <p className="mt-2 line-clamp-2 whitespace-pre-wrap break-words text-xs text-muted">{schedule.notes}</p> : null}
                 </div>
                 {canSchedule ? (
-                  <Button variant="ghost" aria-label="Change repeating meetings" title="Change" className="px-3"
+                  <Button variant="ghost" aria-label="Change repeating meetings" title="Change" className="px-2"
                     onClick={() => setOpen({ kind: 'pattern', schedule, from: schedule.startsOn > today ? schedule.startsOn : today })}><PencilIcon /></Button>
                 ) : null}
-                <Button variant="ghost" aria-label={schedule.notes ? 'Edit pattern notes' : 'Add pattern notes'} title="Notes" className="px-3 text-xs"
+                <Button variant="ghost" aria-label={schedule.notes ? 'Edit pattern notes' : 'Add pattern notes'} title="Notes" className="px-2 text-xs"
                   onClick={() => setOpen({ kind: 'notes', schedule })}>Notes</Button>
-                <Button variant="ghost" aria-label="Stop repeating meetings" title="Stop repeating" className="px-3"
-                  onClick={() => setOpen({ kind: 'end', schedule })}><StopIcon /></Button>
+                <Button variant="ghost" aria-label="Stop repeating meetings" title="Stop repeating" className="px-2 text-xs text-danger!"
+                  onClick={() => setOpen({ kind: 'end', schedule })}>End</Button>
               </li>
             );
           })}

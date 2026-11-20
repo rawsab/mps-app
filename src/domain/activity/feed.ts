@@ -39,7 +39,7 @@ export type RequestActivity = {
 /** A client's request for a service they don't have (decision 0042). Reviews only. */
 export type ServiceRequestActivity = {
   kind: 'service_request'; id: string; service: 'personal_training' | 'mesocycle' | 'nutrition'; message: string;
-  status: 'pending' | 'enrolled'; activityAt: string; staffEdited: boolean;
+  status: 'pending' | 'enrolled' | 'declined'; response?: string; activityAt: string; staffEdited: boolean;
 };
 export type ActivityItem = SessionActivity | NutritionActivity | RequestActivity | ServiceRequestActivity;
 
@@ -77,7 +77,7 @@ const SERVICE_NAMES = { personal_training: 'Personal training', mesocycle: 'Meso
 const SESSION_TIME = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
 export function activityWhere(item: ActivityItem): string {
-  if (item.kind === 'service_request') return item.status === 'enrolled' ? 'Now enrolled' : 'Waiting for enrollment';
+  if (item.kind === 'service_request') return { enrolled: 'Now enrolled', declined: 'Declined', pending: 'Waiting for a reply' }[item.status];
   if (item.kind === 'request') return `${item.services.map((s) => SERVICE_NAMES[s]).join(' · ')} · ${SESSION_TIME.format(new Date(item.startsAt))} · ${item.durationMinutes} min`;
   if (item.kind === 'nutrition') return item.programTitle;
   return [item.programTitle.trim() || 'Untitled program', weekName(item.weekIndex), dayHeading({ label: item.dayLabel }, item.dayIndex)].join(' · ');
@@ -87,7 +87,7 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 
 /** Facts worth a glance; nothing is listed for counts the client hasn't produced. */
 export function activityDetails(item: ActivityItem): string[] {
-  if (item.kind === 'service_request') return item.message ? [`“${item.message}”`] : [];
+  if (item.kind === 'service_request') return [item.message ? `“${item.message}”` : '', item.response ? `Reply: “${item.response}”` : ''].filter(Boolean);
   if (item.kind === 'request') return [
     item.message ? `“${item.message}”` : '',
     item.preferredStartsAt ? `Prefers ${SESSION_TIME.format(new Date(item.preferredStartsAt))}` : '',
@@ -101,6 +101,40 @@ export function activityDetails(item: ActivityItem): string[] {
   if (item.setCount > 0) details.push(`${plural(item.setCount, 'set')} logged`);
   if (item.feedbackCount > 0) details.push(`Stimulus & Fatigue for ${plural(item.feedbackCount, 'muscle')}`);
   return details;
+}
+
+/** One labelled fact for the Activity page's detail card. `long` facts (notes, replies) span the card. */
+export type ActivityFact = { label: string; value: string; long?: boolean };
+
+/**
+ * The detail card's facts: what `activityWhere` and `activityDetails` say, labelled. Missing values
+ * are left out; zero is a value (0 kcal shows).
+ */
+export function activityFacts(item: ActivityItem, formatDate: (value: string) => string): ActivityFact[] {
+  const facts: (ActivityFact | false)[] = [];
+  const note = (label: string, text: string | undefined) => !!text?.trim() && { label, value: `“${text.trim()}”`, long: true };
+  if (item.kind === 'service_request') {
+    facts.push({ label: 'Service', value: SERVICE_NAMES[item.service] }, { label: 'Status', value: activityWhere(item) },
+      note('Note', item.message), note('Reply', item.response));
+  } else if (item.kind === 'request') {
+    facts.push({ label: 'Meeting', value: `${SESSION_TIME.format(new Date(item.startsAt))} · ${item.durationMinutes} min` },
+      { label: item.services.length === 1 ? 'Service' : 'Services', value: item.services.map((s) => SERVICE_NAMES[s]).join(', ') },
+      !!item.preferredStartsAt && { label: 'Prefers', value: SESSION_TIME.format(new Date(item.preferredStartsAt!)) },
+      note('Note', item.message), note('Reply', item.response));
+  } else if (item.kind === 'nutrition') {
+    facts.push(!!item.programTitle.trim() && { label: 'Program', value: item.programTitle.trim() },
+      { label: 'Log date', value: formatDate(item.performedOn) },
+      item.weight !== null && { label: 'Weight', value: `${item.weight.toLocaleString()} ${item.weightUnit ?? ''}`.trim() },
+      item.intake !== null && { label: 'Consumed', value: `${item.intake.toLocaleString()} kcal` },
+      item.output !== null && { label: 'Output', value: `${item.output.toLocaleString()} kcal` });
+  } else {
+    facts.push({ label: 'Program', value: item.programTitle.trim() || 'Untitled program' },
+      { label: 'Workout', value: [weekName(item.weekIndex), dayHeading({ label: item.dayLabel }, item.dayIndex)].join(' · ') },
+      !!item.performedOn && { label: 'Workout date', value: formatDate(item.performedOn!) },
+      item.setCount > 0 && { label: 'Sets logged', value: String(item.setCount) },
+      item.feedbackCount > 0 && { label: 'Stimulus & Fatigue', value: plural(item.feedbackCount, 'muscle') });
+  }
+  return facts.filter((fact): fact is ActivityFact => !!fact);
 }
 
 /** "just now", "5m ago", "3h ago", "Yesterday", "4d ago", then a date. */

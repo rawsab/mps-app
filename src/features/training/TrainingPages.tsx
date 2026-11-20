@@ -13,6 +13,7 @@ import { SERVICE_LABELS } from '@/lib/services';
 import { isExerciseLogged, type TrainingSession } from '@/domain/training/volume';
 import { logErrorMessage, trainingErrorMessage, usePublishedProgram, usePublishedPrograms, useStartSession, useTrainingLog } from './api';
 import { ProgramSpreadsheet } from './ProgramSpreadsheet';
+import { TrainingProgressBar } from './TrainingProgress';
 import { ResourceBody } from './ResourceBody';
 import { ExerciseSetLog, SessionDate, SessionWrapUp, SetTotals } from './SetLog';
 import { StimulusFatigue } from './StimulusFatigue';
@@ -105,6 +106,7 @@ export function TrainingProgramView({ programId, backTo, backLabel, staff = fals
       <Alert visible={!!staff} className="mb-4" tone="note" title="Client log">You’re viewing the published program as the client sees it. Changes you make are saved to the client’s record and marked as coach edits.</Alert>
       <Alert visible={!!archivedAt} className="mb-4" tone="info" title="Archived program">Your coach archived this program on {archivedAt ? formatDate(archivedAt) : ''}. It’s kept here for reference.</Alert>
       {doc.coachNotes.trim() ? <Notes title="Program notes" body={doc.coachNotes} /> : null}
+      {today && log.data ? <TrainingProgressBar program={doc} sessions={log.data} today={today} title="Progress" className="mb-6" /> : null}
 
       {located ? <ViewTabs sheet={sheet} onSelect={(next) => select(located.week.id, located.day?.id ?? null, next)} /> : null}
       {located && sheet ? (

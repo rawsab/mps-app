@@ -3,22 +3,25 @@ import { Avatar } from '@/components/Avatar';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { Alert, Badge, Button, EmptyState, PageHeader, SectionTitle, Spinner, type BadgeTone } from '@/components/ui';
 import { HistoryIcon } from '@/components/icons';
-import { activityDetails, activityTitle, activityWhere, groupByDay, relativeTime, type ActivityItem, type RequestActivity, type ReviewItem, type SessionActivity } from '@/domain/activity/feed';
+import { activityDetails, activityFacts, activityTitle, activityWhere, groupByDay, relativeTime, type ActivityItem, type RequestActivity, type ReviewItem, type SessionActivity } from '@/domain/activity/feed';
 import { friendlyError, useClient, useClientPhoto, type ClientRow } from '@/features/clients/api';
-import { formatDate, formatDateTime } from '@/lib/format';
+import { formatDate, formatDateTime, formatTime } from '@/lib/format';
+import { ActivityTrends } from './ActivityTrends';
+import { TREND_RANGES, type TrendRange } from '@/domain/activity/trends';
 import { activityLink, READ_FADE_MS, useActivityHistory, useMarkActivityRead, useRecentActivity, useReviews, type ReviewFilter } from './api';
 
 type BadgeSpec = { label: string; tone: BadgeTone };
 
 const STATUS_BADGE: Record<SessionActivity['status'], BadgeSpec> = {
   completed: { label: 'Completed', tone: 'success' },
-  in_progress: { label: 'In progress', tone: 'gold' },
+  in_progress: { label: 'In progress', tone: 'neutral' },
   skipped: { label: 'Skipped', tone: 'neutral' },
 };
 
-const REQUEST_BADGE: Record<RequestActivity['status'], BadgeSpec> = {
-  pending: { label: 'Needs a reply', tone: 'gold' },
-  accepted: { label: 'Accepted', tone: 'info' },
+/** Pending requests carry no status pill; the request-kind pill is enough. */
+const REQUEST_BADGE: Record<RequestActivity['status'], BadgeSpec | null> = {
+  pending: null,
+  accepted: { label: 'Accepted', tone: 'success' },
   declined: { label: 'Declined', tone: 'neutral' },
   withdrawn: { label: 'Withdrawn', tone: 'neutral' },
   expired: { label: 'Expired', tone: 'neutral' },
@@ -26,13 +29,13 @@ const REQUEST_BADGE: Record<RequestActivity['status'], BadgeSpec> = {
 
 /** What kind of request it is, ahead of its status (decision 0042). */
 function categoryBadge(item: ActivityItem): BadgeSpec | null {
-  if (item.kind === 'service_request') return { label: 'Service Request', tone: 'gold' };
-  if (item.kind === 'request') return item.requestKind === 'cancel' ? { label: 'Meeting cancelled', tone: 'danger' } : { label: 'Reschedule request', tone: 'gold' };
+  if (item.kind === 'service_request') return { label: 'Service Request', tone: 'violet' };
+  if (item.kind === 'request') return item.requestKind === 'cancel' ? { label: 'Cancellation request', tone: 'danger' } : { label: 'Reschedule request', tone: 'info' };
   return null;
 }
 
 function itemBadge(item: ActivityItem): BadgeSpec | null {
-  if (item.kind === 'service_request') return item.status === 'enrolled' ? { label: 'Enrolled', tone: 'success' } : null;
+  if (item.kind === 'service_request') return item.status === 'enrolled' ? { label: 'Enrolled', tone: 'success' } : item.status === 'declined' ? { label: 'Declined', tone: 'neutral' } : null;
   if (item.kind === 'request') return REQUEST_BADGE[item.status];
   if (item.kind === 'nutrition') return item.status === 'completed' ? STATUS_BADGE.completed : { label: 'Partial entry', tone: 'neutral' };
   return STATUS_BADGE[item.status];
@@ -45,6 +48,7 @@ function emptyMessage(client: Pick<ClientRow, 'status'>): string {
 type Review = Pick<ReviewItem, 'clientName' | 'unread'>;
 
 /** Fades and shrinks away, so marking read doesn't snap the client name sideways. */
+/** Gold dot for an item this staff member hasn't opened; it shrinks away once read. */
 function UnreadDot({ unread }: { unread: boolean }) {
   return <span aria-hidden style={{ transitionDuration: `${READ_FADE_MS}ms` }}
     className={`h-2 shrink-0 rounded-full bg-gold transition-all ease-out motion-reduce:transition-none ${unread ? 'w-2 opacity-100' : '-mr-2 w-0 scale-50 opacity-0'}`} />;
@@ -67,9 +71,20 @@ export function ActivityRow({ clientId, item, from, review, leaving = false, com
   const badge = itemBadge(item);
   const category = categoryBadge(item);
   const performedOn = item.kind === 'request' || item.kind === 'service_request' ? null : item.performedOn;
+  // Read items in Reviews recede, and come back to full strength under the pointer or keyboard focus.
+  const read = review && !review.unread && !compact;
+  // On the Activity page the time and arrow sit on the name line, so the detail card spans the row.
+  const inline = !!review && !compact;
+  const trailing = (
+    <span className={`flex shrink-0 items-center gap-2 text-xs font-normal text-muted ${inline ? 'ml-auto pl-2' : 'pt-0.5'}`}>
+      {compact ? null : <time dateTime={item.activityAt} title={formatDateTime(item.activityAt)}>{relativeTime(item.activityAt, new Date(), formatDate)}</time>}
+      <span aria-hidden className="group-hover:text-text">→</span>
+    </span>
+  );
   return (
     // `leaving`: a read item in the Unread filter fades out before the refetch removes it.
-    <li style={{ transitionDuration: `${READ_FADE_MS}ms` }} className={`transition-opacity motion-reduce:transition-none ${leaving ? 'opacity-0' : ''}`}>
+    <li style={{ transitionDuration: `${READ_FADE_MS}ms` }}
+      className={`transition-opacity motion-reduce:transition-none ${leaving ? 'opacity-0' : read ? 'opacity-60 hover:opacity-100 focus-within:opacity-100' : ''}`}>
       <Link to={activityLink(clientId, item)} state={from} onClick={() => markRead.mutate(item)}
         className="row-link group flex min-h-14 min-w-0 items-start gap-3 rounded-card py-3 pl-3 pr-2 hover:bg-surface-raised">
         <ActivityAvatar clientId={clientId} name={review?.clientName} />
@@ -78,9 +93,11 @@ export function ActivityRow({ clientId, item, from, review, leaving = false, com
             <UnreadDot unread={review.unread} />
             <span className="min-w-0">
               {review.clientName}
-              {compact ? <span className="font-normal text-muted"> · {formatDate(performedOn ?? item.activityAt)}</span> : null}
+              {compact ? <span className="font-normal text-muted"> · {formatDate(performedOn ?? item.activityAt)}</span>
+                : <span className="font-normal text-text/50"> · <time dateTime={item.activityAt} title={formatDateTime(item.activityAt)}>{formatTime(item.activityAt)}</time></span>}
             </span>
             {review.unread ? <span className="sr-only">(unread)</span> : null}
+            {inline ? trailing : null}
           </p> : null}
           <p className={`flex flex-wrap items-center gap-x-2 gap-y-1 ${review ? 'mt-1' : ''}`}>
             <span className={review ? 'text-sm' : 'font-medium'}>{activityTitle(item)}</span>
@@ -89,19 +106,33 @@ export function ActivityRow({ clientId, item, from, review, leaving = false, com
             {item.kind === 'request' && item.late ? <Badge tone="danger">Late cancellation</Badge> : null}
             {item.staffEdited ? <Badge>Edited by coach</Badge> : null}
           </p>
-          {compact ? null : <p className="mt-0.5 break-words text-sm text-muted">{activityWhere(item)}</p>}
-          {!compact && (details.length || performedOn) ? (
+          {review && !compact ? <FactsCard item={item} /> : null}
+          {compact || review ? null : <p className="mt-0.5 break-words text-sm text-muted">{activityWhere(item)}</p>}
+          {!compact && !review && (details.length || performedOn) ? (
             <p className="mt-0.5 break-words text-xs text-muted">
               {[...(performedOn ? [`${item.kind === 'nutrition' ? 'Log date' : 'Workout date'} ${formatDate(performedOn)}`] : []), ...details].join(' · ')}
             </p>
           ) : null}
         </div>
-        <span className="flex shrink-0 items-center gap-2 pt-0.5 text-xs text-muted">
-          {compact ? null : <time dateTime={item.activityAt} title={formatDateTime(item.activityAt)}>{relativeTime(item.activityAt, new Date(), formatDate)}</time>}
-          <span aria-hidden className="group-hover:text-text">→</span>
-        </span>
+        {inline ? null : trailing}
       </Link>
     </li>
+  );
+}
+
+/** The Activity page's nested card: every labelled fact; notes and replies take the full width. */
+function FactsCard({ item }: { item: ActivityItem }) {
+  const facts = activityFacts(item, formatDate);
+  if (!facts.length) return null;
+  return (
+    <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-2.5 rounded-card border border-line bg-ink px-3 py-2.5 sm:grid-cols-[repeat(auto-fill,minmax(10rem,1fr))]">
+      {facts.map((fact) => (
+        <div key={fact.label} className={`min-w-0 ${fact.long ? 'col-span-full' : ''}`}>
+          <dt className="text-[0.6875rem] text-muted">{fact.label}</dt>
+          <dd className={`mt-0.5 break-words text-[0.8125rem] ${fact.long ? 'whitespace-pre-wrap' : ''}`}>{fact.value}</dd>
+        </div>
+      ))}
+    </dl>
   );
 }
 
@@ -179,42 +210,57 @@ export function ClientActivityPage() {
 
 /** Client activity across every visible client, newest first, with this coach's unread state (PRD §6 Reviews). */
 export function ReviewsPage() {
-  // The filter lives in the URL so the clients page can link straight to Unread.
   const [params, setParams] = useSearchParams();
   const filter: ReviewFilter = params.get('filter') === 'unread' ? 'unread' : params.get('filter') === 'focused' ? 'focused' : 'all';
-  const setFilter = (value: ReviewFilter) => setParams(value === 'all' ? {} : { filter: value }, { replace: true });
+  // The filter and trend range live in the URL so the clients page can link straight to Unread.
+  const setParam = (key: string, value: string | null) => setParams((current) => {
+    const next = new URLSearchParams(current);
+    if (value === null) next.delete(key); else next.set(key, value);
+    return next;
+  }, { replace: true });
+  const setFilter = (value: ReviewFilter) => setParam('filter', value === 'all' ? null : value);
+  const range: TrendRange = TREND_RANGES.includes(params.get('range') as TrendRange) ? params.get('range') as TrendRange : 'week';
   const unreadOnly = filter === 'unread';
   const reviews = useReviews(filter);
   const markAll = useMarkActivityRead();
   const items = reviews.data?.pages.flat() ?? [];
-  const from = { backTo: '/coach/reviews', backLabel: 'Reviews' };
+  const from = { backTo: '/coach/reviews', backLabel: 'Activity' };
   const filters: { value: ReviewFilter; label: string }[] = [{ value: 'all', label: 'All' }, { value: 'focused', label: 'Focused' }, { value: 'unread', label: 'Unread' }];
 
   return (
     <div>
-      <PageHeader title="Reviews" subtitle="Workouts, nutrition logs, and meeting and service requests from your clients, newest first."
+      <PageHeader title="Activity" subtitle="Workouts, nutrition logs, and meeting and service requests from your clients, newest first."
         actions={<Button variant="secondary" busy={markAll.isPending} disabled={!items.some((item) => item.unread)} onClick={() => markAll.mutate(null)}>Mark all as read</Button>} />
-      <div role="group" aria-label="Filter reviews" className="mb-4 flex flex-wrap gap-1.5">
-        {filters.map((option) => <button key={option.label} type="button" aria-pressed={filter === option.value} onClick={() => setFilter(option.value)}
-          className={`min-h-9 rounded-full border px-3 text-sm transition-colors ${filter === option.value ? 'border-gold/50 bg-gold/10 font-medium text-gold-fg' : 'border-line text-muted hover:bg-surface-raised hover:text-text'}`}>{option.label}</button>)}
-      </div>
-      <Alert visible={!!markAll.error} className="mb-4" title="Could not mark as read">{friendlyError(markAll.error)}</Alert>
-      {reviews.isPending ? <Spinner label="Loading reviews" /> : null}
-      <Alert visible={!!reviews.error} title="Could not load reviews">{friendlyError(reviews.error)}</Alert>
-      {reviews.data && items.length === 0 ? <p className="text-sm text-muted">{unreadOnly ? 'You’re all caught up.' : filter === 'focused' ? 'No service or meeting requests.' : 'No client activity yet.'}</p> : null}
-      {groupByDay(items, new Date(), formatDate).map((group, index) => (
-        <Fragment key={`${group.label}-${index}`}>
-          <h2 className={`mb-1 text-sm font-medium text-muted ${index === 0 ? '' : 'mt-6'}`}>{group.label}</h2>
-          <ul className="divide-y divide-line">
-            {group.items.map((item) => <ActivityRow key={item.id} clientId={item.clientId} item={item} from={from} review={item} leaving={unreadOnly && !item.unread} />)}
-          </ul>
-        </Fragment>
-      ))}
-      {reviews.hasNextPage ? (
-        <div className="mt-4">
-          <Button variant="secondary" busy={reviews.isFetchingNextPage} onClick={() => void reviews.fetchNextPage()}>Load more</Button>
+      {/* Half and half on wide screens; the trends stay in view while the feed scrolls. */}
+      {/* The divider sits on the feed column, which stretches to the row's full height. */}
+      <div className="grid gap-8 lg:grid-cols-[minmax(0,13fr)_minmax(0,7fr)] lg:gap-0">
+        <div className="min-w-0 lg:border-r lg:border-line lg:pr-8">
+          <div role="group" aria-label="Filter activity" className="mb-4 flex flex-wrap gap-1.5">
+            {filters.map((option) => <button key={option.label} type="button" aria-pressed={filter === option.value} onClick={() => setFilter(option.value)}
+              className={`min-h-9 rounded-full border px-3 text-sm transition-colors ${filter === option.value ? 'border-gold/50 bg-gold/10 font-medium text-gold-fg' : 'border-line text-muted hover:bg-surface-raised hover:text-text'}`}>{option.label}</button>)}
+          </div>
+          <Alert visible={!!markAll.error} className="mb-4" title="Could not mark as read">{friendlyError(markAll.error)}</Alert>
+          {reviews.isPending ? <Spinner label="Loading activity" /> : null}
+          <Alert visible={!!reviews.error} title="Could not load activity">{friendlyError(reviews.error)}</Alert>
+          {reviews.data && items.length === 0 ? <p className="text-sm text-muted">{unreadOnly ? 'You’re all caught up.' : filter === 'focused' ? 'No service or meeting requests.' : 'No client activity yet.'}</p> : null}
+          {groupByDay(items, new Date(), formatDate).map((group, index) => (
+            <Fragment key={`${group.label}-${index}`}>
+              <h2 className={`mb-1 text-sm font-medium text-muted ${index === 0 ? '' : 'mt-6'}`}>{group.label}</h2>
+              <ul className="divide-y divide-line">
+                {group.items.map((item) => <ActivityRow key={item.id} clientId={item.clientId} item={item} from={from} review={item} leaving={unreadOnly && !item.unread} />)}
+              </ul>
+            </Fragment>
+          ))}
+          {reviews.hasNextPage ? (
+            <div className="mt-4">
+              <Button variant="secondary" busy={reviews.isFetchingNextPage} onClick={() => void reviews.fetchNextPage()}>Load more</Button>
+            </div>
+          ) : null}
         </div>
-      ) : null}
+        <aside className="min-w-0 lg:sticky lg:top-6 lg:self-start lg:pl-8">
+          <ActivityTrends range={range} onRange={(value) => setParam('range', value === 'week' ? null : value)} />
+        </aside>
+      </div>
     </div>
   );
 }

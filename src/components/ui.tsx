@@ -30,16 +30,28 @@ export function Card({ children, className = '' }: { children: ReactNode; classN
 
 type FieldProps = InputHTMLAttributes<HTMLInputElement> & { label: string; error?: string | undefined; hint?: string };
 
-export function TextField({ label, error, hint, className = '', ...rest }: FieldProps) {
+/** Marks a label whose field is required to publish. Fields use `aria-required`, not `required`, so incomplete drafts still autosave. */
+export function RequiredMark() {
+  return <span aria-hidden className="ml-0.5 text-muted">*</span>;
+}
+
+/** The legend for `RequiredMark`, once per form. */
+export function RequiredNote({ className = '' }: { className?: string }) {
+  return <p className={`text-xs text-muted ${className}`}>* Required to publish</p>;
+}
+
+export function TextField({ label, error, hint, className = '', required, ...rest }: FieldProps) {
   const id = useId();
   const describedBy = [error ? `${id}-error` : null, hint ? `${id}-hint` : null].filter(Boolean).join(' ') || undefined;
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       <label htmlFor={id} className="text-sm font-medium text-text">
         {label}
+        {required ? <RequiredMark /> : null}
       </label>
       <input
         id={id}
+        aria-required={required || undefined}
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
         className="min-h-11 rounded-card border border-line bg-ink px-3 text-base text-text transition-[border-color,box-shadow] duration-150 placeholder:text-muted/60 focus:border-gold focus:shadow-[0_0_0_3px_color-mix(in_oklab,var(--color-gold)_22%,transparent)] focus:outline-none"
@@ -92,16 +104,18 @@ export function TextAreaField({ label, error, hint, className = '', ...rest }: T
 
 type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & { label: string; children: ReactNode };
 
-export function SelectField({ label, children, className = '', ...rest }: SelectProps) {
+export function SelectField({ label, children, className = '', required, ...rest }: SelectProps) {
   const id = useId();
   return (
     <div className={`flex flex-col gap-1.5 ${className}`}>
       <label htmlFor={id} className="text-sm font-medium text-text">
         {label}
+        {required ? <RequiredMark /> : null}
       </label>
       {/* The chevron and its right padding come from the global select rule in index.css. */}
       <select
         id={id}
+        aria-required={required || undefined}
         className="min-h-11 w-full rounded-card border border-line bg-ink pl-3 text-base text-text transition-[border-color] duration-150 focus:border-gold focus:outline-none"
         {...rest}
       >
@@ -150,6 +164,11 @@ function AlertBody({ tone = 'error', title, children, onDismiss }: AlertProps) {
   );
 }
 
+/** A placeholder block in the shape of content that's still loading; size and round it with `className`. */
+export function Skeleton({ className = '' }: { className?: string }) {
+  return <span aria-hidden className={`block animate-pulse rounded-card bg-surface-raised motion-reduce:animate-none ${className}`} />;
+}
+
 export function Spinner({ small, label }: { small?: boolean; label?: string }) {
   return (
     <span role={label ? 'status' : undefined} className="inline-flex items-center gap-2 text-muted">
@@ -194,6 +213,7 @@ const BADGE_STYLES = {
   danger: 'border-danger/50 text-danger',
   success: 'border-success/50 bg-success/10 text-success',
   info: 'border-info/50 bg-info/10 text-info',
+  violet: 'border-violet/50 bg-violet/10 text-violet',
 };
 
 export type BadgeTone = keyof typeof BADGE_STYLES;

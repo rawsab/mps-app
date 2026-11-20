@@ -186,3 +186,41 @@ export function useRemoveProgram() {
     onSuccess: async () => { await Promise.all([queryClient.invalidateQueries({ queryKey: ['programs'] }), queryClient.invalidateQueries({ queryKey: ['nutrition-programs'] })]); },
   });
 }
+
+/** Unarchives a program whose service is still live (decision 0045). */
+export function useRestoreProgram() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (programId: string) => {
+      const { error } = await requireSupabase().rpc('restore_program', { p_program_id: programId });
+      if (error) throw rpcError(error);
+    },
+    onSuccess: async () => { await Promise.all([queryClient.invalidateQueries({ queryKey: ['programs'] }), queryClient.invalidateQueries({ queryKey: ['nutrition-programs'] })]); },
+  });
+}
+
+/** Logged workouts an archived program's permanent delete would remove, for the confirmation. */
+export function useProgramWorkoutCount(programId: string, enabled: boolean) {
+  return useQuery({
+    queryKey: ['program-workouts', programId], enabled, staleTime: 0,
+    queryFn: async () => {
+      const { count, error } = await requireSupabase().from('training_sessions').select('id', { count: 'exact', head: true }).eq('program_id', programId);
+      if (error) throw error;
+      return count ?? 0;
+    },
+  });
+}
+
+/** Admin only: deletes an archived program with its revisions and logged workouts (decision 0045). */
+export function useDeleteArchivedProgram() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (programId: string) => {
+      const { error } = await requireSupabase().rpc('delete_archived_program', { p_program_id: programId });
+      if (error) throw rpcError(error);
+    },
+    onSuccess: async () => {
+      await Promise.all([['programs'], ['nutrition-programs'], ['clients'], ['client-activity'], ['staff-activity']].map((queryKey) => queryClient.invalidateQueries({ queryKey })));
+    },
+  });
+}

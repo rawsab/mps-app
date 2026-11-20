@@ -31,11 +31,11 @@ Date: 2026-11-17 · Status: implemented (owner request), manual UI verification 
 
 - Filters are now All · Focused · Unread (`?filter=focused`). Focused shows service requests and meeting requests only (`get_staff_activity(p_focused)`).
 - Badges:
-  - service requests: gold "Service Request";
-  - cancellation requests: red "Meeting cancelled";
-  - reschedule requests: gold "Reschedule request".
-  The status badge ("Needs a reply", "Accepted", …) still follows.
-- **Label caveat:** a pending cancellation request also reads "Meeting cancelled". The meeting is only cancelled once the coach accepts. The label is the owner's wording; change it here if it misleads.
+  - service requests: violet "Service Request";
+  - cancellation requests: red "Cancellation request";
+  - reschedule requests: blue "Reschedule request".
+  A pending request has no status pill (owner request, 2026-11-20). Answered ones show their outcome: "Accepted" is green, and declined, withdrawn and expired are grey. Workouts "In progress" are grey (owner request, 2026-11-20).
+- **Label change (owner request, 2026-11-20):** cancellation requests were labelled "Meeting cancelled", which misread while pending, because the meeting is only cancelled once the coach accepts. They now read "Cancellation request" whatever the outcome, and the status pill (Accepted, Declined, …) shows the result.
 - Service requests count toward the unread badge and "Mark all as read", and open the client's page.
 
 ## Coach Meetings page

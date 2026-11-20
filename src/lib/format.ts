@@ -16,6 +16,13 @@ export function formatDateTime(value: string): string {
   return DATE_TIME.format(new Date(value));
 }
 
+const TIME = new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit' });
+
+/** A timestamp's time of day in the viewer's zone ("10:40 PM"). */
+export function formatTime(value: string): string {
+  return TIME.format(new Date(value));
+}
+
 export function capitalize(text: string): string {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }

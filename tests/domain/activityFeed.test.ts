@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activityDetails, activityKind, activityTitle, activityWhere, groupByDay, relativeTime, type SessionActivity, type NutritionActivity, type RequestActivity, type ServiceRequestActivity } from '@/domain/activity/feed';
+import { activityDetails, activityFacts, activityKind, activityTitle, activityWhere, groupByDay, relativeTime, type SessionActivity, type NutritionActivity, type RequestActivity, type ServiceRequestActivity } from '@/domain/activity/feed';
 import { activityLink, ReviewSchema } from '@/features/activity/api';
 
 const item = (overrides: Partial<SessionActivity> = {}): SessionActivity => ({
@@ -104,14 +104,50 @@ describe('service requests', () => {
   it('names the service and quotes the message', () => {
     expect(activityKind(request())).toBe('service_request');
     expect(activityTitle(request())).toBe('Requested Personal training');
-    expect(activityWhere(request())).toBe('Waiting for enrollment');
+    expect(activityWhere(request())).toBe('Waiting for a reply');
     expect(activityWhere(request({ status: 'enrolled' }))).toBe('Now enrolled');
     expect(activityDetails(request())).toEqual(['“Mornings suit me”']);
     expect(activityDetails(request({ message: '' }))).toEqual([]);
   });
 
+  it('shows a decline and its reply (decision 0044)', () => {
+    const declined = request({ status: 'declined', response: 'Full this month' });
+    expect(activityWhere(declined)).toBe('Declined');
+    expect(activityDetails(declined)).toEqual(['“Mornings suit me”', 'Reply: “Full this month”']);
+    expect(activityDetails(request({ status: 'declined', message: '', response: '' }))).toEqual([]);
+  });
+
   it('opens the client page and parses from Reviews', () => {
     expect(activityLink('c1', request())).toBe('/coach/clients/c1');
     expect(ReviewSchema.parse({ ...request(), clientId: 'c1', clientName: 'Maya Chen', unread: true }).kind).toBe('service_request');
+  });
+});
+
+describe('activity detail card', () => {
+  const labels = (facts: { label: string }[]) => facts.map((fact) => fact.label);
+
+  it('labels a session, leaving out counts the client has not produced', () => {
+    expect(activityFacts(item(), date)).toEqual([
+      { label: 'Program', value: 'Block one' }, { label: 'Workout', value: 'Week 2 · Day 1 · Push' }]);
+    expect(activityFacts(item({ performedOn: '2026-11-18', setCount: 12, feedbackCount: 1 }), date).slice(2)).toEqual([
+      { label: 'Workout date', value: 'date:2026-11-18' }, { label: 'Sets logged', value: '12' }, { label: 'Stimulus & Fatigue', value: '1 muscle' }]);
+  });
+
+  it('keeps zero calories and drops unanswered nutrition values', () => {
+    const n: NutritionActivity = { kind: 'nutrition', id: 'n1', programId: 'p1', service: 'nutrition', programTitle: 'Bulk', loggedOn: '2026-11-17', performedOn: '2026-11-17',
+      activityAt: '', staffEdited: false, status: 'in_progress', weight: null, weightUnit: null, intake: 0, output: null };
+    expect(activityFacts(n, date)).toEqual([
+      { label: 'Program', value: 'Bulk' }, { label: 'Log date', value: 'date:2026-11-17' }, { label: 'Consumed', value: '0 kcal' }]);
+  });
+
+  it('puts notes and replies full width, after the short facts', () => {
+    const r: RequestActivity = { kind: 'request', id: 'r1', services: ['personal_training'], requestKind: 'reschedule', status: 'declined', message: ' Thursday? ',
+      preferredStartsAt: '2026-11-20T15:00:00Z', late: null, response: 'Fully booked', meetingId: 'm1', startsAt: '2026-11-19T15:00:00Z', durationMinutes: 60, activityAt: '', staffEdited: false };
+    const facts = activityFacts(r, date);
+    expect(labels(facts)).toEqual(['Meeting', 'Service', 'Prefers', 'Note', 'Reply']);
+    expect(facts.at(-2)).toEqual({ label: 'Note', value: '“Thursday?”', long: true });
+    expect(labels(activityFacts({ ...r, message: '', response: '', preferredStartsAt: null }, date))).toEqual(['Meeting', 'Service']);
+    const s: ServiceRequestActivity = { kind: 'service_request', id: 'q1', service: 'nutrition', message: '', status: 'pending', activityAt: '', staffEdited: false };
+    expect(activityFacts(s, date)).toEqual([{ label: 'Service', value: 'Nutrition' }, { label: 'Status', value: 'Waiting for a reply' }]);
   });
 });

@@ -6,7 +6,7 @@ export type SortDir = 'asc' | 'desc';
 
 export type ClientTableState = {
   query: string;
-  /** Empty = any status; otherwise the client's status is one of these. */
+  /** Empty = any status; otherwise the client's status is one of these. Only listed statuses come from the URL. */
   statuses: ClientStatus[];
   /** Empty = any; otherwise the client has every one of these live services (and possibly more). */
   services: ServiceKind[];
@@ -18,6 +18,8 @@ export type ClientTableState = {
 export const DEFAULT_TABLE_STATE: ClientTableState = { query: '', statuses: [], services: [], sort: 'edited', dir: 'desc' };
 
 export const ALL_STATUSES: ClientStatus[] = ['active', 'invited', 'pending', 'disabled'];
+/** Statuses in the main clients table; disabled clients have a section of their own below it. */
+export const LISTED_STATUSES: ClientStatus[] = ALL_STATUSES.filter((s) => s !== 'disabled');
 const ALL_SERVICES: ServiceKind[] = ['personal_training', 'mesocycle', 'nutrition'];
 
 export const STATUS_LABELS: Record<ClientStatus, string> = {
@@ -81,7 +83,7 @@ export function stateFromParams(params: URLSearchParams): ClientTableState {
   };
   return {
     query: params.get('q') ?? '',
-    statuses: pickMany(params.get('status'), ALL_STATUSES),
+    statuses: pickMany(params.get('status'), LISTED_STATUSES),
     services: pickMany(params.get('service'), ALL_SERVICES),
     sort: pick(params.get('sort'), ['name', 'email', 'status', 'services', 'added', 'edited'] as const, DEFAULT_TABLE_STATE.sort),
     dir: pick(params.get('dir'), ['asc', 'desc'] as const, DEFAULT_TABLE_STATE.dir),

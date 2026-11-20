@@ -14,7 +14,7 @@ const row = (name: string, status: ClientRow['status'], services: [ClientRow['se
   primary_coach_id: null,
   created_at: created,
   updated_at: created,
-  service_enrollments: services.map(([service, s], i) => ({ id: `${name}${i}`, service, status: s, starts_on: '2026-01-01', ends_on: s === 'ended' ? '2026-02-01' : null, archived_at: null, current_program_id: null, current_nutrition_program_id: null })),
+  service_enrollments: services.map(([service, s], i) => ({ id: `${name}${i}`, service, status: s, starts_on: '2026-01-01', ends_on: s === 'ended' ? '2026-02-01' : null, archived_at: null, created_at: created, current_program_id: null, current_nutrition_program_id: null })),
 });
 
 const rows = [
@@ -77,6 +77,8 @@ describe('client table', () => {
     expect(stateFromParams(params)).toEqual(state);
     expect(paramsFromState(DEFAULT_TABLE_STATE).toString()).toBe('');
     expect(stateFromParams(new URLSearchParams('status=hacked,active&service=;drop&sort=x'))).toEqual({ ...DEFAULT_TABLE_STATE, statuses: ['active'] });
+    // Disabled clients have their own section, so an old status=disabled link can't empty the main table.
+    expect(stateFromParams(new URLSearchParams('status=disabled,invited')).statuses).toEqual(['invited']);
   });
 });
 

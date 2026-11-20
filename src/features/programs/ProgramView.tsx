@@ -6,7 +6,7 @@ import { ActionsMenu, actionItemClass } from '@/components/ActionsMenu';
 import { programDestinations, selectedProgramItem } from './programNavigation';
 import { DisclosureSummary } from '@/components/DisclosureSummary';
 import { Dialog } from '@/components/Dialog';
-import { Button } from '@/components/ui';
+import { Button, RequiredNote } from '@/components/ui';
 import { newDay, newExercise, newResource, newSection, newWeek, type DraftCommand } from '@/domain/programs/commands';
 import { dayFocus, dayHeading, dayName, weekName } from '@/domain/programs/labels';
 import type { Exercise, ProgramWeek, Section, WorkoutDay } from '@/domain/programs/contract';
@@ -619,6 +619,7 @@ export function ProgramDetailsFields() {
     <div className="grid gap-3 sm:grid-cols-2">
       <CommitField
         label={draft.service === 'mesocycle' ? 'Program Style' : 'Title'}
+        required
         value={draft.title}
         rejectKey="program:title"
         placeholder={draft.service === 'mesocycle' ? 'e.g. Hypertrophy' : 'Shown to the client'}
@@ -640,6 +641,7 @@ export function ProgramDetailsFields() {
         placeholder="Instructions that apply to the whole program"
         onCommit={(t) => commit({ type: 'updateProgram', patch: { coachNotes: t } })}
       />
+      <RequiredNote className="sm:col-span-2" />
     </div>
   );
 }

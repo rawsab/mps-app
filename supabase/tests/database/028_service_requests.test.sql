@@ -25,6 +25,10 @@ grant execute on all functions in schema pg_temp to authenticated;
 \set req2        '''e0000000-0000-4000-a000-000000000002'''
 \set req3        '''e0000000-0000-4000-a000-000000000003'''
 
+-- Requests made while using the app locally would trip the one-pending-request rule; this
+-- transaction rolls back, so they come back afterwards.
+delete from public.service_requests where client_id = :client_a;
+
 -- ---------------------------------------------------------------------------
 -- Access
 -- ---------------------------------------------------------------------------

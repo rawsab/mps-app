@@ -3,6 +3,7 @@ import type { DraftCommand } from '@/domain/programs/commands';
 import { planEdits, type GridColumnKey } from '@/domain/programs/grid';
 import { useEditor } from './useDraftEditor';
 import { useMuscleSuggestions } from './MuscleSuggestions';
+import { RequiredMark } from '@/components/ui';
 
 /** Shared key for a rejected edit, so the Program and Grid views show the same kept text. */
 export const cellKey = (exerciseId: string, column: GridColumnKey) => `${exerciseId}:${column}`;
@@ -56,6 +57,7 @@ export function CommitField({
   className = '',
   inputClassName = '',
   suggest,
+  required,
 }: {
   label: string;
   value: string;
@@ -71,6 +73,8 @@ export function CommitField({
   inputMode?: 'text' | 'decimal' | 'url';
   className?: string;
   inputClassName?: string;
+  /** Required to publish: an asterisk and `aria-required`; drafts still save without it. */
+  required?: boolean;
 }) {
   const id = useId();
   const editor = useEditor();
@@ -98,6 +102,7 @@ export function CommitField({
     'data-edit-key': rejectKey,
     value: text,
     placeholder,
+    'aria-required': required || undefined,
     'aria-invalid': rejected ? true : undefined,
     'aria-describedby': [rejected ? `${id}-error` : null, hint ? `${id}-hint` : null].filter(Boolean).join(' ') || undefined,
     onFocus: () => setFocused(true),
@@ -121,6 +126,7 @@ export function CommitField({
     <div className={`flex min-w-0 flex-col gap-1 ${className}`}>
       <label htmlFor={id} className={hideLabel ? 'sr-only' : 'text-sm font-medium text-text'}>
         {label}
+        {required ? <RequiredMark /> : null}
       </label>
       {multiline ? (
         <textarea {...shared} rows={2} onChange={(e) => setText(e.target.value)} className={`${inputClass} ${border} min-h-16 resize-y py-2 ${inputClassName}`} />

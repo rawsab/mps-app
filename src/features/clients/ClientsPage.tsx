@@ -88,7 +88,7 @@ export function ClientsPage() {
               if (e.target === e.currentTarget && e.propertyName === 'grid-template-rows' && !creating) setDashboardSettled(true);
             }}
           >
-            <div className={`min-h-0 ${dashboardSettled ? '' : 'overflow-hidden'}`}>
+            <div className={`min-h-0 min-w-0 ${dashboardSettled ? '' : 'overflow-hidden'}`}>
               <ClientsOverview rows={clients.data} canInvite={isAdmin} />
             </div>
           </div>

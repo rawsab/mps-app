@@ -94,6 +94,14 @@ export const CopyIcon = () => (
   </Icon>
 );
 
+/** An empty inbox tray, for "nothing waiting" states. */
+export const InboxIcon = ({ className = 'size-5 shrink-0' }: { className?: string }) => (
+  <Icon className={className}>
+    <path d="M3.5 13.5h4.25l1.5 2.5h5.5l1.5-2.5h4.25" />
+    <path d="M5.6 6.2 3.5 13.5v4a2 2 0 0 0 2 2h13a2 2 0 0 0 2-2v-4l-2.1-7.3a1.5 1.5 0 0 0-1.44-1.08H7.04A1.5 1.5 0 0 0 5.6 6.2Z" />
+  </Icon>
+);
+
 export const CheckIcon = () => (
   <Icon className="size-4 shrink-0" strokeWidth={2.2}>
     <path d="m5 12.5 4.5 4.5L19 7.5" />
@@ -130,6 +138,8 @@ export const SectionIcon = () => <Icon><path d="M9 6h11M9 12h11M9 18h11M4 6h.01M
 export const SectionsIcon = () => <Icon className="size-4 shrink-0"><path d="M4 5h9M8 9h12M4 14h9M8 18h12" /></Icon>;
 export const SpreadsheetIcon = () => <Icon><rect x="3" y="4" width="18" height="16" rx="2" /><path d="M3 9h18M3 14h18M9 4v16M15 9v11" /></Icon>;
 export const ChevronIcon = ({ open }: { open: boolean }) => <Icon className={`size-4 shrink-0 transition-transform duration-150 motion-reduce:transition-none ${open ? 'rotate-90' : ''}`}><path d="m9 5 7 7-7 7" /></Icon>;
+/** Step buttons (previous/next). Larger than the inline chevron so they read as controls. */
+export const StepIcon = ({ direction }: { direction: 'previous' | 'next' }) => <Icon className="size-5 shrink-0"><path d={direction === 'previous' ? 'm15 5-7 7 7 7' : 'm9 5 7 7-7 7'} /></Icon>;
 export const StimulusIcon = () => <Icon className="size-4 shrink-0"><path d="M13 2 4 14h7l-1 8 9-12h-7l1-8Z" /></Icon>;
 export const ProgressionIcon = () => <Icon className="size-4 shrink-0"><path d="m3 17 6-6 4 4 8-8M15 7h6v6" /></Icon>;
 export const ArrowUpRightIcon = () => <Icon className="size-4 shrink-0"><path d="M7 17 17 7M9 7h8v8" /></Icon>;

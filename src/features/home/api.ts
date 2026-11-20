@@ -78,7 +78,7 @@ export function useCurrentMesocycle(enabled: boolean) {
 
 const ServiceRequestSchema = z.object({
   id: z.string(), service: z.enum(['personal_training', 'mesocycle', 'nutrition']), message: z.string(), createdAt: z.string(),
-  status: z.enum(['pending', 'enrolled']),
+  status: z.enum(['pending', 'enrolled', 'declined']), response: z.string(), resolvedAt: z.string().nullable(),
 });
 export type ServiceRequest = z.infer<typeof ServiceRequestSchema>;
 const serviceRequestsKey = ['service-requests', 'mine'];
@@ -104,5 +104,18 @@ export function useRequestService() {
       return ServiceRequestSchema.parse(data);
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: serviceRequestsKey }),
+  });
+}
+
+/** Edits the message on the client's pending request. A changed message shows the coach the request again. */
+export function useUpdateServiceRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { id: string; message: string }) => {
+      const { data, error } = await requireSupabase().rpc('update_service_request', { p_request_id: input.id, p_message: input.message });
+      if (error) throw error;
+      return ServiceRequestSchema.parse(data);
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: serviceRequestsKey }),
   });
 }

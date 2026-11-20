@@ -13,7 +13,7 @@ import { CoachTrainingLogPage, TrainingPage, TrainingProgramPage } from '@/featu
 import { UseNoticePage } from '@/components/LegalFooter';
 import { USE_NOTICE_PATH } from '@/lib/legal';
 import { HomeRedirect, RequireClient, RequireSignedIn, RequireStaff } from './guards';
-import { ClientLayout, CoachLayout } from './layouts';
+import { ClientLayout, CoachLayout, wideRoute } from './layouts';
 
 export const router = createBrowserRouter([
   { path: '/sign-in', element: <SignInPage /> },
@@ -58,18 +58,18 @@ export const router = createBrowserRouter([
             element: <CoachLayout />,
             children: [
               { path: '/coach', element: <Navigate to="/coach/clients" replace /> },
-              { path: '/coach/clients', element: <ClientsPage /> },
+              { path: '/coach/clients', element: <ClientsPage />, handle: wideRoute },
               { path: '/coach/profile', element: <ProfileSettingsPage /> },
               { path: '/coach/clients/:clientId', element: <ClientDetailPage /> },
               { path: '/coach/clients/:clientId/activity', element: <ClientActivityPage /> },
               { path: '/coach/clients/:clientId/nutrition', element: <NutritionPage coach /> },
               { path: '/coach/clients/:clientId/nutrition/:programId', element: <NutritionProgramPage coach /> },
               { path: '/coach/clients/:clientId/nutrition/:programId/log', element: <NutritionProgramPage coach published /> },
-              { path: '/coach/clients/:clientId/programs/:programId', element: <ProgramEditorPage /> },
+              { path: '/coach/clients/:clientId/programs/:programId', element: <ProgramEditorPage />, handle: wideRoute },
               { path: '/coach/clients/:clientId/programs/:programId/log', element: <CoachTrainingLogPage /> },
               { path: '/coach/templates', element: <CoachPlaceholderPage title="Templates" body="Reusable program templates arrive with the program model in M3." /> },
-              { path: '/coach/reviews', element: <ReviewsPage /> },
-              { path: '/coach/meetings', element: <MeetingsPage /> },
+              { path: '/coach/reviews', element: <ReviewsPage />, handle: wideRoute },
+              { path: '/coach/meetings', element: <MeetingsPage />, handle: wideRoute },
             ],
           },
         ],

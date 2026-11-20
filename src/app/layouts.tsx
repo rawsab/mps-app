@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
-import { NavLink, Outlet, useLocation } from 'react-router';
+import { NavLink, Outlet, useLocation, useMatches } from 'react-router';
 import {
   ClientsIcon,
   HomeIcon,
@@ -29,6 +29,13 @@ function SkipLink() {
 
 const navWord = ({ isActive }: { isActive: boolean }) =>
   `nav-word flex min-h-12 items-center gap-2 px-3 text-sm ${isActive ? 'text-text' : 'text-muted hover:text-text'}`;
+
+/** Route `handle` for coach pages built around tables or grids, which get a wider column than the default. */
+export const wideRoute = { wide: true };
+
+function useWideRoute() {
+  return useMatches().some((match) => (match.handle as { wide?: boolean } | undefined)?.wide);
+}
 
 /** Route content settles in once when the route mounts (keyed by path); never on scroll. */
 function RouteContent() {
@@ -133,7 +140,7 @@ const COACH_ITEMS: NavItem[] = [
   { to: '/coach/clients', label: 'Clients', icon: <ClientsIcon /> },
   { to: '/coach/meetings', label: 'Meetings', icon: <CalendarIcon /> },
   { to: '/coach/templates', label: 'Templates', icon: <TemplatesIcon /> },
-  { to: '/coach/reviews', label: 'Reviews', icon: <ReviewsIcon /> },
+  { to: '/coach/reviews', label: 'Activity', icon: <ReviewsIcon /> },
 ];
 
 const SIDEBAR_STORAGE_KEY = 'mps.coachSidebar.collapsed';
@@ -265,41 +272,57 @@ function CoachDrawer({ onClose }: { onClose: () => void }) {
     return () => wide.removeEventListener('change', closeIfWide);
   }, []);
 
+  // Slide out first; onAnimationEnd closes the dialog. Reduced motion closes straight away.
+  const dismiss = () => {
+    const dialog = ref.current;
+    if (!dialog || dialog.hasAttribute('data-closing')) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return dialog.close();
+    dialog.setAttribute('data-closing', '');
+  };
+
   return (
     <dialog
       ref={ref}
       aria-label="Coach navigation"
       onClose={onClose}
-      onClick={(e) => {
-        if (e.target === e.currentTarget) ref.current?.close();
+      onCancel={(e) => {
+        e.preventDefault();
+        dismiss();
       }}
-      className="drawer m-0 h-dvh max-h-none w-72 max-w-[85vw] border-r border-line bg-ink p-0 text-text backdrop:bg-ink/75"
+      onAnimationEnd={(e) => {
+        if (e.target === e.currentTarget && e.animationName === 'drawer-out') e.currentTarget.close();
+      }}
+      onClick={(e) => {
+        if (e.target === e.currentTarget) dismiss();
+      }}
+      className="drawer m-0 h-dvh max-h-none w-72 max-w-[85vw] border-r border-line sidebar-glow bg-ink p-0 text-text backdrop:bg-ink/75"
     >
       <div className="flex h-full flex-col gap-4 p-3">
         <div className="flex items-center justify-between gap-2 pl-2">
           <img src="/logo/mps-full-logo.png" alt="Modern Physique Systems" className="brand-logo h-7 w-auto" />
-          <button type="button" onClick={() => ref.current?.close()} aria-label="Close navigation" className={sidebarControl}>
+          <button type="button" onClick={dismiss} aria-label="Close navigation" className={sidebarControl}>
             <svg aria-hidden viewBox="0 0 16 16" className="size-4" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round">
               <path d="m4 4 8 8M12 4l-8 8" />
             </svg>
           </button>
         </div>
         <nav aria-label="Coach">
-          <CoachNavLinks onNavigate={() => ref.current?.close()} />
+          <CoachNavLinks onNavigate={dismiss} />
         </nav>
-        <div className="mt-auto border-t border-line pt-3"><ProfileLink coach onNavigate={() => ref.current?.close()} /></div>
+        <div className="mt-auto border-t border-line pt-3"><ProfileLink coach onNavigate={dismiss} /></div>
       </div>
     </dialog>
   );
 }
 
-/** Matt's workspace: Clients, Templates, Reviews in a collapsible sidebar (lg+) or a drawer (below). */
+/** Matt's workspace: Clients, Templates, Activity in a collapsible sidebar (lg+) or a drawer (below). */
 export function CoachLayout() {
   const [collapsed, setCollapsed] = useState(readSidebarCollapsed);
   const [width, setWidth] = useState(readSidebarWidth);
   const [resizing, setResizing] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const unread = useUnreadCount().data ?? 0;
+  const contentWidth = useWideRoute() ? 'max-w-[96rem]' : 'max-w-7xl';
 
   const resize = (next: number) => {
     const clamped = clampSidebarWidth(next);
@@ -319,7 +342,7 @@ export function CoachLayout() {
       <aside
         style={collapsed ? undefined : { width }}
         // The width eases when collapsing, but follows the pointer directly while dragging.
-        className={`sticky top-0 hidden h-dvh shrink-0 flex-col gap-4 border-r border-line bg-ink py-3 lg:flex ${resizing ? 'select-none' : 'transition-[width] duration-200'} ${collapsed ? 'w-[4.5rem] px-3.5' : 'px-3'}`}
+        className={`sticky top-0 hidden h-dvh shrink-0 flex-col gap-4 border-r border-line sidebar-glow bg-ink py-3 lg:flex ${resizing ? 'select-none' : 'transition-[width] duration-200'} ${collapsed ? 'w-[4.5rem] px-3.5' : 'px-3'}`}
       >
         {collapsed ? null : <SidebarResizeHandle width={width} onResize={resize} onDragging={setResizing} />}
         <div className={`flex min-h-11 items-center ${collapsed ? 'justify-center' : 'pl-2'}`}>
@@ -353,17 +376,17 @@ export function CoachLayout() {
         <TopBar
           className="lg:hidden"
           leading={
-            <button type="button" onClick={() => setDrawerOpen(true)} aria-label={unread ? `Open navigation (${unread} unread reviews)` : 'Open navigation'} className={`${sidebarControl} relative -ml-2`}>
+            <button type="button" onClick={() => setDrawerOpen(true)} aria-label={unread ? `Open navigation (${unread} unread activity items)` : 'Open navigation'} className={`${sidebarControl} relative -ml-2`}>
               <MenuIcon />
               <span aria-hidden style={{ transitionDuration: `${READ_FADE_MS}ms` }}
                 className={`absolute right-2 top-2 size-2 rounded-full bg-gold transition-[opacity,transform] motion-reduce:transition-none ${unread ? 'opacity-100' : 'scale-50 opacity-0'}`} />
             </button>
           }
         />
-        <main id="main-content" tabIndex={-1} className="mx-auto w-full max-w-5xl flex-1 scroll-mt-20 px-4 py-8 lg:scroll-mt-4 lg:px-8 lg:pt-12">
+        <main id="main-content" tabIndex={-1} className={`mx-auto w-full ${contentWidth} flex-1 scroll-mt-20 px-4 py-8 lg:scroll-mt-4 lg:px-8 lg:pt-12`}>
           <RouteContent />
         </main>
-        <LegalFooter className="mx-auto mt-8 w-full max-w-5xl px-4 pb-8 lg:px-8" />
+        <LegalFooter className={`mx-auto mt-8 w-full ${contentWidth} px-4 pb-8 lg:px-8`} />
       </div>
       {drawerOpen ? <CoachDrawer onClose={() => setDrawerOpen(false)} /> : null}
     </div>

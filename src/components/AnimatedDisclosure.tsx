@@ -2,7 +2,7 @@ import { useId, useState, type ReactNode } from 'react';
 import { ChevronIcon } from './icons';
 
 /** Intrinsic-height expansion keeps async content responsive and supports reversing mid-transition. */
-export function AnimatedDisclosure({ label, children, className = '' }: { label: string; children: ReactNode; className?: string }) {
+export function AnimatedDisclosure({ label, children, className = '' }: { label: ReactNode; children: ReactNode; className?: string }) {
   const [open, setOpen] = useState(false);
   const id = useId();
   return <section className={className}>

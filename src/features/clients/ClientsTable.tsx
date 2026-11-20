@@ -1,5 +1,6 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router';
+import { AnimatedDisclosure } from '@/components/AnimatedDisclosure';
 import { MultiSelectFilter } from '@/components/MultiSelectFilter';
 import { Badge, Button } from '@/components/ui';
 import type { ServiceKind } from '@/domain/programs/contract';
@@ -8,7 +9,6 @@ import { SERVICE_SHORT_LABELS, SERVICES } from '@/lib/services';
 import type { ClientRow, ClientStatus } from './api';
 import { ClientRowMenu, type ClientRowMenuState } from './ClientRowMenu';
 import {
-  ALL_STATUSES,
   clampColumnWidth,
   DEFAULT_COLUMN_WIDTHS,
   MIN_COLUMN_WIDTHS,
@@ -18,6 +18,7 @@ import {
   DEFAULT_TABLE_STATE,
   filterAndSortClients,
   lastEditedAt,
+  LISTED_STATUSES,
   liveServices,
   paramsFromState,
   STATUS_LABELS,
@@ -92,10 +93,12 @@ function ResizeHandle({ label, width, min, onResize, onReset }: { label: string;
 const controlClass =
   'min-h-10 rounded-card border border-line bg-surface px-3 text-sm text-text focus:border-gold focus:outline-none';
 
-/** Notion-style client database: search, filter chips, sortable columns, a right-click row menu. State lives in the URL. */
+/**
+ * Notion-style client database: search, filter chips, sortable columns, a right-click row menu. State lives in the URL.
+ * Disabled clients sit in a collapsed table of their own underneath.
+ */
 export function ClientsTable({ rows, isAdmin }: { rows: ClientRow[]; isAdmin: boolean }) {
   const [params, setParams] = useSearchParams();
-  const navigate = useNavigate();
   // React state is the source of truth (updates queue reliably); the URL mirrors it so filters
   // survive navigating to a client and back, and can be bookmarked.
   const [state, setState] = useState<ClientTableState>(() => stateFromParams(params));
@@ -106,7 +109,6 @@ export function ClientsTable({ rows, isAdmin }: { rows: ClientRow[]; isAdmin: bo
     if (urlSearch !== params.toString()) setParams(new URLSearchParams(urlSearch), { replace: true });
   }, [urlSearch]);
 
-  const visible = useMemo(() => filterAndSortClients(rows, state), [rows, state]);
   const filtersActive = state.query !== '' || state.statuses.length > 0 || state.services.length > 0;
 
   const update = (patch: Partial<ClientTableState>) => setState((prev) => ({ ...prev, ...patch }));
@@ -118,6 +120,22 @@ export function ClientsTable({ rows, isAdmin }: { rows: ClientRow[]; isAdmin: bo
     }));
 
   const overview = useMemo(() => clientOverview(rows), [rows]);
+  // Disabled clients get their own collapsed table under the roster; search, services and sort apply to both.
+  const { listed, disabled } = useMemo(() => ({
+    listed: rows.filter((r) => r.status !== 'disabled'),
+    disabled: rows.filter((r) => r.status === 'disabled'),
+  }), [rows]);
+  const visibleListed = useMemo(() => filterAndSortClients(listed, state), [listed, state]);
+  const visibleDisabled = useMemo(() => filterAndSortClients(disabled, { ...state, statuses: [] }), [disabled, state]);
+  const searchActive = state.query !== '' || state.services.length > 0;
+  const openMenu = (row: ClientRow, e: MouseEvent<HTMLTableRowElement>) => {
+    // The keyboard menu key reports no pointer position; open beside the row instead.
+    const fromKeyboard = e.clientX === 0 && e.clientY === 0;
+    const rect = e.currentTarget.getBoundingClientRect();
+    setMenu({ row, x: fromKeyboard ? rect.left + 16 : e.clientX, y: fromKeyboard ? rect.bottom : e.clientY,
+      returnFocus: e.currentTarget.querySelector('a') });
+  };
+  const grid = { widths: columnWidths, state, sortBy, onMenu: openMenu };
 
   return (
     <div className="grid gap-3">
@@ -134,7 +152,7 @@ export function ClientsTable({ rows, isAdmin }: { rows: ClientRow[]; isAdmin: bo
         </label>
         <MultiSelectFilter
           label="Status"
-          options={ALL_STATUSES.map((st) => ({ value: st, label: STATUS_LABELS[st], display: statusBadge(st), count: overview.statuses[st] }))}
+          options={LISTED_STATUSES.map((st) => ({ value: st, label: STATUS_LABELS[st], display: statusBadge(st), count: overview.statuses[st] }))}
           selected={state.statuses}
           onChange={(statuses) => update({ statuses })}
           hint="Shows any of these"
@@ -154,94 +172,114 @@ export function ClientsTable({ rows, isAdmin }: { rows: ClientRow[]; isAdmin: bo
       </div>
 
       <p className="text-xs text-muted" aria-live="polite">
-        {visible.length === rows.length ? `${rows.length} client${rows.length === 1 ? '' : 's'}` : `${visible.length} of ${rows.length} clients`}
+        {visibleListed.length === listed.length ? `${listed.length} client${listed.length === 1 ? '' : 's'}` : `${visibleListed.length} of ${listed.length} clients`}
       </p>
 
-      {/* The table scrolls inside its own frame on narrow screens; the page itself never overflows. */}
-      <div className="overflow-x-auto rounded-card border border-line bg-surface">
-        {/* Fixed layout with pixel columns: resizing one column never reflows the others. */}
-        <table className="min-w-full table-fixed border-collapse text-sm" style={{ width: COLUMNS.reduce((sum, col) => sum + columnWidths.widths[col.key], 0) }}>
-          <colgroup>{COLUMNS.map((col) => <col key={col.key} style={{ width: columnWidths.widths[col.key] }} />)}</colgroup>
-          <thead>
-            <tr className="border-b border-line text-left">
-              {COLUMNS.map((col) => {
-                const active = state.sort === col.key;
-                return (
-                  <th
-                    key={col.key}
-                    scope="col"
-                    className="relative px-3 py-0 font-medium text-muted"
-                    aria-sort={active ? (state.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => sortBy(col.key)}
-                      className={`flex min-h-10 w-full min-w-0 items-center gap-1 text-left hover:text-text ${active ? 'text-text' : ''}`}
-                    >
-                      <span className="truncate">{col.label}</span>
-                      <span aria-hidden className={`text-xs ${active ? 'text-gold-fg' : 'opacity-0'}`}>
-                        {active && state.dir === 'desc' ? '↓' : '↑'}
-                      </span>
-                    </button>
-                    <ResizeHandle label={col.label} width={columnWidths.widths[col.key]} min={MIN_COLUMN_WIDTHS[col.key]}
-                      onResize={(width) => columnWidths.resize(col.key, width)} onReset={() => columnWidths.resize(col.key, DEFAULT_COLUMN_WIDTHS[col.key])} />
-                  </th>
-                );
-              })}
-            </tr>
-          </thead>
-          <tbody>
-            {visible.map((row) => (
-              <tr
-                key={row.id}
-                onClick={(e) => {
-                  if (!(e.target as HTMLElement).closest('a')) navigate(`/coach/clients/${row.id}`);
-                }}
-                onContextMenu={(e) => {
-                  e.preventDefault();
-                  // The keyboard menu key reports no pointer position; open beside the row instead.
-                  const fromKeyboard = e.clientX === 0 && e.clientY === 0;
-                  const rect = e.currentTarget.getBoundingClientRect();
-                  setMenu({ row, x: fromKeyboard ? rect.left + 16 : e.clientX, y: fromKeyboard ? rect.bottom : e.clientY,
-                    returnFocus: e.currentTarget.querySelector('a') });
-                }}
-                className="row-link cursor-pointer border-b border-line align-top last:border-b-0 hover:bg-surface-raised"
-              >
-                <td className="p-0">
-                  <Link to={`/coach/clients/${row.id}`} className="block min-h-11 truncate px-3 py-2.5 font-medium text-text">
-                    <span className="link link--bare">{row.full_name}</span>
-                  </Link>
-                </td>
-                <td className="truncate px-3 py-2.5 text-muted" title={row.email}>
-                  {row.email}
-                </td>
-                {/* Services may wrap onto more lines; every other cell stays on one line and ends in "…". */}
-                <td className="px-3 py-2.5">
-                  <div className="flex flex-wrap gap-1">
-                    {liveServices(row).length === 0 ? <span className="text-muted">—</span> : null}
-                    {liveServices(row).map((e) => (
-                      <ServiceTag key={e.id} service={e.service} paused={e.status === 'paused'} />
-                    ))}
-                  </div>
-                </td>
-                <td className="truncate px-3 py-2.5">{statusBadge(row.status)}</td>
-                <td className="truncate px-3 py-2.5 text-muted" title={formatDate(row.created_at)}>{formatDate(row.created_at)}</td>
-                <td className="truncate px-3 py-2.5 text-muted">
-                  <time dateTime={lastEditedAt(row)} title={new Date(lastEditedAt(row)).toLocaleString()}>{formatDateTime(lastEditedAt(row))}</time>
-                </td>
-              </tr>
-            ))}
-            {visible.length === 0 ? (
-              <tr>
-                <td colSpan={COLUMNS.length} className="px-3 py-8 text-center text-muted">
-                  {rows.length === 0 ? 'No clients yet.' : 'No clients match these filters.'}
-                </td>
-              </tr>
-            ) : null}
-          </tbody>
-        </table>
-      </div>
+      <ClientGrid {...grid} rows={visibleListed}
+        empty={listed.length === 0 ? 'No clients yet.' : 'No clients match these filters.'} />
+      {disabled.length ? (
+        <AnimatedDisclosure className="mt-3"
+          label={<>Disabled accounts <span className="rounded-full bg-surface-raised px-2 py-0.5 text-xs font-medium tabular-nums text-muted">{searchActive ? `${visibleDisabled.length} of ${disabled.length}` : disabled.length}</span></>}>
+          <div className="pb-1 pt-2">
+            <ClientGrid {...grid} rows={visibleDisabled} empty="No disabled accounts match these filters." />
+          </div>
+        </AnimatedDisclosure>
+      ) : null}
       {menu ? <ClientRowMenu key={menu.row.id + menu.x + menu.y} menu={menu} isAdmin={isAdmin} onClose={() => setMenu(null)} /> : null}
+    </div>
+  );
+}
+
+/** One client table; the roster and the disabled section share its sort and column widths. */
+function ClientGrid({ rows, empty, widths, state, sortBy, onMenu }: {
+  rows: ClientRow[];
+  empty: string;
+  widths: ReturnType<typeof useColumnWidths>;
+  state: ClientTableState;
+  sortBy: (key: SortKey) => void;
+  onMenu: (row: ClientRow, e: MouseEvent<HTMLTableRowElement>) => void;
+}) {
+  const navigate = useNavigate();
+  // The table scrolls inside its own frame on narrow screens; the page itself never overflows.
+  return (
+    <div className="overflow-x-auto rounded-card border border-line bg-surface">
+      {/* Fixed layout with pixel columns: resizing one column never reflows the others. */}
+      <table className="min-w-full table-fixed border-collapse text-sm" style={{ width: COLUMNS.reduce((sum, col) => sum + widths.widths[col.key], 0) }}>
+        <colgroup>{COLUMNS.map((col) => <col key={col.key} style={{ width: widths.widths[col.key] }} />)}</colgroup>
+        <thead>
+          <tr className="border-b border-line text-left">
+            {COLUMNS.map((col) => {
+              const active = state.sort === col.key;
+              return (
+                <th
+                  key={col.key}
+                  scope="col"
+                  className="relative px-3 py-0 font-medium text-muted"
+                  aria-sort={active ? (state.dir === 'asc' ? 'ascending' : 'descending') : 'none'}
+                >
+                  <button
+                    type="button"
+                    onClick={() => sortBy(col.key)}
+                    className={`flex min-h-10 w-full min-w-0 items-center gap-1 text-left hover:text-text ${active ? 'text-text' : ''}`}
+                  >
+                    <span className="truncate">{col.label}</span>
+                    <span aria-hidden className={`text-xs ${active ? 'text-gold-fg' : 'opacity-0'}`}>
+                      {active && state.dir === 'desc' ? '↓' : '↑'}
+                    </span>
+                  </button>
+                  <ResizeHandle label={col.label} width={widths.widths[col.key]} min={MIN_COLUMN_WIDTHS[col.key]}
+                    onResize={(width) => widths.resize(col.key, width)} onReset={() => widths.resize(col.key, DEFAULT_COLUMN_WIDTHS[col.key])} />
+                </th>
+              );
+            })}
+          </tr>
+        </thead>
+        <tbody>
+          {rows.map((row) => (
+            <tr
+              key={row.id}
+              onClick={(e) => {
+                if (!(e.target as HTMLElement).closest('a')) navigate(`/coach/clients/${row.id}`);
+              }}
+              onContextMenu={(e) => {
+                e.preventDefault();
+                onMenu(row, e);
+              }}
+              className="row-link cursor-pointer border-b border-line align-top last:border-b-0 hover:bg-surface-raised"
+            >
+              <td className="p-0">
+                <Link to={`/coach/clients/${row.id}`} className="block min-h-11 truncate px-3 py-2.5 font-medium text-text">
+                  <span className="link link--bare">{row.full_name}</span>
+                </Link>
+              </td>
+              <td className="truncate px-3 py-2.5 text-muted" title={row.email}>
+                {row.email}
+              </td>
+              {/* Services may wrap onto more lines; every other cell stays on one line and ends in "…". */}
+              <td className="px-3 py-2.5">
+                <div className="flex flex-wrap gap-1">
+                  {liveServices(row).length === 0 ? <span className="text-muted">—</span> : null}
+                  {liveServices(row).map((e) => (
+                    <ServiceTag key={e.id} service={e.service} paused={e.status === 'paused'} />
+                  ))}
+                </div>
+              </td>
+              <td className="truncate px-3 py-2.5">{statusBadge(row.status)}</td>
+              <td className="truncate px-3 py-2.5 text-muted" title={formatDate(row.created_at)}>{formatDate(row.created_at)}</td>
+              <td className="truncate px-3 py-2.5 text-muted">
+                <time dateTime={lastEditedAt(row)} title={new Date(lastEditedAt(row)).toLocaleString()}>{formatDateTime(lastEditedAt(row))}</time>
+              </td>
+            </tr>
+          ))}
+          {rows.length === 0 ? (
+            <tr>
+              <td colSpan={COLUMNS.length} className="px-3 py-8 text-center text-muted">
+                {empty}
+              </td>
+            </tr>
+          ) : null}
+        </tbody>
+      </table>
     </div>
   );
 }

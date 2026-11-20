@@ -1,6 +1,7 @@
-import { useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
+import { keepPreviousData, useInfiniteQuery, useMutation, useQuery, useQueryClient, type InfiniteData } from '@tanstack/react-query';
 import { z } from 'zod';
 import type { ActivityItem, ReviewItem } from '@/domain/activity/feed';
+import type { TrendWindow } from '@/domain/activity/trends';
 import { requireSupabase } from '@/lib/supabase';
 
 // Staff-only feed of a client's logging (migration 00018, decision 0023).
@@ -26,7 +27,7 @@ const RequestActivitySchema = z.object({
 });
 const ServiceRequestActivitySchema = z.object({
   kind: z.literal('service_request'), id: z.string(), service: z.enum(['personal_training', 'mesocycle', 'nutrition']), message: z.string(),
-  status: z.enum(['pending', 'enrolled']), activityAt: z.string(), staffEdited: z.boolean(),
+  status: z.enum(['pending', 'enrolled', 'declined']), response: z.string().optional(), activityAt: z.string(), staffEdited: z.boolean(),
 });
 export const ActivitySchema = z.discriminatedUnion('kind',[SessionActivitySchema,NutritionActivitySchema]);
 const reviewFields = { clientId: z.string(), clientName: z.string(), unread: z.boolean() };
@@ -169,5 +170,31 @@ export function useMarkActivityRead() {
       if (context?.count !== undefined) queryClient.setQueryData(unreadKey, context.count);
     },
     onSettled: () => { setTimeout(() => void queryClient.invalidateQueries({ queryKey: reviewsKey }), READ_FADE_MS); },
+  });
+}
+
+// Trends beside the feed (migration 00045, decision 0046).
+const ActivityStatsSchema = z.object({
+  total: z.number().int(),
+  buckets: z.array(z.object({ bucket: z.string(), count: z.number().int() })),
+  kinds: z.array(z.object({ kind: z.enum(['completed', 'logged', 'skipped', 'started', 'nutrition', 'request', 'service_request']), count: z.number().int() })),
+  clients: z.array(z.object({ clientId: z.string(), clientName: z.string(), count: z.number().int() })),
+});
+export type ActivityStats = z.infer<typeof ActivityStatsSchema>;
+
+/** Counts for one trend window, in the viewer's time zone. Shares the feed's poll and refresh. */
+export function useActivityStats(window: TrendWindow) {
+  const timeZone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return useQuery({
+    queryKey: [...reviewsKey, 'stats', window.bucket, window.from.toISOString(), timeZone],
+    refetchInterval: UNREAD_POLL_MS,
+    placeholderData: keepPreviousData,
+    queryFn: async () => {
+      const { data, error } = await requireSupabase().rpc('get_staff_activity_stats', {
+        p_from: window.from.toISOString(), p_to: window.to.toISOString(), p_bucket: window.bucket, p_time_zone: timeZone,
+      });
+      if (error) throw error;
+      return ActivityStatsSchema.parse(data);
+    },
   });
 }

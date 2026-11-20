@@ -3,11 +3,12 @@ import { Link, useSearchParams } from 'react-router';
 import { useViewer } from '@/app/auth';
 import { Avatar } from '@/components/Avatar';
 import { Dialog } from '@/components/Dialog';
-import { ArrowUpRightIcon, PencilIcon } from '@/components/icons';
+import { ScrollStripButtons, ScrollStripList, useScrollStrip } from '@/components/ScrollStrip';
+import { ArrowUpRightIcon, PencilIcon, StepIcon } from '@/components/icons';
 import { useClient, useClientPhoto } from '@/features/clients/api';
 import { programPath } from '@/features/programs/CurrentProgram';
 import { SERVICE_SHORT_LABELS } from '@/lib/services';
-import { Alert, Badge, Button, PageHeader, Spinner } from '@/components/ui';
+import { Alert, Badge, Button, PageHeader, Skeleton, Spinner } from '@/components/ui';
 import { CALENDAR_VIEWS, countdown, layoutDay, stepDate, viewDays, type CalendarView } from '@/domain/scheduling/calendar';
 import { addDays, isoWeekday, weekdayShort, zonedDateTime, zonedToInstant } from '@/domain/scheduling/pattern';
 import { capitalize } from '@/lib/format';
@@ -17,8 +18,8 @@ import { sessionDay, sessionMoment, sessionRange, sessionTime, todayIn, zoneLabe
 import { isCancelled, useHideCancelled } from './useHideCancelled';
 
 const DAY_MS = 86_400_000;
-const UPCOMING_COUNT = 3;
-const VISIBLE_REQUEST_COUNT = 3;
+const HOUR_MS = 3_600_000;
+const UPCOMING_COUNT = 4;
 const HOUR_PX = 48;
 const MONTH_CHIPS = 3;
 
@@ -51,61 +52,83 @@ export function MeetingsPage() {
   return (
     <div className="grid gap-8">
       <PageHeader title="Meetings" subtitle={`All your clients’ meetings. Times in ${zoneLabel(timeZone)}.`} />
-      <AtAGlance timeZone={timeZone} />
-      <MeetingTodos timeZone={timeZone} />
+      {/* One grid cell, so the to-dos' spacing folds away with them. */}
+      <div className="min-w-0">
+        <AtAGlance timeZone={timeZone} />
+        <MeetingTodos timeZone={timeZone} />
+      </div>
       <MeetingCalendar timeZone={timeZone} />
     </div>
   );
 }
 
+/**
+ * Pending reschedule and cancellation requests, laid out like the Clients page's service requests:
+ * one sideways-scrolling row of cards with ‹ › to reveal more. Folds away once none are left.
+ */
 function MeetingTodos({ timeZone }: { timeZone: string }) {
   const requests = usePendingMeetingRequests();
-  const [showAll, setShowAll] = useState(false);
-  const pending = requests.data ?? [];
-  const visible = showAll ? pending : pending.slice(0, VISIBLE_REQUEST_COUNT);
+  const list = requests.data ?? [];
+  // While the row folds away after the last reply, it keeps showing the cards it had.
+  const lastShown = useRef(list);
+  if (list.length) lastShown.current = list;
+  const shown = list.length ? list : lastShown.current;
+  const empty = list.length === 0;
+  const strip = useScrollStrip(shown.length);
 
+  if (requests.error) return <Alert className="mt-8" title="Could not load meeting requests">{schedulingError(requests.error)}</Alert>;
+  // Nothing until the first answer, so an empty list never flashes in; it mounts already in place.
+  if (!requests.data) return null;
   return (
-    <section aria-labelledby="meeting-todos" className="min-w-0 border-t border-line pt-4">
-      <h2 id="meeting-todos" className="mb-2 text-xs font-medium text-muted">To-dos</h2>
-      {requests.isPending ? <Spinner label="Loading meeting requests" /> : null}
-      <Alert visible={!!requests.error} title="Could not load meeting requests">{schedulingError(requests.error)}</Alert>
-      {requests.data?.length === 0 ? <p className="text-sm text-muted">No meeting requests need a reply.</p> : null}
-      {visible.length > 0 ? (
-        <ul className="divide-y divide-line rounded-card border border-line">
-          {visible.map((meeting) => {
-            const { request } = meeting;
-            const label = request.kind === 'reschedule' ? 'Reschedule request' : 'Cancellation request';
-            return (
-              <li key={request.id}>
-                <Link to={meetingLink(meeting)} className="row-link flex min-h-11 items-start gap-3 rounded-card px-3 py-2.5 hover:bg-surface-raised">
-                  <div className="min-w-0 flex-1">
-                    <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
-                      <span className="text-sm font-semibold">{meeting.clientName}</span>
-                      <Badge tone="gold">{label}</Badge>
-                    </p>
-                    <p className="mt-1 text-xs text-muted">{sessionMoment(meeting.startsAt, timeZone)} · {topicLabel(meeting.services)}</p>
-                    {request.preferredStartsAt ? <p className="mt-0.5 text-xs text-muted">Prefers {sessionMoment(request.preferredStartsAt, timeZone)}</p> : null}
-                    {request.message.trim() ? <p className="mt-1 line-clamp-2 break-words text-sm">“{request.message}”</p> : null}
-                  </div>
-                  <span className="shrink-0 text-sm font-medium text-gold-fg">Review <span aria-hidden>→</span></span>
-                </Link>
-              </li>
-            );
-          })}
-        </ul>
-      ) : null}
-      {pending.length > VISIBLE_REQUEST_COUNT ? (
-        <Button variant="ghost" className="mt-1" aria-expanded={showAll} onClick={() => setShowAll((value) => !value)}>
-          {showAll ? 'Show fewer requests' : `Show all ${pending.length} requests`}
-        </Button>
-      ) : null}
-    </section>
+    // Hidden with no requests. Answering the last one folds the row and the calendar moves up.
+    <div className="collapsible" data-collapsed={empty || undefined} inert={empty}>
+      <div className="min-h-0 min-w-0 overflow-hidden">
+        <section aria-labelledby="meeting-todos" className="mt-8 w-full min-w-0 max-w-full border-t border-line pt-3">
+          <div className="mb-2 flex min-h-8 flex-wrap items-center justify-between gap-2">
+            <h2 id="meeting-todos" className="text-xs font-medium text-muted">
+              To-dos{list.length ? <span className="ml-2 text-gold-fg">{list.length} waiting</span> : null}
+            </h2>
+            <ScrollStripButtons strip={strip} backLabel="Show earlier requests" forwardLabel="Show more requests" />
+          </div>
+          {shown.length ? (
+            <ScrollStripList strip={strip}>
+              {shown.map((meeting) => {
+                const { request } = meeting;
+                return (
+                  // At least the usual card width, and wider when the name and pill need it to share a line.
+                  <li key={request.id} className="flex min-w-72 max-w-[85%] shrink-0">
+                    <Link to={meetingLink(meeting)}
+                      className="row-link group flex w-full min-w-0 items-start gap-3 rounded-card border border-line px-4 py-3.5 text-left transition-colors hover:bg-surface-raised">
+                      <span className="min-w-0 flex-1">
+                        <span className="flex items-center gap-2 whitespace-nowrap">
+                          <span className="min-w-0 truncate text-sm font-medium text-text">{meeting.clientName}</span>
+                          <span className="flex shrink-0"><Badge tone="gold">{request.kind === 'reschedule' ? 'Reschedule request' : 'Cancellation request'}</Badge></span>
+                        </span>
+                        {/* Zero intrinsic width, so only the line above sets how wide the card grows. */}
+                        <span className="block w-0 min-w-full">
+                          <span className="mt-1 block text-xs text-muted">{sessionMoment(meeting.startsAt, timeZone)} · {topicLabel(meeting.services)}</span>
+                          {request.preferredStartsAt ? <span className="mt-0.5 block text-xs text-muted">Prefers {sessionMoment(request.preferredStartsAt, timeZone)}</span> : null}
+                          {request.message.trim() ? <span className="mt-2.5 line-clamp-2 break-words text-xs leading-relaxed text-muted">“{request.message}”</span> : null}
+                        </span>
+                      </span>
+                      <span aria-hidden className="pt-0.5 text-xs text-muted group-hover:text-text">→</span>
+                    </Link>
+                  </li>
+                );
+              })}
+            </ScrollStripList>
+          ) : null}
+        </section>
+      </div>
+    </div>
   );
 }
 
 function AtAGlance({ timeZone }: { timeZone: string }) {
   const now = useNow();
-  const [from] = useState(() => new Date());
+  // From the start of the current hour, so every visit within the hour shares one cached query and
+  // the page opens on the last answer while it refreshes. Meetings that started earlier still overlap.
+  const [from] = useState(() => new Date(Math.floor(Date.now() / HOUR_MS) * HOUR_MS));
   const range = useMemo(() => ({ from, to: new Date(from.getTime() + 100 * DAY_MS) }), [from]);
   const meetings = useMeetingsBetween(range.from, range.to);
   const scheduled = (meetings.data ?? []).filter((m) => m.status === 'scheduled');
@@ -113,12 +136,14 @@ function AtAGlance({ timeZone }: { timeZone: string }) {
   const ahead = scheduled.filter((m) => new Date(m.startsAt).getTime() > now);
   const next = ahead[0];
   const wait = next ? countdown(now, new Date(next.startsAt).getTime()) : null;
+  const today = zonedDateTime(new Date(now), timeZone).date;
+  const moreToday = ahead.slice(UPCOMING_COUNT).filter((m) => zonedDateTime(m.startsAt, timeZone).date === today).length;
 
   return (
     <div className="grid gap-6 md:grid-cols-2 md:gap-9">
       <section aria-labelledby="next-meeting" className="min-w-0">
         <h2 id="next-meeting" className="mb-2 text-xs font-medium text-muted">Next meeting</h2>
-        {meetings.isPending ? <Spinner label="Loading meetings" /> : null}
+        {meetings.isPending ? <NextMeetingSkeleton /> : null}
         <Alert visible={!!meetings.error} title="Could not load meetings">{schedulingError(meetings.error)}</Alert>
         {running ? (
           <div role="status" aria-live="polite">
@@ -136,6 +161,7 @@ function AtAGlance({ timeZone }: { timeZone: string }) {
       </section>
       <section aria-labelledby="upcoming-meetings" className="min-w-0 border-t border-line pt-4 md:border-l md:border-t-0 md:pl-9 md:pt-0">
         <h2 id="upcoming-meetings" className="mb-2 text-xs font-medium text-muted">Upcoming</h2>
+        {meetings.isPending ? <UpcomingSkeleton /> : null}
         {meetings.data && ahead.length === 0 ? <p className="text-sm text-muted">Nothing upcoming.</p> : null}
         <ul>
           {ahead.slice(0, UPCOMING_COUNT).map((meeting) => (
@@ -156,6 +182,7 @@ function AtAGlance({ timeZone }: { timeZone: string }) {
             </li>
           ))}
         </ul>
+        {moreToday > 0 ? <p className="mt-1 pl-2 text-xs text-muted">+{moreToday} more {moreToday === 1 ? 'meeting' : 'meetings'} today</p> : null}
       </section>
     </div>
   );
@@ -219,6 +246,51 @@ const joinCall = (meeting: Meeting) => meeting.meetingUrl ? (
 ) : null;
 
 /** The next meeting in detail, with links to the meeting, the client page and the call. */
+/** The headline and card of "Next meeting", in their usual size, while meetings load. */
+function NextMeetingSkeleton() {
+  return (
+    <div role="status">
+      <span className="sr-only">Loading meetings</span>
+      <span className="flex h-[1.875rem] items-center"><Skeleton className="h-6 w-44" /></span>
+      <div className="mt-3 rounded-card border border-line bg-surface p-4">
+        <div className="flex items-start gap-3">
+          <Skeleton className="size-12 shrink-0 rounded-full" />
+          <div className="min-w-0 flex-1">
+            <span className="flex h-6 items-center"><Skeleton className="h-4 w-32" /></span>
+            <span className="flex h-5 items-center"><Skeleton className="h-3.5 w-48 max-w-full" /></span>
+            <span className="mt-0.5 flex h-4 items-center"><Skeleton className="h-3 w-40 max-w-full" /></span>
+          </div>
+        </div>
+        <div className="mt-3 flex gap-2">
+          <Skeleton className="h-11 w-32" />
+          <Skeleton className="h-11 w-28" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Upcoming rows in their usual size while meetings load. */
+function UpcomingSkeleton() {
+  return (
+    <ul aria-hidden>
+      {Array.from({ length: UPCOMING_COUNT }, (_, i) => (
+        <li key={i} className="flex min-h-11 items-center gap-3 py-2 pl-2 pr-2">
+          <span className="w-1 shrink-0 self-stretch rounded-full bg-line" />
+          <span className="w-24 shrink-0">
+            <span className="flex h-5 items-center"><Skeleton className="h-3.5 w-16" /></span>
+            <span className="flex h-5 items-center"><Skeleton className="h-3.5 w-12" /></span>
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="flex h-5 items-center"><Skeleton className="h-3.5 w-28" /></span>
+            <span className="flex h-4 items-center"><Skeleton className="h-3 w-36 max-w-full" /></span>
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 function NextMeetingCard({ meeting, timeZone }: { meeting: Meeting; timeZone: string }) {
   return (
     <div className="mt-3 rounded-card border border-line bg-surface p-4">
@@ -285,12 +357,12 @@ function MeetingCalendar({ timeZone }: { timeZone: string }) {
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Button variant="secondary" onClick={() => go({ date: today })}>Today</Button>
         <div className="flex">
-          <Button variant="ghost" aria-label={`Previous ${view}`} className="px-3" onClick={() => go({ date: stepDate(view, date, -1) })}>‹</Button>
-          <Button variant="ghost" aria-label={`Next ${view}`} className="px-3" onClick={() => go({ date: stepDate(view, date, 1) })}>›</Button>
+          <Button variant="ghost" aria-label={`Previous ${view}`} className="px-1.5!" onClick={() => go({ date: stepDate(view, date, -1) })}><StepIcon direction="previous" /></Button>
+          <Button variant="ghost" aria-label={`Next ${view}`} className="px-1.5!" onClick={() => go({ date: stepDate(view, date, 1) })}><StepIcon direction="next" /></Button>
         </div>
         {/* On phones the title moves above the view switcher so it stays on one line. */}
         <p className="hidden min-w-0 flex-1 text-lg font-semibold sm:block" aria-live="polite">{title}</p>
-        <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-muted">
+        <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm sm:mr-4 text-muted">
           <input type="checkbox" className="size-4 accent-gold" checked={hideCancelled} onChange={(event) => setHideCancelled(event.target.checked)} />
           Hide cancelled
         </label>

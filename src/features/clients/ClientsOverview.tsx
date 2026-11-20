@@ -1,7 +1,8 @@
 import { useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { Dialog } from '@/components/Dialog';
-import { CheckIcon, CopyIcon, SendIcon } from '@/components/icons';
+import { ScrollStripButtons, useScrollStrip } from '@/components/ScrollStrip';
+import { CheckIcon, CopyIcon, InboxIcon, SendIcon } from '@/components/icons';
 import { Alert, Badge, Button, Spinner } from '@/components/ui';
 import { ActivityRow } from '@/features/activity/ActivityViews';
 import { useLatestUnread, useUnreadCount } from '@/features/activity/api';
@@ -10,7 +11,8 @@ import { topicLabel } from '@/features/scheduling/MeetingTopic';
 import { upcomingByDay } from '@/domain/scheduling/upcoming';
 import { formatDate } from '@/lib/format';
 import { SERVICE_SHORT_LABELS, SERVICES } from '@/lib/services';
-import { friendlyError, useInviteClient, type ClientRow, type ClientStatus } from './api';
+import { friendlyError, useInviteClient, usePendingServiceRequests, type ClientRow, type ClientStatus } from './api';
+import { ServiceRequestRows } from './ServiceRequests';
 import { ALL_STATUSES, clientOverview, STATUS_LABELS } from './clientTable';
 import { statusBadge } from './ClientsTable';
 
@@ -71,8 +73,8 @@ function ToReviewPanel() {
         </h2>
         <Link to="/coach/reviews" className="-my-3 inline-flex min-h-11 items-center text-sm text-gold-fg"><span className="link">View all</span></Link>
       </div>
-      <Alert visible={!!(unread.error || latest.error)} title="Could not load reviews">{friendlyError(unread.error ?? latest.error)}</Alert>
-      {latest.isPending ? <Spinner label="Loading reviews" /> : null}
+      <Alert visible={!!(unread.error || latest.error)} title="Could not load activity">{friendlyError(unread.error ?? latest.error)}</Alert>
+      {latest.isPending ? <Spinner label="Loading activity" /> : null}
       {latest.data?.length === 0 ? <AllClear title="All caught up." detail="No unread workouts or logs from your clients." /> : null}
       {latest.data?.length ? (
         <ul className="min-w-0 divide-y divide-line">
@@ -149,7 +151,7 @@ export function ClientsOverview({ rows, canInvite }: { rows: ClientRow[]; canInv
   return (
     <>
     <ActivityAndSessions />
-    <div className="mb-5 grid grid-cols-[3fr_4fr] gap-x-4 gap-y-3 sm:grid-cols-[auto_auto] sm:justify-start sm:gap-x-9 lg:grid-cols-[auto_auto_1fr]">
+    <div className="mb-5 grid grid-cols-[3fr_4fr] gap-x-4 gap-y-3 sm:grid-cols-[auto_auto] sm:justify-start sm:gap-x-9 lg:justify-stretch lg:grid-cols-[3fr_4fr_minmax(16rem,3fr)]">
       <Panel title="Services">
         <ColumnChart total={overview.total} items={SERVICES.map((s) => ({ label: SERVICE_SHORT_LABELS[s], count: overview.services[s] }))} />
       </Panel>
@@ -159,10 +161,7 @@ export function ClientsOverview({ rows, canInvite }: { rows: ClientRow[]; canInv
       <Panel title="Follow up" className="col-span-2 lg:col-span-1">
         {overview.notInvited.length === 0 && overview.inviteUnaccepted.length === 0 ? (
           <div role="status" className="flex items-center gap-3 py-1">
-            <svg aria-hidden viewBox="0 0 24 24" className="size-9 shrink-0 text-success" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="9.5" />
-              <path d="m7.5 12.5 3 3 6-6.5" />
-            </svg>
+            <span className="text-muted opacity-50"><InboxIcon className="size-11 shrink-0" /></span>
             <div className="min-w-0">
               <p className="text-xl font-semibold leading-tight text-text">All done here.</p>
               <p className="mt-0.5 text-xs text-muted">No invitations left to send, and none waiting to be accepted.</p>
@@ -187,6 +186,7 @@ export function ClientsOverview({ rows, canInvite }: { rows: ClientRow[]; canInv
       </Panel>
       {open ? <FollowUpDialog kind={open.kind} ids={open.ids} rows={rows} canInvite={canInvite} onClose={() => setOpen(null)} /> : null}
     </div>
+    <ServiceRequestsPanel />
     </>
   );
 }
@@ -197,6 +197,41 @@ function Panel({ title, className = '', children }: { title: string; className?:
       <h2 className="mb-2 text-xs font-medium text-muted">{title}</h2>
       {children}
     </section>
+  );
+}
+
+/**
+ * Pending service requests across the coach's clients (decision 0044): their own row under the
+ * charts, scrolling sideways, with ‹ › to reveal more.
+ */
+function ServiceRequestsPanel() {
+  const requests = usePendingServiceRequests();
+  const list = requests.data ?? [];
+  // While the row folds away after the last answer, it keeps showing the cards it had.
+  const lastShown = useRef(list);
+  if (list.length) lastShown.current = list;
+  const shown = list.length ? list : lastShown.current;
+  const empty = list.length === 0;
+  const strip = useScrollStrip(shown.length);
+
+  if (requests.error) return <Alert className="mb-5" title="Could not load service requests">{friendlyError(requests.error)}</Alert>;
+  // Nothing until the first answer, so an empty list never flashes in; it mounts already in place.
+  if (!requests.data) return null;
+  return (
+    // Hidden with no requests. Answering the last one folds the row and the content below moves up.
+    <div className="collapsible" data-collapsed={empty || undefined} inert={empty}>
+      <div className="min-h-0 min-w-0 overflow-hidden">
+        <section aria-labelledby="clients-service-requests" className="mb-5 w-full min-w-0 max-w-full border-t border-line py-3">
+          <div className="mb-2 flex min-h-8 flex-wrap items-center justify-between gap-2">
+            <h2 id="clients-service-requests" className="text-xs font-medium text-muted">
+              Service requests{list.length ? <span className="ml-2 text-gold-fg">{list.length} waiting</span> : null}
+            </h2>
+            <ScrollStripButtons strip={strip} backLabel="Show earlier requests" forwardLabel="Show more requests" />
+          </div>
+          {shown.length ? <ServiceRequestRows requests={shown} showClient strip={strip} /> : null}
+        </section>
+      </div>
+    </div>
   );
 }
 
@@ -237,7 +272,7 @@ function ColumnChart({ items, total }: { items: Column[]; total: number }) {
                 const box = chartRef.current!.getBoundingClientRect();
                 setHover({ index, x: e.clientX - box.left, y: e.clientY - box.top });
               }}
-              className="flex min-w-0 flex-1 flex-col items-center sm:w-16 sm:flex-none"
+              className="flex min-w-0 flex-1 flex-col items-center sm:w-16 sm:flex-none lg:w-auto lg:flex-1"
             >
               <div aria-hidden className="flex h-20 w-full flex-col items-center justify-end">
                 <span className="mb-1 text-xs font-medium tabular-nums text-text">{count}</span>

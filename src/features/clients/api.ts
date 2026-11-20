@@ -28,6 +28,8 @@ export type EnrollmentRow = {
   starts_on: string;
   ends_on: string | null;
   archived_at: string | null;
+  /** When the service was added; the Services card lists newest first. */
+  created_at: string;
   /** Selected by the clients list, which counts service changes as edits. */
   updated_at?: string;
   /** The coach's choice of current program (decision 0039); see `currentProgramId`. */
@@ -35,7 +37,7 @@ export type EnrollmentRow = {
   current_nutrition_program_id: string | null;
 };
 
-const CLIENT_COLUMNS = 'id, email, full_name, status, timezone, auth_user_id, primary_coach_id, created_at, updated_at, service_enrollments(id, service, status, starts_on, ends_on, archived_at, updated_at, current_program_id, current_nutrition_program_id)';
+const CLIENT_COLUMNS = 'id, email, full_name, status, timezone, auth_user_id, primary_coach_id, created_at, updated_at, service_enrollments(id, service, status, starts_on, ends_on, archived_at, created_at, updated_at, current_program_id, current_nutrition_program_id)';
 
 export function useClients() {
   return useQuery({
@@ -189,7 +191,11 @@ export function useAddEnrollment() {
       const { error } = await requireSupabase().from('service_enrollments').insert({ client_id: clientId, service });
       if (error) throw error;
     },
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: ['clients'] }),
+    onSuccess: () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['clients'] }),
+      // Adding a requested service answers the request, so it leaves the unread list.
+      queryClient.invalidateQueries({ queryKey: ['staff-activity'] }),
+    ]),
   });
 }
 
@@ -282,5 +288,60 @@ export function useDeleteClientNote(clientId: string) {
       return data;
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['client-notes', clientId] }),
+  });
+}
+
+// ---------------------------------------------------------------------------------------------
+// Service requests: staff answers (decision 0044)
+
+const PendingServiceRequestSchema = z.object({
+  id: z.string(), clientId: z.string(), clientName: z.string(), service: ServiceKind, message: z.string(), createdAt: z.string(),
+});
+export type PendingServiceRequest = z.infer<typeof PendingServiceRequestSchema>;
+const pendingServiceRequestsKey = ['service-requests', 'pending'];
+
+/**
+ * Pending requests for one client, or across every client the caller can see. The client page and
+ * the Clients page share this query, so an answer in one shows in the other.
+ */
+export function usePendingServiceRequests(clientId?: string) {
+  return useQuery({
+    queryKey: [...pendingServiceRequestsKey, clientId ?? 'all'],
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const { data, error } = await requireSupabase().rpc('list_pending_service_requests', clientId ? { p_client_id: clientId } : {});
+      if (error) throw error;
+      return z.array(PendingServiceRequestSchema).parse(data);
+    },
+  });
+}
+
+/** Opening a request marks it seen for this staff member, the same read state Reviews uses. */
+export function useMarkServiceRequestSeen() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await requireSupabase().rpc('mark_service_request_read', { p_request_id: id });
+      if (error) throw error;
+    },
+    onSettled: () => queryClient.invalidateQueries({ queryKey: ['staff-activity'] }),
+  });
+}
+
+/** Accepting adds the service; answering again is harmless, so a retry never adds it twice. */
+export function useAnswerServiceRequest() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (input: { id: string; accept: true } | { id: string; accept: false; reply: string }) => {
+      const { error } = input.accept
+        ? await requireSupabase().rpc('accept_service_request', { p_request_id: input.id })
+        : await requireSupabase().rpc('decline_service_request', { p_request_id: input.id, p_response: input.reply });
+      if (error) throw error;
+    },
+    onSettled: () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['service-requests'] }),
+      queryClient.invalidateQueries({ queryKey: ['clients'] }),
+      queryClient.invalidateQueries({ queryKey: ['staff-activity'] }),
+    ]),
   });
 }

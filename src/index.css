@@ -25,6 +25,9 @@
   --color-danger: #f08a7e;
   --color-success: #8fd19e;
   --color-info: #93c5fd;
+  --color-violet: #c4b5fd;
+  /* Single-series chart marks: 3:1 against surface in both themes (dataviz validator). */
+  --color-chart-bar: #c8a55d;
   /* Muted fills for advice cells in resource matrices (add sets / recovery). */
   --color-good-fill: color-mix(in oklab, #5f8f3f 24%, transparent);
   --color-bad-fill: color-mix(in oklab, #b3442f 24%, transparent);
@@ -32,6 +35,10 @@
   /* Resource table headers: translucent gold, softer than a full gold fill. */
   --color-table-head: color-mix(in oklab, var(--color-gold) 38%, transparent);
   --color-on-table-head: #f5f3ee;
+  /* Coach sidebar (.sidebar-glow): a deeper gold than the brand fill, its translucency, and grain strength. */
+  --color-sidebar-gold: color-mix(in oklab, var(--color-gold) 65%, #7a4f10);
+  --color-sidebar-glow: color-mix(in oklab, var(--color-sidebar-gold) 8%, transparent);
+  --sidebar-grain: 0.06;
   --radius-card: 7px;
   --font-sans: 'Hanken Grotesk Variable', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
   --ease-ui: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -53,11 +60,15 @@ html[data-theme='light'] {
   --color-danger: #b42318;
   --color-success: #1d7a3a;
   --color-info: #1e40af;
+  --color-violet: #6d28d9;
+  --color-chart-bar: #a8853f;
   --color-good-fill: color-mix(in oklab, #5f8f3f 18%, transparent);
   --color-bad-fill: color-mix(in oklab, #b3442f 16%, transparent);
   --color-on-tone: #171717;
   --color-table-head: color-mix(in oklab, var(--color-gold) 45%, transparent);
   --color-on-table-head: #171717;
+  --color-sidebar-glow: color-mix(in oklab, var(--color-sidebar-gold) 11%, transparent);
+  --sidebar-grain: 0.08;
 }
 
 html {
@@ -340,6 +351,24 @@ html[data-theme='light'] .brand-logo {
 .dialog[open]::backdrop {
   animation: scrim-in 180ms ease-out both;
 }
+/*
+ * Closing: Dialog puts the removed node back as a non-modal copy (no ::backdrop, not in the top layer),
+ * so it is pinned in place here and draws its own scrim as a shadow that fades with it.
+ */
+@keyframes dialog-out {
+  to {
+    opacity: 0;
+    transform: translateY(4px) scale(0.985);
+  }
+}
+.dialog[open][data-leaving] {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  pointer-events: none;
+  box-shadow: 0 0 0 100vmax color-mix(in oklab, var(--color-ink) 75%, transparent);
+  animation: dialog-out 180ms cubic-bezier(0.4, 0, 1, 1) both;
+}
 
 /* The coach's navigation drawer slides in from the left edge over the same scrim. */
 @keyframes drawer-in {
@@ -352,6 +381,23 @@ html[data-theme='light'] .brand-logo {
 }
 .drawer[open]::backdrop {
   animation: scrim-in 180ms ease-out both;
+}
+/* Dismissing slides it back out; the dialog only closes once drawer-out ends (CoachDrawer). */
+@keyframes drawer-out {
+  to {
+    transform: translateX(-100%);
+  }
+}
+@keyframes scrim-out {
+  to {
+    opacity: 0;
+  }
+}
+.drawer[open][data-closing] {
+  animation: drawer-out 200ms cubic-bezier(0.4, 0, 1, 1) both;
+}
+.drawer[open][data-closing]::backdrop {
+  animation: scrim-out 200ms ease-in both;
 }
 
 /*
@@ -372,12 +418,39 @@ html[data-theme='light'] .brand-logo {
 }
 
 /*
+ * Coach sidebar: translucent gold rising at an angle from the bottom-left corner, with fine grain that
+ * fades out along with it. The grain sits on a pseudo-element behind the content (isolation keeps it
+ * inside the sidebar) so its strength can follow the theme.
+ */
+.sidebar-glow {
+  isolation: isolate;
+  background-image: linear-gradient(20deg, var(--color-sidebar-glow), transparent 75%);
+  /* Hover and current-item fills tint what's beneath instead of covering the gold with flat grey. */
+  --color-surface-raised: color-mix(in oklab, var(--color-text) 8%, transparent);
+}
+html[data-theme='light'] .sidebar-glow {
+  --color-surface-raised: color-mix(in oklab, var(--color-text) 5%, transparent);
+}
+.sidebar-glow::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 1.6 -0.3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: var(--sidebar-grain);
+  mask-image: linear-gradient(20deg, #000, transparent 80%);
+}
+
+/*
  * Collapsible block that is open on page load (e.g. the clients dashboard). Transitions, not keyframes,
  * so nothing animates on mount. Closing fades first and then folds the height; opening unfolds the
  * height and then fades in.
  */
 .collapsible {
   display: grid;
+  /* A zero minimum, so wide content (the service request strip) scrolls inside instead of widening the page. */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: 1fr;
   transition:
     grid-template-rows 380ms var(--ease-ui),

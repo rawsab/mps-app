@@ -6,7 +6,7 @@ import { DisclosureSummary } from '@/components/DisclosureSummary';
 import { DraftSaveIndicator, type DraftSaveState } from '@/components/DraftSaveIndicator';
 import { UseNotice } from '@/components/LegalFooter';
 import { SpreadsheetIcon } from '@/components/icons';
-import { Alert, Badge, Button, PageHeader, Spinner, SelectField, TextAreaField, TextField } from '@/components/ui';
+import { Alert, Badge, Button, PageHeader, RequiredNote, Spinner, SelectField, TextAreaField, TextField } from '@/components/ui';
 import { optionalNumber, shiftDate } from '@/domain/nutrition';
 import { NutritionDailyEntry } from './NutritionDailyEntry';
 import { draftFromRevision, NutritionProgramDraft, nutritionHasUnpublishedChanges, nutritionPublishProblems, startingPrediction, type NutritionProgramSnapshot } from '@/domain/nutritionProgram';
@@ -131,16 +131,16 @@ function NutritionWorkspace({ snapshot, coach, published, embedded }: { snapshot
     <Alert visible={!!formError || !!validationError || !!save.error || !!publish.error} title="Program not saved">{formError || validationError || nutritionError(save.error ?? publish.error)}</Alert>
     {save.error || publish.error ? <div><Button variant="secondary" disabled={busy} onClick={() => void reloadDraft()}>Discard program edits and reload</Button></div> : null}
     {editable ? <fieldset disabled={publish.isPending || cellsDirty} className="grid min-w-0 gap-4">
-      <h2 className="text-lg font-semibold">Program details</h2>
+      <div><h2 className="text-lg font-semibold">Program details</h2><RequiredNote className="mt-1" /></div>
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-[minmax(0,2fr)_minmax(0,1fr)_8rem_8rem]">
-        <TextField label="Program Style" maxLength={160} value={draft.program_style} onChange={(e) => changeDraft({ program_style: e.target.value })} />
-        <TextField label="Start Date" type="date" min="1900-01-01" max="9998-01-01" value={draft.start_date ?? ''} onChange={(e) => changeDraft({ start_date: e.target.value || null })} />
+        <TextField label="Program Style" required maxLength={160} value={draft.program_style} onChange={(e) => changeDraft({ program_style: e.target.value })} />
+        <TextField label="Start Date" required type="date" min="1900-01-01" max="9998-01-01" value={draft.start_date ?? ''} onChange={(e) => changeDraft({ start_date: e.target.value || null })} />
         <SelectField label="Weight unit" value={draft.weight_unit} onChange={(e) => changeDraft({ weight_unit: e.target.value as 'lb' | 'kg' })}><option value="lb">lb</option><option value="kg">kg</option></SelectField>
-        <TextField label="Weeks" type="number" min={1} max={52} step={1} value={draft.week_count} onChange={(e) => changeDraft({ week_count: Number(e.target.value) })} />
+        <TextField label="Weeks" required type="number" min={1} max={52} step={1} value={draft.week_count} onChange={(e) => changeDraft({ week_count: Number(e.target.value) })} />
       </div>
       <div className="grid gap-4 lg:grid-cols-3">
-        <TextField label="Starting Predicted Maintenance Calories" type="number" min={0} max={30000} step={1} value={draft.maintenance ?? ''} onChange={(e) => changeDraft({ maintenance: optionalNumber(e.target.value) })} />
-        <TextField label="Starting Predicted Daily Caloric Goal" type="number" min={0} max={30000} step={1} value={draft.calorie_goal ?? ''} onChange={(e) => changeDraft({ calorie_goal: optionalNumber(e.target.value) })} />
+        <TextField label="Starting Predicted Maintenance Calories" required type="number" min={0} max={30000} step={1} value={draft.maintenance ?? ''} onChange={(e) => changeDraft({ maintenance: optionalNumber(e.target.value) })} />
+        <TextField label="Starting Predicted Daily Caloric Goal" required type="number" min={0} max={30000} step={1} value={draft.calorie_goal ?? ''} onChange={(e) => changeDraft({ calorie_goal: optionalNumber(e.target.value) })} />
         <div className="grid content-start gap-1.5"><p className="text-sm font-medium">Starting Predicted Weight Change Per Week</p><output className="flex min-h-11 items-center rounded-card border border-line bg-surface-raised px-3 text-base tabular-nums">{nutritionNumber(startingPrediction(draft), 2)} <span className="ml-1 text-sm text-muted">{draft.weight_unit} · estimate</span></output></div>
       </div>
       <TextAreaField label="Program notes" rows={2} maxLength={5000} value={draft.notes} onChange={(e) => changeDraft({ notes: e.target.value })} />
