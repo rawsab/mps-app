@@ -3,6 +3,7 @@ import { useViewer } from '@/app/auth';
 import { DisclosureSummary } from '@/components/DisclosureSummary';
 import { UseNotice } from '@/components/LegalFooter';
 import { CheckCircleIcon, SectionIcon, SpreadsheetIcon } from '@/components/icons';
+import { Chip, Tabs } from '@/components/controls';
 import { Alert, Badge, Button, EmptyState, PageHeader, Spinner } from '@/components/ui';
 import { dayView, locateDay, prescriptionView, weekSummaries, type DayBlock, type DayView } from '@/domain/programs/clientView';
 import type { Exercise, ProgramDraft } from '@/domain/programs/contract';
@@ -109,13 +110,13 @@ export function TrainingProgramView({ programId, backTo, backLabel, staff = fals
       {today && log.data ? <TrainingProgressBar program={doc} sessions={log.data} today={today} title="Progress" className="mb-6" /> : null}
 
       {located ? <ViewTabs sheet={sheet} onSelect={(next) => select(located.week.id, located.day?.id ?? null, next)} /> : null}
-      {located && sheet ? (
+      {located ? <div id="training-view-panel" role="tabpanel" aria-labelledby={`training-view-${sheet ? 'sheet' : 'workout'}`} tabIndex={0}>{sheet ? (
         <>
           <WeekPicker program={doc} weekId={located.week.id} onSelect={(weekId) => select(weekId, null)} />
           {logging ? <p className="mb-4 text-sm text-muted">Shows the current program. A workout you’ve already started keeps the targets it began with.</p> : null}
           <ProgramSpreadsheet program={doc} service={service} weekId={located.week.id} />
         </>
-      ) : located ? (
+      ) : (
         <>
           <WeekPicker program={doc} weekId={located.week.id} onSelect={(weekId) => select(weekId, null)} />
           <DayPicker program={doc} weekId={located.week.id} dayId={located.day?.id ?? null} completed={new Set(log.data?.filter((s) => s.status === 'completed').map((s) => s.dayId))} onSelect={(dayId) => select(located.week.id, dayId)} />
@@ -134,7 +135,7 @@ export function TrainingProgramView({ programId, backTo, backLabel, staff = fals
             </>;
           })() : <p className="mt-6 text-sm text-muted">This week has no workouts.</p>}
         </>
-      ) : (
+      )}</div> : (
         <EmptyState title="No workouts yet">This program doesn’t have any weeks yet.</EmptyState>
       )}
 
@@ -146,16 +147,10 @@ export function TrainingProgramView({ programId, backTo, backLabel, staff = fals
 
 /** Day-by-day workout or the whole week as a spreadsheet; both read the same published program. */
 function ViewTabs({ sheet, onSelect }: { sheet: boolean; onSelect: (sheet: boolean) => void }) {
-  const views = [{ sheet: false, label: 'Workout', icon: <SectionIcon /> }, { sheet: true, label: 'Spreadsheet', icon: <SpreadsheetIcon /> }];
   return (
-    <div role="group" aria-label="Program view" className="mb-4 flex gap-1 border-b border-line">
-      {views.map((v) => (
-        <button key={v.label} type="button" aria-pressed={v.sheet === sheet} onClick={() => onSelect(v.sheet)}
-          className={`-mb-px inline-flex min-h-11 items-center gap-2 border-b-2 px-3 text-sm ${v.sheet === sheet ? 'border-gold font-medium text-text' : 'border-transparent text-muted hover:text-text'}`}>
-          {v.icon}{v.label}
-        </button>
-      ))}
-    </div>
+    <Tabs label="Program view" idPrefix="training-view" panelId="training-view-panel" className="mb-4" value={sheet ? 'sheet' : 'workout'}
+      onChange={(next) => onSelect(next === 'sheet')}
+      options={[{ value: 'workout', label: 'Workout', icon: <SectionIcon /> }, { value: 'sheet', label: 'Spreadsheet', icon: <SpreadsheetIcon /> }]} />
   );
 }
 
@@ -165,10 +160,9 @@ function WeekPicker({ program, weekId, onSelect }: { program: ProgramDraft; week
   return (
     <div role="group" aria-label="Week" className="-mx-4 mb-3 flex gap-1.5 overflow-x-auto px-4 pb-1">
       {weeks.map((w) => (
-        <button key={w.id} type="button" aria-pressed={w.id === weekId} onClick={() => onSelect(w.id)}
-          className={`min-h-11 shrink-0 rounded-full border px-4 text-sm transition-colors ${w.id === weekId ? 'border-gold/50 bg-gold/10 font-medium text-gold-fg' : 'border-line text-muted hover:bg-surface-raised hover:text-text'}`}>
+        <Chip key={w.id} size="md" className="shrink-0" pressed={w.id === weekId} onClick={() => onSelect(w.id)}>
           {w.name}
-        </button>
+        </Chip>
       ))}
     </div>
   );

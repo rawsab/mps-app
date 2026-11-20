@@ -1,6 +1,7 @@
 import { Fragment } from 'react';
 import { Avatar } from '@/components/Avatar';
 import { Link, useParams, useSearchParams } from 'react-router';
+import { Chip } from '@/components/controls';
 import { Alert, Badge, Button, EmptyState, PageHeader, SectionTitle, Spinner, type BadgeTone } from '@/components/ui';
 import { HistoryIcon } from '@/components/icons';
 import { activityDetails, activityFacts, activityTitle, activityWhere, groupByDay, relativeTime, type ActivityItem, type RequestActivity, type ReviewItem, type SessionActivity } from '@/domain/activity/feed';
@@ -237,8 +238,7 @@ export function ReviewsPage() {
       <div className="grid gap-8 lg:grid-cols-[minmax(0,13fr)_minmax(0,7fr)] lg:gap-0">
         <div className="min-w-0 lg:border-r lg:border-line lg:pr-8">
           <div role="group" aria-label="Filter activity" className="mb-4 flex flex-wrap gap-1.5">
-            {filters.map((option) => <button key={option.label} type="button" aria-pressed={filter === option.value} onClick={() => setFilter(option.value)}
-              className={`min-h-9 rounded-full border px-3 text-sm transition-colors ${filter === option.value ? 'border-gold/50 bg-gold/10 font-medium text-gold-fg' : 'border-line text-muted hover:bg-surface-raised hover:text-text'}`}>{option.label}</button>)}
+            {filters.map((option) => <Chip key={option.label} pressed={filter === option.value} onClick={() => setFilter(option.value)}>{option.label}</Chip>)}
           </div>
           <Alert visible={!!markAll.error} className="mb-4" title="Could not mark as read">{friendlyError(markAll.error)}</Alert>
           {reviews.isPending ? <Spinner label="Loading activity" /> : null}

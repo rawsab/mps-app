@@ -1,4 +1,5 @@
 import { useTheme } from '@/lib/theme';
+import { IconButton } from './controls';
 
 const SunIcon = () => (
   <svg aria-hidden viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
@@ -21,13 +22,7 @@ export function ThemeToggle() {
   const [theme, toggle] = useTheme();
   const next = theme === 'dark' ? 'light' : 'dark';
   return (
-    <button
-      type="button"
-      onClick={toggle}
-      aria-label={`Switch to ${next} mode`}
-      title={`Switch to ${next} mode`}
-      className="btn-motion relative inline-flex size-11 items-center justify-center rounded-card text-muted hover:bg-surface-raised hover:text-text"
-    >
+    <IconButton label={`Switch to ${next} mode`} title={`Switch to ${next} mode`} lift onClick={toggle} className="relative">
       {/* The icon shows the mode you would switch to. */}
       <span className="theme-icon" data-shown={theme === 'dark' || undefined}>
         <SunIcon />
@@ -35,6 +30,6 @@ export function ThemeToggle() {
       <span className="theme-icon" data-shown={theme === 'light' || undefined}>
         <MoonIcon />
       </span>
-    </button>
+    </IconButton>
   );
 }

@@ -14,6 +14,7 @@ import {
   TemplatesIcon,
   TrainingIcon,
 } from '@/components/icons';
+import { IconButton } from '@/components/controls';
 import { Avatar } from '@/components/Avatar';
 import { LegalFooter } from '@/components/LegalFooter';
 import { READ_FADE_MS, useUnreadCount } from '@/features/activity/api';
@@ -197,8 +198,6 @@ function SidebarResizeHandle({ width, onResize, onDragging }: { width: number; o
   );
 }
 
-const sidebarControl = 'btn-motion inline-flex size-11 shrink-0 items-center justify-center rounded-card text-muted hover:bg-surface-raised hover:text-text';
-
 const REVIEWS_PATH = '/coach/reviews';
 const MEETINGS_PATH = '/coach/meetings';
 const unreadLabel = (count: number) => (count > 99 ? '99+' : String(count));
@@ -301,9 +300,9 @@ function CoachDrawer({ onClose }: { onClose: () => void }) {
       <div className="flex h-full flex-col gap-4 p-3">
         <div className="flex items-center justify-between gap-2 pl-2">
           <img src="/logo/mps-full-logo.png" alt="Modern Physique Systems" className="brand-logo h-7 w-auto" />
-          <button type="button" onClick={dismiss} aria-label="Close navigation" className={sidebarControl}>
+          <IconButton label="Close navigation" lift onClick={dismiss}>
             <CloseIcon />
-          </button>
+          </IconButton>
         </div>
         <nav aria-label="Coach">
           <CoachNavLinks onNavigate={dismiss} />
@@ -357,29 +356,29 @@ export function CoachLayout() {
         <ProfileLink coach collapsed={collapsed} />
         <div className={`flex gap-1 border-t border-line pt-3 ${collapsed ? 'flex-col items-center' : 'items-center'}`}>
           <ThemeToggle />
-          <button type="button" onClick={() => void signOut()} aria-label="Sign out" title="Sign out" className={sidebarControl}>
+          <IconButton label="Sign out" title="Sign out" lift onClick={() => void signOut()}>
             <SignOutIcon />
-          </button>
-          <button
-            type="button"
-            onClick={toggleCollapsed}
-            aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+          </IconButton>
+          <IconButton
+            label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
             title={collapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-            className={`${sidebarControl} ${collapsed ? '' : 'ml-auto'}`}
+            lift
+            onClick={toggleCollapsed}
+            className={collapsed ? '' : 'ml-auto'}
           >
             <SidebarIcon />
-          </button>
+          </IconButton>
         </div>
       </aside>
       <div className="flex min-h-dvh min-w-0 flex-1 flex-col">
         <TopBar
           className="lg:hidden"
           leading={
-            <button type="button" onClick={() => setDrawerOpen(true)} aria-label={unread ? `Open navigation (${unread} unread activity items)` : 'Open navigation'} className={`${sidebarControl} relative -ml-2`}>
+            <IconButton label={unread ? `Open navigation (${unread} unread activity items)` : 'Open navigation'} lift onClick={() => setDrawerOpen(true)} className="relative -ml-2">
               <MenuIcon />
               <span aria-hidden style={{ transitionDuration: `${READ_FADE_MS}ms` }}
                 className={`absolute right-2 top-2 size-2 rounded-full bg-gold transition-[opacity,transform] motion-reduce:transition-none ${unread ? 'opacity-100' : 'scale-50 opacity-0'}`} />
-            </button>
+            </IconButton>
           }
         />
         <main id="main-content" tabIndex={-1} className={`mx-auto w-full ${contentWidth} flex-1 scroll-mt-20 px-4 py-8 lg:scroll-mt-4 lg:px-8 lg:pt-12`}>

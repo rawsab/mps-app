@@ -1,6 +1,7 @@
 import { programCandidates } from '@/domain/programs/current';
 import type { ProgramRow } from '@/features/programs/api';
 import { programTitle } from '@/features/programs/ProgramsCard';
+import { ToggleButton } from '@/components/controls';
 import { SelectField } from '@/components/ui';
 import { SERVICE_SHORT_LABELS } from '@/lib/services';
 import type { MeetingContext, MeetingTopic } from './api';
@@ -38,10 +39,9 @@ export function MeetingTopicFields({ context, programs, value, onChange }: {
           {context.services.map(({ service, status }) => {
             const on = value.services.includes(service);
             return (
-              <button key={service} type="button" aria-pressed={on} onClick={() => toggle(service)}
-                className={`min-h-11 rounded-card border px-3 text-sm transition-colors ${on ? 'border-gold bg-gold font-semibold text-on-gold' : 'border-line text-muted hover:bg-surface-raised hover:text-text'}`}>
+              <ToggleButton key={service} pressed={on} className="px-3" onClick={() => toggle(service)}>
                 {SERVICE_SHORT_LABELS[service]}{status === 'paused' ? ' (paused)' : ''}
-              </button>
+              </ToggleButton>
             );
           })}
         </div>

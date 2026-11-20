@@ -7,6 +7,7 @@ import { Link, useParams, useSearchParams } from 'react-router';
 import { AnimatedDisclosure } from '@/components/AnimatedDisclosure';
 import { useViewer } from '@/app/auth';
 import { Alert, Badge, Button, EmptyState, PageHeader, SectionTitle, SelectField, Spinner, TextAreaField, TextField } from '@/components/ui';
+import { IconButton } from '@/components/controls';
 import type { ServiceKind } from '@/domain/programs/contract';
 import { RecentUpdatesCard } from '@/features/activity/ActivityViews';
 import { ProgramsCard } from '@/features/programs/ProgramsCard';
@@ -190,11 +191,10 @@ function ServicesCard({
               </div>
               <Badge tone={enrollment.status === 'active' ? 'gold' : 'neutral'}>{capitalize(enrollment.status)}</Badge>
               {canEdit ? enrollment.status === 'ended' ? (
-                <button type="button" aria-label={`Archive ended ${SERVICE_LABELS[enrollment.service]} service`} title="Archive service"
-                  disabled={archive.isPending} onClick={() => archive.mutate(enrollment.id)}
-                  className="flex size-11 shrink-0 items-center justify-center rounded-card text-muted transition-colors hover:bg-surface-raised hover:text-text disabled:opacity-40">
+                <IconButton label={`Archive ended ${SERVICE_LABELS[enrollment.service]} service`} title="Archive service"
+                  disabled={archive.isPending} onClick={() => archive.mutate(enrollment.id)}>
                   <ArchiveIcon />
-                </button>
+                </IconButton>
               ) : <ActionsMenu label={`Options for ${SERVICE_LABELS[enrollment.service]}`}>
                 <button type="button" className={actionItemClass} disabled={setStatus.isPending}
                   onClick={() => setStatus.mutate({ id: enrollment.id, status: enrollment.status === 'paused' ? 'active' : 'paused' })}>
@@ -224,11 +224,10 @@ function ServicesCard({
                     </p>
                   </div>
                   <Badge>Archived</Badge>
-                  <button type="button" aria-label={`Delete archived ${SERVICE_LABELS[enrollment.service]} service`} title="Delete service"
-                    disabled={remove.isPending} onClick={() => { remove.reset(); setDeleting(enrollment); }}
-                    className="flex size-11 shrink-0 items-center justify-center rounded-card text-muted transition-colors hover:bg-surface-raised hover:text-danger disabled:opacity-40">
+                  <IconButton label={`Delete archived ${SERVICE_LABELS[enrollment.service]} service`} title="Delete service" tone="danger"
+                    disabled={remove.isPending} onClick={() => { remove.reset(); setDeleting(enrollment); }}>
                     <TrashIcon />
-                  </button>
+                  </IconButton>
                 </li>
               ))}
             </ul>

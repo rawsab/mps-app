@@ -6,7 +6,7 @@ import { ActionsMenu, actionItemClass } from '@/components/ActionsMenu';
 import { programDestinations, selectedProgramItem } from './programNavigation';
 import { DisclosureSummary } from '@/components/DisclosureSummary';
 import { Dialog } from '@/components/Dialog';
-import { Button, RequiredNote } from '@/components/ui';
+import { Badge, Button, RequiredNote } from '@/components/ui';
 import { newDay, newExercise, newResource, newSection, newWeek, type DraftCommand } from '@/domain/programs/commands';
 import { dayFocus, dayHeading, dayName, weekName } from '@/domain/programs/labels';
 import type { Exercise, ProgramWeek, Section, WorkoutDay } from '@/domain/programs/contract';
@@ -362,7 +362,7 @@ function SectionEditor({
   return (
     <details open className="group/section min-w-0 border-t border-line pt-3" onDragOver={(event) => { if (draggedExercise) event.preventDefault(); }} onDrop={(event) => onExerciseDrop(event, { kind: 'section', sectionId: section.id })}>
       <DisclosureSummary onMouseDown={(event) => event.preventDefault()} onClick={(event) => event.currentTarget.focus()} className="flex min-h-11 cursor-pointer list-none items-center gap-2 py-2 [&::-webkit-details-marker]:hidden">
-        <span className="shrink-0 rounded-full border border-line bg-surface-raised px-2 py-0.5 text-[11px] font-medium leading-4 text-muted">Section</span><h3 className="min-w-0 break-words text-base font-semibold">{name}</h3>
+        <Badge size="sm" tone="raised" className="shrink-0">Section</Badge><h3 className="min-w-0 break-words text-base font-semibold">{name}</h3>
         <span className="ml-auto shrink-0 text-xs text-muted">{section.exercises.length} exercises</span>
       </DisclosureSummary>
       <div className="mt-3">
@@ -514,7 +514,7 @@ function ExerciseEditor({
           <span aria-hidden className="pointer-events-none absolute -left-8 top-1/2 flex size-5 -translate-y-1/2 items-center justify-center rounded-full bg-gold text-on-gold-icon [&>svg]:size-3">
             <TrainingIcon />
           </span>
-          <span className="shrink-0 rounded-full border border-gold/25 bg-gold/10 px-2 py-0.5 text-[11px] font-medium leading-4 text-gold-fg">Exercise</span>
+          <Badge size="sm" tone="gold-soft" className="shrink-0">Exercise</Badge>
           <span className="min-w-0 break-words text-sm font-medium">{exercise.name || 'Unnamed exercise'}</span>
           {hasIssue ? <span className="ml-auto text-xs text-danger">Invalid edit</span> : <span className="ml-auto min-w-0 text-right text-xs text-muted group-open/exercise:hidden">{[cell('sets') ? `${cell('sets')} sets` : '', cell('effort') ? `${cell('effort')}${cell('effort').endsWith('s') ? '' : ' reps'}` : '', cell('load') ? `${cell('load')} ${unit}` : ''].filter(Boolean).join(' · ')}</span>}
         </DisclosureSummary>

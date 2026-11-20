@@ -5,6 +5,7 @@ import { DraftSaveIndicator as SaveIndicator } from '@/components/DraftSaveIndic
 import { CautionIcon, SectionIcon, SpreadsheetIcon } from '@/components/icons';
 import { scrollBehavior } from './useWeekMotion';
 import { Dialog } from '@/components/Dialog';
+import { Tabs } from '@/components/controls';
 import { Alert, Badge, Button, EmptyState, PageHeader, Spinner } from '@/components/ui';
 import { gridRows } from '@/domain/programs/grid';
 import { validateForPublish } from '@/domain/programs/contract';
@@ -158,47 +159,14 @@ function Editor({ program, clientName }: { program: NonNullable<ReturnType<typeo
 
         <Banners editor={editor} archived={archived} rejectedCount={rejectedCount} />
 
-        <div role="tablist" aria-label="Editor view" className="flex gap-1 border-b border-line">
-          {(['grid', 'program'] as const).map((v) => (
-            <button
-              key={v}
-              role="tab"
-              type="button"
-              id={`editor-tab-${v}`}
-              tabIndex={view === v ? 0 : -1}
-              aria-selected={view === v}
-              aria-controls="editor-panel"
-              onKeyDown={(event) => {
-                if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(event.key)) return;
-                event.preventDefault();
-                const nextView = event.key === 'Home' ? 'grid' : event.key === 'End' ? 'program' : v === 'program' ? 'grid' : 'program';
-                setParams((previous) => {
-                  const next = new URLSearchParams(previous);
-                  next.set('view', nextView);
-                  next.delete('focus');
-                  return next;
-                }, { replace: true });
-                document.getElementById(`editor-tab-${nextView}`)?.focus();
-              }}
-              // Commit the field during click, so a new validation banner cannot move
-              // this tab between pointer-down and click and swallow the view switch.
-              onMouseDown={(e) => e.preventDefault()}
-              onClick={(e) => {
-                e.currentTarget.focus();
-                setParams((previous) => {
-                  const next = new URLSearchParams(previous);
-                  next.set('view', v);
-                  next.delete('focus');
-                  return next;
-                }, { replace: true });
-              }}
-              className={`-mb-px inline-flex min-h-11 items-center gap-2 border-b-2 px-3 text-sm ${view === v ? 'border-gold font-medium text-text' : 'border-transparent text-muted hover:text-text'}`}
-            >
-              {v === 'program' ? <SectionIcon /> : <SpreadsheetIcon />}
-              {v === 'program' ? 'List View' : 'Spreadsheet'}
-            </button>
-          ))}
-        </div>
+        <Tabs label="Editor view" idPrefix="editor-tab" panelId="editor-panel" value={view}
+          options={[{ value: 'grid', label: 'Spreadsheet', icon: <SpreadsheetIcon /> }, { value: 'program', label: 'List View', icon: <SectionIcon /> }]}
+          onChange={(next) => setParams((previous) => {
+            const params = new URLSearchParams(previous);
+            params.set('view', next);
+            params.delete('focus');
+            return params;
+          }, { replace: true })} />
 
         <div id="editor-panel" role="tabpanel" aria-labelledby={`editor-tab-${view}`} className="min-w-0" tabIndex={0}>
           {view === 'program' ? <ProgramView readOnly={archived} /> : <>

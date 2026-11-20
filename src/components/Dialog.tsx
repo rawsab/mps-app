@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, type ReactNode } from 'react';
+import { IconButton } from './controls';
 import { CloseIcon } from './icons';
 
 /**
@@ -68,14 +69,9 @@ export function Dialog({
               </p>
             ) : null}
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Close"
-            className="inline-flex size-9 shrink-0 items-center justify-center rounded-card text-muted hover:bg-surface-raised hover:text-text"
-          >
+          <IconButton label="Close" size="sm" onClick={onClose}>
             <CloseIcon />
-          </button>
+          </IconButton>
         </header>
         <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
         {footer ? <footer className="flex flex-wrap items-center justify-end gap-2 border-t border-line px-4 py-3 sm:px-5">{footer}</footer> : null}

@@ -1,4 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
+import { IconButton } from './controls';
 import { MoreIcon } from './icons';
 
 /** A disclosure of ordinary buttons: Tab navigates actions; Escape returns to the trigger. */
@@ -26,12 +27,11 @@ export function ActionsMenu({ label, children }: { label: string; children: Reac
     }} onBlur={(event) => {
       if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
     }}>
-      <button ref={trigger} type="button" aria-label={label} title={label} aria-expanded={open} aria-controls={id}
+      <IconButton ref={trigger} label={label} title={label} aria-expanded={open} aria-controls={id}
         onMouseDown={(event) => event.preventDefault()}
-        onClick={(event) => { event.currentTarget.focus(); setOpen((value) => !value); }}
-        className="inline-flex size-11 items-center justify-center rounded-card text-muted transition-colors hover:bg-surface-raised hover:text-text">
+        onClick={(event) => { event.currentTarget.focus(); setOpen((value) => !value); }}>
         <MoreIcon />
-      </button>
+      </IconButton>
       {open ? <div id={id} aria-label={label} className="absolute right-0 top-full z-30 grid w-52 max-w-[calc(100vw-2rem)] rounded-card border border-line bg-surface p-1 shadow-lg"
         onClick={(event) => {
           if ((event.target as HTMLElement).closest('button')) {

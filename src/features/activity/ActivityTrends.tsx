@@ -1,5 +1,6 @@
 import { useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
+import { SegmentedControl } from '@/components/controls';
 import { Alert, Spinner } from '@/components/ui';
 import { fillSlots, foldRows, KIND_LABELS, TREND_RANGES, trendWindow, type TrendRange, type TrendRow, type TrendSlot } from '@/domain/activity/trends';
 import { Avatar } from '@/components/Avatar';
@@ -30,14 +31,8 @@ export function ActivityTrends({ range, onRange }: { range: TrendRange; onRange:
     <section aria-labelledby="activity-trends" className="min-w-0">
       <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
         <h2 id="activity-trends" className="text-sm font-medium text-muted">Trends</h2>
-        <div role="group" aria-label="Trend range" className="flex rounded-card border border-line p-0.5">
-          {TREND_RANGES.map((option) => (
-            <button key={option} type="button" aria-pressed={range === option} onClick={() => onRange(option)}
-              className={`min-h-9 rounded-inner px-3 text-sm transition-colors ${range === option ? 'bg-surface-raised font-medium text-text' : 'text-muted hover:text-text'}`}>
-              {capitalize(option)}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl label="Trend range" value={range} onChange={onRange}
+          options={TREND_RANGES.map((option) => ({ value: option, label: capitalize(option) }))} />
       </div>
       <Alert visible={!!stats.error} className="mb-3" title="Could not load trends">{friendlyError(stats.error)}</Alert>
       {stats.isPending ? <Spinner label="Loading trends" /> : null}

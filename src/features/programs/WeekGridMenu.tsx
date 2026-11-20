@@ -1,5 +1,6 @@
 import { useId, useRef, useState } from 'react';
 import { ArrowDownIcon, ArrowUpIcon, CopyIcon, MoreIcon, SectionsIcon, TrashIcon } from '@/components/icons';
+import { IconButton } from '@/components/controls';
 import { GridPopupMenu } from './GridPopupMenu';
 export type WeekAction = 'duplicate' | 'delete' | 'up' | 'down' | 'toggleSections';
 export function WeekGridMenu({ label, first, last, disabled, sectionsEnabled, onAction }: {
@@ -10,11 +11,11 @@ export function WeekGridMenu({ label, first, last, disabled, sectionsEnabled, on
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const close = (restore: boolean) => { setPosition(null); if (restore) trigger.current?.focus({ preventScroll: true }); };
   return <>
-    <button ref={trigger} type="button" aria-label={`Options for ${label}`} aria-haspopup="menu" aria-expanded={!!position} aria-controls={position ? id : undefined}
-      disabled={disabled} className="flex size-9 shrink-0 items-center justify-center rounded-card text-muted hover:bg-surface-raised hover:text-text disabled:opacity-40"
+    <IconButton ref={trigger} label={`Options for ${label}`} size="sm" aria-haspopup="menu" aria-expanded={!!position} aria-controls={position ? id : undefined}
+      disabled={disabled}
       onClick={() => { const rect = trigger.current!.getBoundingClientRect(); setPosition(position ? null : { x: rect.right - 208, y: rect.bottom }); }}>
       <MoreIcon />
-    </button>
+    </IconButton>
     {position ? <GridPopupMenu {...position} id={id} label={label} trigger={trigger} onClose={close}
       onAction={(action: WeekAction) => { close(true); onAction(action); }} items={[
         { action: 'toggleSections', label: `${sectionsEnabled ? 'Disable' : 'Enable'} sections`, icon: sectionsEnabled ? <span aria-hidden className="inline-grid size-4 place-items-center">✓</span> : <SectionsIcon /> },

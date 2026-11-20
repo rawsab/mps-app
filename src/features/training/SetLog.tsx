@@ -1,5 +1,6 @@
 import { useEffect, useId, useState } from 'react';
 import { SaveStatus } from '@/components/SaveStatus';
+import { IconButton } from '@/components/controls';
 import { CloseIcon } from '@/components/icons';
 import { Button } from '@/components/ui';
 import type { Exercise, ProgramDraft } from '@/domain/programs/contract';
@@ -154,10 +155,9 @@ function SetRow({ row, exerciseName, readOnly, canRemove, onChange, onCommit, on
           aria-describedby={row.message ? `${id}-message` : undefined}
           onChange={(e) => onChange({ reps: e.target.value })} onBlur={(e) => commit({ reps: e.target.value })} />
         {!readOnly && canRemove ? (
-          <button type="button" aria-label={`Remove ${label}`} onClick={onRemove}
-            className="inline-flex size-11 items-center justify-center rounded-card text-muted hover:bg-surface-raised hover:text-danger">
+          <IconButton label={`Remove ${label}`} tone="danger" onClick={onRemove}>
             <CloseIcon />
-          </button>
+          </IconButton>
         ) : <span />}
       </div>
       <SaveStatus id={`${id}-message`} saving={row.state === 'saving'} className="ml-11 pt-1 text-xs text-muted">

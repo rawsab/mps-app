@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Dialog } from '@/components/Dialog';
+import { ToggleButton } from '@/components/controls';
 import { Alert, Button, SelectField, TextAreaField, TextField } from '@/components/ui';
 import { anchorFor, cycleWeekOf, weekdayName, weekdayShort, WEEKDAYS, type PatternSlot } from '@/domain/scheduling/pattern';
 import type { ProgramRow } from '@/features/programs/api';
@@ -147,11 +148,10 @@ export function PatternDialog({ clientId, context, programs, schedule, from, onC
                 {WEEKDAYS.map((weekday) => {
                   const on = inWeek.some((slot) => slot.weekday === weekday);
                   return (
-                    <button key={weekday} type="button" aria-pressed={on} aria-label={`${weekdayName(weekday)}${cycleWeeks > 1 ? `, week ${week}` : ''}`}
-                      onClick={() => toggleDay(week, weekday)}
-                      className={`min-h-11 min-w-12 rounded-card border px-2 text-sm transition-colors ${on ? 'border-gold bg-gold text-on-gold font-semibold' : 'border-line text-muted hover:bg-surface-raised hover:text-text'}`}>
+                    <ToggleButton key={weekday} pressed={on} aria-label={`${weekdayName(weekday)}${cycleWeeks > 1 ? `, week ${week}` : ''}`}
+                      className="min-w-12 px-2" onClick={() => toggleDay(week, weekday)}>
                       {weekdayShort(weekday)}
-                    </button>
+                    </ToggleButton>
                   );
                 })}
               </div>

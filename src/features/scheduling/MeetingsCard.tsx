@@ -3,6 +3,7 @@ import { Link } from 'react-router';
 import { useViewer } from '@/app/auth';
 import { Dialog } from '@/components/Dialog';
 import { PencilIcon, PlusIcon, StopIcon } from '@/components/icons';
+import { Checkbox, SegmentedControl } from '@/components/controls';
 import { Alert, Badge, Button, Spinner, TextAreaField, TextField, type BadgeTone } from '@/components/ui';
 import type { ServiceKind } from '@/domain/programs/contract';
 import { describePattern } from '@/domain/scheduling/pattern';
@@ -126,19 +127,11 @@ export function MeetingsCard({ clientId, heading, focusMeetingId, onFocusClosed 
       ) : null}
 
       <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-        <div role="group" aria-label="Meetings to show" className="flex rounded-card border border-line p-0.5">
-          {(['upcoming', 'past'] as const).map((option) => (
-            <button key={option} type="button" aria-pressed={tab === option} onClick={() => setTab(option)}
-              className={`min-h-9 rounded-inner px-3 text-sm transition-colors ${tab === option ? 'bg-surface-raised font-medium text-text' : 'text-muted hover:text-text'}`}>
-              {option === 'upcoming' ? `Next ${LIST_DAYS} days` : 'Past'}
-            </button>
-          ))}
-        </div>
+        <SegmentedControl label="Meetings to show" value={tab} onChange={setTab}
+          options={[{ value: 'upcoming', label: `Next ${LIST_DAYS} days` }, { value: 'past', label: 'Past' }]} />
         {tab === 'upcoming' && (cancelledCount > 0 || hideCancelled) ? (
-          <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm text-muted">
-            <input type="checkbox" className="size-4 accent-gold" checked={hideCancelled} onChange={(event) => setHideCancelled(event.target.checked)} />
-            Hide cancelled{cancelledCount ? ` (${cancelledCount})` : ''}
-          </label>
+          <Checkbox checked={hideCancelled} onChange={(event) => setHideCancelled(event.target.checked)} 
+            label={`Hide cancelled${cancelledCount ? ` (${cancelledCount})` : ''}`} />
         ) : null}
       </div>
       {tab === 'past' ? (

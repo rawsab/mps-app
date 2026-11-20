@@ -1,6 +1,7 @@
 import { NutritionIcon, PlusIcon, ProgramIcon, ProgressIcon, TrainingIcon } from '@/components/icons';
 import { useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
+import { Chip } from '@/components/controls';
 import { Alert, Badge, Button, SectionTitle, Spinner } from '@/components/ui';
 import type { EnrollmentRow } from '@/features/clients/api';
 import { formatDate } from '@/lib/format';
@@ -51,7 +52,7 @@ export function ProgramsCard({ clientId, enrollments }: { clientId: string; enro
       <h2 id="client-programs" className="flex items-center gap-2 text-lg font-semibold"><SectionTitle icon={<ProgramIcon />}>Programs</SectionTitle></h2>
       <p className="mb-4 mt-1 text-sm text-muted">Drafts are visible to staff only. The client sees a program once it is published.</p>
       <div role="group" aria-label="Filter programs by type" className="mb-4 flex flex-wrap gap-1.5">
-        {programFilters.map((option) => <button key={option.value} type="button" aria-pressed={filter === option.value} onClick={() => setFilter(option.value)} className={`min-h-9 rounded-full border px-3 text-sm transition-colors ${filter === option.value ? 'border-gold/50 bg-gold/10 font-medium text-gold-fg' : 'border-line text-muted hover:bg-surface-raised hover:text-text'}`}>{option.label}</button>)}
+        {programFilters.map((option) => <Chip key={option.value} pressed={filter === option.value} onClick={() => setFilter(option.value)}>{option.label}</Chip>)}
       </div>
       {programs.isPending ? <Spinner label="Loading programs" /> : null}
       <Alert visible={!!setCurrent.error} className="mb-3" title="Current program not changed">{programErrorMessage(setCurrent.error)}</Alert>

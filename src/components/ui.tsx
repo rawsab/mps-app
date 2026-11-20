@@ -213,12 +213,16 @@ const BADGE_STYLES = {
   success: 'border-success/50 bg-success/10 text-success',
   info: 'border-info/50 bg-info/10 text-info',
   violet: 'border-violet/50 bg-violet/10 text-violet',
+  // Filled, for kind labels on rows (Section, Exercise).
+  raised: 'border-line bg-surface-raised text-muted',
+  'gold-soft': 'border-gold/25 bg-gold/10 text-gold-fg',
 };
 
 export type BadgeTone = keyof typeof BADGE_STYLES;
 
-export function Badge({ children, tone = 'neutral' }: { children: ReactNode; tone?: BadgeTone }) {
-  return <span className={`inline-flex items-center rounded-full border px-2 py-0.5 text-xs ${BADGE_STYLES[tone]}`}>{children}</span>;
+/** `sm` is the compact label beside a heading. */
+export function Badge({ children, tone = 'neutral', size = 'md', className = '' }: { children: ReactNode; tone?: BadgeTone; size?: 'sm' | 'md'; className?: string }) {
+  return <span className={`inline-flex items-center rounded-full border px-2 py-0.5 ${size === 'sm' ? 'text-[11px] font-medium leading-4' : 'text-xs'} ${BADGE_STYLES[tone]} ${className}`}>{children}</span>;
 }
 
 /** A section heading's icon and text; put it inside an h2 with `flex items-center gap-2`. */

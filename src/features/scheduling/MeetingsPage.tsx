@@ -7,6 +7,7 @@ import { ArrowUpRightIcon, PencilIcon, StepIcon } from '@/components/icons';
 import { useClient, useClientPhoto } from '@/features/clients/api';
 import { programPath } from '@/features/programs/CurrentProgram';
 import { SERVICE_SHORT_LABELS } from '@/lib/services';
+import { Checkbox, SegmentedControl } from '@/components/controls';
 import { Alert, Badge, Button, PageHeader, Skeleton, Spinner } from '@/components/ui';
 import { CALENDAR_VIEWS, countdown, layoutDay, stepDate, viewDays, type CalendarView } from '@/domain/scheduling/calendar';
 import { addDays, isoWeekday, weekdayShort, zonedDateTime, zonedToInstant } from '@/domain/scheduling/pattern';
@@ -434,20 +435,11 @@ function MeetingCalendar({ timeZone }: { timeZone: string }) {
         </div>
         {/* On phones the title moves above the view switcher so it stays on one line. */}
         <p className="hidden min-w-0 flex-1 text-lg font-semibold sm:block" aria-live="polite">{title}</p>
-        <label className="flex min-h-11 cursor-pointer items-center gap-2 text-sm sm:mr-4 text-muted">
-          <input type="checkbox" className="size-4 accent-gold" checked={hideCancelled} onChange={(event) => setHideCancelled(event.target.checked)} />
-          Hide cancelled
-        </label>
+        <Checkbox className="sm:mr-4" label="Hide cancelled" checked={hideCancelled} onChange={(event) => setHideCancelled(event.target.checked)} />
         <div className="flex w-full flex-col gap-1 sm:w-auto">
           <p className="text-lg font-semibold sm:hidden" aria-live="polite">{title}</p>
-          <div role="group" aria-label="Calendar view" className="flex rounded-card border border-line p-0.5">
-            {CALENDAR_VIEWS.map((option) => (
-              <button key={option} type="button" aria-pressed={view === option} onClick={() => go({ view: option })}
-                className={`min-h-10 flex-1 rounded-inner px-3 text-sm transition-colors sm:flex-none ${view === option ? 'bg-surface-raised font-medium text-text' : 'text-muted hover:text-text'}`}>
-                {capitalize(option)}
-              </button>
-            ))}
-          </div>
+          <SegmentedControl label="Calendar view" size="md" optionClassName="flex-1 sm:flex-none" value={view} onChange={(option) => go({ view: option })}
+            options={CALENDAR_VIEWS.map((option) => ({ value: option, label: capitalize(option) }))} />
         </div>
       </div>
       <Alert visible={!!meetings.error} className="mb-3" title="Could not load meetings">{schedulingError(meetings.error)}</Alert>
