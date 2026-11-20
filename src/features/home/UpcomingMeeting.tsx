@@ -93,20 +93,21 @@ function MeetingCard({ meeting, timeZone, now, onSent }: { meeting: Meeting; tim
           ))}
         </ul>
       ) : null}
-      <div className="mt-3">
+      {/* Join on the left; asking to change the meeting sits at the bottom right. */}
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-2">
         {meeting.meetingUrl ? (
           <a href={meeting.meetingUrl} target="_blank" rel="noreferrer"
             className={`btn-motion inline-flex min-h-11 items-center gap-1.5 rounded-card px-4 text-sm font-medium ${joinable ? 'bg-gold font-semibold text-on-gold hover:bg-gold-hover' : 'border border-line bg-surface-raised hover:border-muted/70'}`}>
             Join call<ArrowUpRightIcon />
           </a>
         ) : <p className="text-sm text-muted">Your coach will share the call link.</p>}
+        {canRequestChange(meeting, now) ? (
+          <div className="-mr-3 ml-auto flex flex-wrap justify-end gap-1">
+            <Button variant="ghost" onClick={() => setChanging('reschedule')}>Reschedule</Button>
+            <Button variant="ghost" onClick={() => setChanging('cancel')}>Cancel meeting</Button>
+          </div>
+        ) : null}
       </div>
-      {canRequestChange(meeting, now) ? (
-        <div className="mt-2 flex flex-wrap gap-1">
-          <Button variant="ghost" className="-ml-3" onClick={() => setChanging('reschedule')}>Reschedule</Button>
-          <Button variant="ghost" onClick={() => setChanging('cancel')}>Cancel meeting</Button>
-        </div>
-      ) : null}
       {changing ? (
         <ChangeMeetingDialog meeting={meeting} timeZone={timeZone} initialKind={changing} onClose={() => setChanging(null)}
           onSent={(message) => { setChanging(null); onSent(message); }} />
