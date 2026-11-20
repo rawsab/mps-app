@@ -3,7 +3,7 @@ import { Checkbox, IconButton } from '@/components/controls';
 import { PlusIcon, TrashIcon } from '@/components/icons';
 import { Alert, Button, Card, controlClass, Spinner, TextField } from '@/components/ui';
 import {
-  copyToWeekdays, DEFAULT_RANGE, describeHours, hoursFromWeek, nextRange, rangeProblem, weekFromHours, weekProblems, type DayRange, type WeekHours,
+  DEFAULT_RANGE, describeHours, hoursFromWeek, nextRange, rangeProblem, weekFromHours, weekProblems, type DayRange, type WeekHours,
 } from '@/domain/scheduling/availability';
 import { weekdayName, WEEKDAYS } from '@/domain/scheduling/pattern';
 import { bookingRulesSchema } from '@/features/profile/validation';
@@ -69,13 +69,7 @@ function AvailabilityForm({ availability }: { availability: Availability }) {
       </p>
       <Alert visible={!!message} tone={message?.error ? 'error' : 'success'} onDismiss={() => setMessage(null)}>{message?.text}</Alert>
       <fieldset disabled={busy} className="min-w-0">
-        <legend className="sr-only">Working hours</legend>
-        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
-          <span className="text-sm font-medium">Working hours</span>
-          <Button type="button" variant="ghost" className="-mr-3" disabled={!week[1]?.length} onClick={() => setWeek(copyToWeekdays(week, 1))}>
-            Copy Monday to Tue–Fri
-          </Button>
-        </div>
+        <legend className="mb-1 text-sm font-medium">Working hours</legend>
         {/* One line per range: the day, its times, then remove and (on the last range) add. */}
         <ul className="divide-y divide-line">
           {WEEKDAYS.map((weekday) => {

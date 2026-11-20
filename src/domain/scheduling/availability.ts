@@ -56,12 +56,6 @@ export function nextRange(ranges: DayRange[]): DayRange {
   return { startTime: last.endTime, endTime: `${String(Math.floor(end / 60)).padStart(2, '0')}:${String(end % 60).padStart(2, '0')}` };
 }
 
-/** Copies one day's hours onto Monday to Friday. */
-export function copyToWeekdays(week: WeekHours, from: number): WeekHours {
-  const ranges = week[from] ?? [];
-  return Object.fromEntries(WEEKDAYS.map((day) => [day, day <= 5 ? ranges.map((range) => ({ ...range })) : week[day] ?? []]));
-}
-
 /**
  * "Mon–Thu 9:00 AM–5:00 PM · Fri 10:00 AM–4:00 PM". Consecutive days with the same hours share a
  * label; days without hours are left out. Empty when no day has hours.

@@ -28,7 +28,7 @@ Date: 2026-11-20 · Status: accepted (owner request) · Phases A–B built
 - **Requests.** A reschedule now needs a message **or** a picked time. `late` is recorded on reschedules too, as a short-notice flag using the same billable and window rule as cancellations. Accepting a reschedule never records a late cancellation. Older reschedules keep `late` null.
 - **Access.** Both tables allow SELECT only, to the owning coach or an admin. Clients and anonymous users read nothing. All writes go through security-definer functions with `search_path = ''`.
 - **Coach screens.**
-  - Profile settings has an Availability card: a weekday editor with several ranges per day, "Copy to Tuesday–Friday", and the booking rules.
+  - Profile settings has an Availability card: a weekday editor with several ranges per day, one line per range, and the booking rules.
   - The Meetings page lists upcoming time off and extra hours (add, edit, remove).
   - The calendar's week and day views shade time outside the coach's windows, and month view marks time-off days.
 - **Seed.** `supabase/seed/availability.sql` sets:

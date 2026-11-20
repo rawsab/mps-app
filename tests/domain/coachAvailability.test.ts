@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
-  copyToWeekdays, describeHours, exceptionFields, exceptionInstants, hoursFromWeek, mergeRanges, nextRange, rangeProblem, timeOffOn, weekFromHours,
+  describeHours, exceptionFields, exceptionInstants, hoursFromWeek, mergeRanges, nextRange, rangeProblem, timeOffOn, weekFromHours,
 } from '@/domain/scheduling/availability';
 import { dayWindows } from '@/domain/scheduling/calendar';
 
@@ -32,14 +32,6 @@ describe('working hours', () => {
     expect(nextRange([{ startTime: '09:00', endTime: '12:00' }])).toEqual({ startTime: '12:00', endTime: '13:00' });
     expect(nextRange([{ startTime: '20:00', endTime: '23:30' }])).toEqual({ startTime: '09:00', endTime: '17:00' });
     expect(nextRange([])).toEqual({ startTime: '09:00', endTime: '17:00' });
-  });
-
-  it('copies Monday onto the weekdays only', () => {
-    const week = weekFromHours([{ weekday: 1, startTime: '09:00', endTime: '17:00' }, { weekday: 6, startTime: '10:00', endTime: '12:00' }]);
-    const copied = copyToWeekdays(week, 1);
-    expect(copied[5]).toEqual([{ startTime: '09:00', endTime: '17:00' }]);
-    expect(copied[6]).toEqual([{ startTime: '10:00', endTime: '12:00' }]);
-    expect(copied[7]).toEqual([]);
   });
 
   it('describes runs of days with the same hours', () => {
