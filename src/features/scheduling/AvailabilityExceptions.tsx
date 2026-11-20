@@ -3,7 +3,7 @@ import { ActionItem, ActionsMenu } from '@/components/ActionsMenu';
 import { Checkbox, SegmentedControl } from '@/components/controls';
 import { ConfirmDialog, Dialog, DialogBody } from '@/components/Dialog';
 import { CalendarIcon, PlusIcon } from '@/components/icons';
-import { Alert, Button, SectionHeading, Spinner, TextAreaField, TextField } from '@/components/ui';
+import { Alert, Button, Card, SectionHeading, Spinner, TextAreaField, TextField } from '@/components/ui';
 import { exceptionFields, exceptionInstants, type ExceptionFields } from '@/domain/scheduling/availability';
 import {
   schedulingError, useMyAvailability, useRemoveAvailabilityException, useSaveAvailabilityException, type AvailabilityException, type Overlap,
@@ -58,18 +58,22 @@ export function AvailabilityExceptions({ timeZone, onSaved }: { timeZone: string
                   </Button>
                 </div>
                 {rows.length ? (
-                  <ul className="divide-y divide-line rounded-card border border-line">
+                  <ul className="grid gap-2">
                     {rows.map((exception) => (
-                      <li key={exception.id} className="flex min-w-0 items-center gap-3 py-1 pl-3 pr-1">
-                        {/* Centred on the menu button, whose 44px target sets the shortest row. */}
-                        <span className="min-w-0 flex-1 py-1.5">
-                          <span className="block text-sm font-medium">{exceptionLabel(exception, timeZone)}</span>
-                          {exception.note ? <span className="mt-1 block break-words text-xs text-muted">{exception.note}</span> : null}
-                        </span>
-                        <ActionsMenu label={`Options for ${KIND_LABEL[kind].toLowerCase()} ${exceptionLabel(exception, timeZone)}`}>
-                          <ActionItem onClick={() => setEditing(exception)}>Edit</ActionItem>
-                          <ActionItem danger onClick={() => setRemoving(exception)}>Remove</ActionItem>
-                        </ActionsMenu>
+                      <li key={exception.id}>
+                        <Card as="div" padding="sm" className="flex min-w-0 items-center gap-3">
+                          <span className="min-w-0 flex-1">
+                            <span className="block text-sm font-medium">{exceptionLabel(exception, timeZone)}</span>
+                            {exception.note ? <span className="mt-1 block break-words text-xs text-muted">{exception.note}</span> : null}
+                          </span>
+                          {/* Pulled into the padding so the 44px target doesn't make the card taller than its text. */}
+                          <div className="-my-2.5 -mr-2">
+                            <ActionsMenu label={`Options for ${KIND_LABEL[kind].toLowerCase()} ${exceptionLabel(exception, timeZone)}`}>
+                              <ActionItem onClick={() => setEditing(exception)}>Edit</ActionItem>
+                              <ActionItem danger onClick={() => setRemoving(exception)}>Remove</ActionItem>
+                            </ActionsMenu>
+                          </div>
+                        </Card>
                       </li>
                     ))}
                   </ul>
