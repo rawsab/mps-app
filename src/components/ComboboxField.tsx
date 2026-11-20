@@ -1,5 +1,5 @@
 import { useEffect, useId, useMemo, useRef, useState } from 'react';
-import { controlClass } from './ui';
+import { controlClass, FieldShell, fieldDescription } from './ui';
 
 type Option = { value: string; label: string; detail?: string };
 
@@ -76,14 +76,11 @@ export function ComboboxField({ label, name, options, defaultValue = '', hint, e
     }
   }
 
-  const describedBy = [error ? `${id}-error` : null, hint ? `${id}-hint` : null].filter(Boolean).join(' ') || undefined;
+  const describedBy = fieldDescription(id, error, hint);
   const activeOption = open ? filtered[active] : undefined;
 
   return (
-    <div ref={root} className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-sm font-medium text-text">
-        {label}
-      </label>
+    <FieldShell ref={root} id={id} label={label} hint={hint} error={error}>
       <input type="hidden" name={name} value={value} />
       <div className="relative">
         <input
@@ -146,16 +143,6 @@ export function ComboboxField({ label, name, options, defaultValue = '', hint, e
         </ul>
       ) : null}
       </div>
-      {hint ? (
-        <p id={`${id}-hint`} className="text-xs text-muted">
-          {hint}
-        </p>
-      ) : null}
-      {error ? (
-        <p id={`${id}-error`} className="text-sm text-danger">
-          {error}
-        </p>
-      ) : null}
-    </div>
+    </FieldShell>
   );
 }

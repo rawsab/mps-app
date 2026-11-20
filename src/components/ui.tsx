@@ -1,4 +1,4 @@
-import type { ComponentPropsWithRef, InputHTMLAttributes, ReactNode, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import type { ComponentPropsWithRef, InputHTMLAttributes, ReactNode, Ref, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { useId } from 'react';
 import { CloseIcon, InfoIcon } from './icons';
 import { NoticePresence } from './NoticePresence';
@@ -44,23 +44,22 @@ export function RequiredNote({ className = '' }: { className?: string }) {
   return <p className={`text-xs text-muted ${className}`}>* Required to publish</p>;
 }
 
-export function TextField({ label, error, hint, className = '', required, ...rest }: FieldProps) {
-  const id = useId();
-  const describedBy = [error ? `${id}-error` : null, hint ? `${id}-hint` : null].filter(Boolean).join(' ') || undefined;
+/** `aria-describedby` for a control inside a FieldShell. */
+export function fieldDescription(id: string, error?: string, hint?: ReactNode) {
+  return [error ? `${id}-error` : null, hint ? `${id}-hint` : null].filter(Boolean).join(' ') || undefined;
+}
+
+/** Label, hint and error around one control. Give the control `id` and `aria-describedby={fieldDescription(…)}`. */
+export function FieldShell({ id, label, required, hint, error, className = '', ref, children }: {
+  id: string; label: ReactNode; required?: boolean | undefined; hint?: ReactNode; error?: string | undefined; className?: string; ref?: Ref<HTMLDivElement>; children: ReactNode;
+}) {
   return (
-    <div className={`flex flex-col gap-1.5 ${className}`}>
+    <div ref={ref} className={`flex flex-col gap-1.5 ${className}`}>
       <label htmlFor={id} className="text-sm font-medium text-text">
         {label}
         {required ? <RequiredMark /> : null}
       </label>
-      <input
-        id={id}
-        aria-required={required || undefined}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy}
-        className={`min-h-11 border-line px-3 ${controlClass}`}
-        {...rest}
-      />
+      {children}
       {hint ? (
         <p id={`${id}-hint`} className="text-xs text-muted">
           {hint}
@@ -72,6 +71,22 @@ export function TextField({ label, error, hint, className = '', required, ...res
         </p>
       ) : null}
     </div>
+  );
+}
+
+export function TextField({ label, error, hint, className = '', required, ...rest }: FieldProps) {
+  const id = useId();
+  return (
+    <FieldShell id={id} label={label} required={required} hint={hint} error={error} className={className}>
+      <input
+        id={id}
+        aria-required={required || undefined}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={fieldDescription(id, error, hint)}
+        className={`min-h-11 border-line px-3 ${controlClass}`}
+        {...rest}
+      />
+    </FieldShell>
   );
 }
 
@@ -79,53 +94,37 @@ type TextAreaProps = TextareaHTMLAttributes<HTMLTextAreaElement> & { label: stri
 
 export function TextAreaField({ label, error, hint, className = '', ...rest }: TextAreaProps) {
   const id = useId();
-  const describedBy = [error ? `${id}-error` : null, hint ? `${id}-hint` : null].filter(Boolean).join(' ') || undefined;
   return (
-    <div className={`flex flex-col gap-1.5 ${className}`}>
-      <label htmlFor={id} className="text-sm font-medium text-text">
-        {label}
-      </label>
+    <FieldShell id={id} label={label} hint={hint} error={error} className={className}>
       <textarea
         id={id}
         aria-invalid={error ? true : undefined}
-        aria-describedby={describedBy}
+        aria-describedby={fieldDescription(id, error, hint)}
         className={`min-h-24 resize-y border-line px-3 py-2.5 ${controlClass}`}
         {...rest}
       />
-      {hint ? (
-        <p id={`${id}-hint`} className="text-xs text-muted">
-          {hint}
-        </p>
-      ) : null}
-      {error ? (
-        <p id={`${id}-error`} className="text-sm text-danger">
-          {error}
-        </p>
-      ) : null}
-    </div>
+    </FieldShell>
   );
 }
 
-type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & { label: string; children: ReactNode };
+type SelectProps = SelectHTMLAttributes<HTMLSelectElement> & { label: string; error?: string | undefined; hint?: string; children: ReactNode };
 
-export function SelectField({ label, children, className = '', required, ...rest }: SelectProps) {
+export function SelectField({ label, error, hint, children, className = '', required, ...rest }: SelectProps) {
   const id = useId();
   return (
-    <div className={`flex flex-col gap-1.5 ${className}`}>
-      <label htmlFor={id} className="text-sm font-medium text-text">
-        {label}
-        {required ? <RequiredMark /> : null}
-      </label>
+    <FieldShell id={id} label={label} required={required} hint={hint} error={error} className={className}>
       {/* The chevron and its right padding come from the global select rule in index.css. */}
       <select
         id={id}
         aria-required={required || undefined}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={fieldDescription(id, error, hint)}
         className="min-h-11 w-full rounded-card border border-line bg-ink pl-3 text-base text-text transition-[border-color] duration-150 focus:border-gold focus:outline-none"
         {...rest}
       >
         {children}
       </select>
-    </div>
+    </FieldShell>
   );
 }
 
