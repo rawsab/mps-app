@@ -1,7 +1,7 @@
 import { useState, type FormEvent } from 'react';
 import { Checkbox, IconButton } from '@/components/controls';
 import { PlusIcon, TrashIcon } from '@/components/icons';
-import { Alert, Button, Card, Spinner, TextField } from '@/components/ui';
+import { Alert, Button, Card, controlClass, Spinner, TextField } from '@/components/ui';
 import {
   copyToWeekdays, DEFAULT_RANGE, describeHours, hoursFromWeek, nextRange, rangeProblem, weekFromHours, weekProblems, type DayRange, type WeekHours,
 } from '@/domain/scheduling/availability';
@@ -69,38 +69,49 @@ function AvailabilityForm({ availability }: { availability: Availability }) {
       </p>
       <Alert visible={!!message} tone={message?.error ? 'error' : 'success'} onDismiss={() => setMessage(null)}>{message?.text}</Alert>
       <fieldset disabled={busy} className="min-w-0">
-        <legend className="mb-2 text-sm font-medium">Working hours</legend>
+        <legend className="sr-only">Working hours</legend>
+        <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+          <span className="text-sm font-medium">Working hours</span>
+          <Button type="button" variant="ghost" className="-mr-3" disabled={!week[1]?.length} onClick={() => setWeek(copyToWeekdays(week, 1))}>
+            Copy Monday to Tue–Fri
+          </Button>
+        </div>
+        {/* One line per range: the day, its times, then remove and (on the last range) add. */}
         <ul className="divide-y divide-line">
           {WEEKDAYS.map((weekday) => {
             const ranges = week[weekday] ?? [];
             const day = weekdayName(weekday);
             return (
-              <li key={weekday} className="grid gap-2 py-3 sm:grid-cols-[9rem_minmax(0,1fr)] sm:items-start">
+              <li key={weekday} className="grid gap-x-3 py-1.5 sm:grid-cols-[9rem_minmax(0,1fr)] sm:items-start">
                 <Checkbox label={day} checked={ranges.length > 0} onChange={(event) => setDay(weekday, event.target.checked ? [{ ...DEFAULT_RANGE }] : [])} />
-                <div className="grid gap-2">
+                <div className="grid gap-1">
                   {ranges.length ? ranges.map((range, index) => {
                     const problem = showProblems ? rangeProblem(range) : null;
+                    const errorId = `hours-${weekday}-${index}-error`;
                     const update = (patch: Partial<DayRange>) => setDay(weekday, ranges.map((r, i) => (i === index ? { ...r, ...patch } : r)));
+                    const timeInput = (field: 'startTime' | 'endTime', label: string) => (
+                      <input type="time" step={900} aria-label={`${day} ${label}`} value={range[field]}
+                        aria-invalid={problem ? true : undefined} aria-describedby={problem ? errorId : undefined}
+                        onChange={(event) => update({ [field]: event.target.value })}
+                        className={`min-h-11 min-w-0 flex-1 px-3 sm:w-32 sm:flex-none ${problem ? 'border-danger' : 'border-line'} ${controlClass}`} />
+                    );
                     return (
-                      <div key={index} className="grid grid-cols-[minmax(0,1fr)_minmax(0,1fr)_auto] items-start gap-2">
-                        <TextField label="From" aria-label={`${day} from`} type="time" step={900} value={range.startTime}
-                          onChange={(event) => update({ startTime: event.target.value })} />
-                        <TextField label="To" aria-label={`${day} to`} type="time" step={900} value={range.endTime} error={problem ?? undefined}
-                          onChange={(event) => update({ endTime: event.target.value })} />
-                        <IconButton label={`Remove ${day} hours`} tone="danger" className="mt-7" onClick={() => setDay(weekday, ranges.filter((_, i) => i !== index))}>
-                          <TrashIcon />
-                        </IconButton>
+                      <div key={index}>
+                        <div className="flex items-center gap-2">
+                          {timeInput('startTime', 'from')}
+                          <span aria-hidden className="text-muted">–</span>
+                          {timeInput('endTime', 'to')}
+                          <IconButton label={`Remove ${day} hours`} tone="danger" onClick={() => setDay(weekday, ranges.filter((_, i) => i !== index))}>
+                            <TrashIcon />
+                          </IconButton>
+                          {index === ranges.length - 1 ? (
+                            <IconButton label={`Add more ${day} hours`} onClick={() => setDay(weekday, [...ranges, nextRange(ranges)])}><PlusIcon /></IconButton>
+                          ) : null}
+                        </div>
+                        {problem ? <p id={errorId} className="mt-1 text-sm text-danger">{problem}</p> : null}
                       </div>
                     );
                   }) : <p className="flex min-h-11 items-center text-sm text-muted">Unavailable</p>}
-                  {ranges.length ? (
-                    <div className="flex flex-wrap gap-2">
-                      <Button type="button" variant="ghost" onClick={() => setDay(weekday, [...ranges, nextRange(ranges)])}>
-                        <PlusIcon />Add hours
-                      </Button>
-                      {weekday === 1 ? <Button type="button" variant="ghost" onClick={() => setWeek(copyToWeekdays(week, 1))}>Copy to Tuesday–Friday</Button> : null}
-                    </div>
-                  ) : null}
                 </div>
               </li>
             );
