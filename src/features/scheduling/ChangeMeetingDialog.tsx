@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Checkbox, Chip, SegmentedControl } from '@/components/controls';
 import { Dialog, DialogBody } from '@/components/Dialog';
-import { Alert, Button, Spinner, TextAreaField } from '@/components/ui';
+import { Alert, Button, SelectField, Spinner, TextAreaField } from '@/components/ui';
 import { insideLateWindow, openTimesByDay } from '@/domain/scheduling/requests';
 import { schedulingError, useOpenTimes, useRequestMeetingChange, type Meeting } from './api';
 import { sessionDay, sessionMoment, sessionRange, sessionTime } from './time';
@@ -91,14 +91,12 @@ export function ChangeMeetingDialog({ meeting, timeZone, initialKind, onClose, o
                     ))}
                   </ul>
                   {shownDay ? (
-                    <>
-                      <p className="mb-2 mt-4 text-sm font-medium">Pick a time <span className="font-normal text-muted">({meeting.durationMinutes} min)</span></p>
-                      <ul className="grid grid-cols-[repeat(auto-fill,minmax(6.5rem,1fr))] gap-2">
-                        {shownDay.times.map((t) => (
-                          <li key={t}><Chip pressed={time === t} className="w-full tabular-nums" onClick={() => setTime(t)}>{sessionTime(t, timeZone)}</Chip></li>
-                        ))}
-                      </ul>
-                    </>
+                    // One dropdown, however many starts the day has; the day chips do the browsing.
+                    <SelectField label={`Time (${meeting.durationMinutes} min)`} className="mt-4 sm:max-w-xs" value={time ?? ''}
+                      onChange={(event) => setTime(event.target.value || null)}>
+                      <option value="">Choose a time</option>
+                      {shownDay.times.map((t) => <option key={t} value={t}>{sessionTime(t, timeZone)}</option>)}
+                    </SelectField>
                   ) : null}
                 </fieldset>
                 {time && !noneWork ? <p className="text-sm">New time: <span className="font-medium">{sessionMoment(time, timeZone)}</span> · {sessionRange(time, meeting.durationMinutes, timeZone)}</p> : null}
