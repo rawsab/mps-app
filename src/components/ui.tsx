@@ -3,13 +3,15 @@ import { useId } from 'react';
 import { CloseIcon, InfoIcon } from './icons';
 import { NoticePresence } from './NoticePresence';
 
-type ButtonProps = ComponentPropsWithRef<'button'> & { variant?: 'primary' | 'secondary' | 'ghost' | 'danger'; busy?: boolean };
+type ButtonProps = ComponentPropsWithRef<'button'> & { variant?: 'primary' | 'secondary' | 'ghost' | 'ghost-danger' | 'danger'; busy?: boolean };
 
 export function Button({ variant = 'primary', busy, className = '', children, disabled, ...rest }: ButtonProps) {
   const styles = {
     primary: 'bg-gold text-on-gold font-semibold hover:bg-gold-hover',
     secondary: 'border border-line bg-surface-raised text-text hover:border-muted/70',
     ghost: 'text-muted hover:bg-surface-raised hover:text-text',
+    // Text only, for a destructive action beside ghost buttons.
+    'ghost-danger': 'text-danger hover:bg-danger/10',
     danger: 'border border-danger/50 bg-surface-raised text-danger hover:border-danger',
   }[variant];
   return (

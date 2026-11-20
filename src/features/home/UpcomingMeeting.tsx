@@ -104,7 +104,7 @@ function MeetingCard({ meeting, timeZone, now, onSent }: { meeting: Meeting; tim
         {canRequestChange(meeting, now) ? (
           <div className="-mr-3 ml-auto flex flex-wrap justify-end gap-1">
             <Button variant="ghost" onClick={() => setChanging('reschedule')}>Reschedule</Button>
-            <Button variant="ghost" onClick={() => setChanging('cancel')}>Cancel meeting</Button>
+            <Button variant="ghost-danger" onClick={() => setChanging('cancel')}>Cancel meeting</Button>
           </div>
         ) : null}
       </div>
