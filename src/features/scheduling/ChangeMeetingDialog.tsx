@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Checkbox, Chip, SegmentedControl } from '@/components/controls';
 import { Dialog, DialogBody } from '@/components/Dialog';
+import { ScrollStripButtons, ScrollStripList, useScrollStrip } from '@/components/ScrollStrip';
 import { Alert, Button, SelectField, Spinner, TextAreaField } from '@/components/ui';
 import { insideLateWindow, openTimesByDay } from '@/domain/scheduling/requests';
 import { schedulingError, useOpenTimes, useRequestMeetingChange, type Meeting } from './api';
@@ -27,6 +28,7 @@ export function ChangeMeetingDialog({ meeting, timeZone, initialKind, onClose, o
   const [message, setMessage] = useState('');
   const [problem, setProblem] = useState<string | null>(null);
   const open = useOpenTimes(meeting.id);
+  const strip = useScrollStrip(open.data?.times.length ?? 0);
   const send = useRequestMeetingChange();
 
   const days = open.data ? openTimesByDay(open.data.times, timeZone) : [];
@@ -82,14 +84,19 @@ export function ChangeMeetingDialog({ meeting, timeZone, initialKind, onClose, o
             ) : (
               <>
                 <fieldset disabled={noneWork} className="min-w-0 disabled:opacity-50">
-                  <legend className="mb-2 text-sm font-medium">Pick a day</legend>
-                  <ul className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1" aria-label="Days with open times">
+                  <legend className="sr-only">Pick a day</legend>
+                  {/* ‹ › for mouse users without sideways scrolling; fades show there are more days. */}
+                  <div className="mb-2 flex min-h-8 items-center justify-between gap-2">
+                    <span aria-hidden className="text-sm font-medium">Pick a day</span>
+                    <ScrollStripButtons strip={strip} backLabel="Earlier days" forwardLabel="Later days" />
+                  </div>
+                  <ScrollStripList strip={strip} fade="surface" label="Days with open times">
                     {days.map((d) => (
                       <li key={d.date} className="shrink-0">
                         <Chip pressed={shownDay?.date === d.date} onClick={() => { setDay(d.date); setTime(null); }}>{dayLabel(d.date)}</Chip>
                       </li>
                     ))}
-                  </ul>
+                  </ScrollStripList>
                   {shownDay ? (
                     // One dropdown, however many starts the day has; the day chips do the browsing.
                     <SelectField label={`Time (${meeting.durationMinutes} min)`} className="mt-4 sm:max-w-xs" value={time ?? ''}

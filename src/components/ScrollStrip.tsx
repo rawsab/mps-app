@@ -62,20 +62,23 @@ export function useScrollStrip(itemCount: number) {
 /** Class for each `<li>` in a strip: a fixed-width card that never shrinks. */
 export const STRIP_ITEM = 'flex w-72 max-w-[85%] shrink-0';
 
-const STRIP_FADE = 'pointer-events-none absolute bottom-2 top-0 w-12 from-ink to-transparent transition-opacity duration-200 motion-reduce:transition-none';
+const STRIP_FADE = 'pointer-events-none absolute bottom-2 top-0 w-12 to-transparent transition-opacity duration-200 motion-reduce:transition-none';
 
 /**
- * One sideways-scrolling row of cards. Fades in the page colour over edges that hide more cards;
- * the bottom stays clear of the scrollbar.
+ * One sideways-scrolling row of cards. Fades over edges that hide more cards, in the colour behind
+ * the strip: the page, or `surface` inside a dialog or card. The bottom stays clear of the scrollbar.
  */
-export function ScrollStripList({ strip, children }: { strip: ScrollStrip; children: ReactNode }) {
+export function ScrollStripList({ strip, fade = 'page', label, children }: {
+  strip: ScrollStrip; fade?: 'page' | 'surface'; label?: string; children: ReactNode;
+}) {
+  const from = fade === 'page' ? 'from-ink' : 'from-surface';
   return (
     <div className="relative min-w-0">
-      <ul ref={strip.ref} className="relative flex w-full min-w-0 gap-3 overflow-x-auto overscroll-x-contain pb-2">
+      <ul ref={strip.ref} aria-label={label} className="relative flex w-full min-w-0 gap-3 overflow-x-auto overscroll-x-contain pb-2">
         {children}
       </ul>
-      <div aria-hidden className={`${STRIP_FADE} left-0 bg-linear-to-r ${strip.back ? 'opacity-100' : 'opacity-0'}`} />
-      <div aria-hidden className={`${STRIP_FADE} right-0 bg-linear-to-l ${strip.forward ? 'opacity-100' : 'opacity-0'}`} />
+      <div aria-hidden className={`${STRIP_FADE} ${from} left-0 bg-linear-to-r ${strip.back ? 'opacity-100' : 'opacity-0'}`} />
+      <div aria-hidden className={`${STRIP_FADE} ${from} right-0 bg-linear-to-l ${strip.forward ? 'opacity-100' : 'opacity-0'}`} />
     </div>
   );
 }
