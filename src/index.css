@@ -428,7 +428,12 @@ html[data-theme='light'] .brand-logo {
  * the page background, so it never reads as the solid surface of the header row.
  */
 .calendar-unavailable {
-  background: repeating-linear-gradient(135deg, color-mix(in oklab, var(--color-line) 50%, transparent) 0 1px, transparent 1px 7px);
+  --stripe-strength: 50%;
+  background: repeating-linear-gradient(135deg, color-mix(in oklab, var(--color-line) var(--stripe-strength), transparent) 0 1px, transparent 1px 7px);
+}
+/* The light line colour is pale on the light page, so the stripes need more of it. */
+html[data-theme='light'] .calendar-unavailable {
+  --stripe-strength: 100%;
 }
 
 /*
