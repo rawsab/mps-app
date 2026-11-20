@@ -1,17 +1,18 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Dialog } from '@/components/Dialog';
 import { Alert, Spinner } from '@/components/ui';
 import { useClientPrograms } from '@/features/programs/api';
 import { schedulingError, useMeeting, useMeetingContext, type MeetingSchedule } from './api';
 import { MeetingDialog } from './MeetingDialog';
 import { PatternDialog } from './PatternDialog';
+import type { SavedOptions } from '@/components/Toast';
 
 /**
  * The full meeting dialog away from the client's page (the Meetings page, `?meeting=`). It loads
  * the meeting to learn its client, then that client's meeting context and programs, and opens the
  * pattern editor in place for "change the repeating pattern".
  */
-export function MeetingDialogHost({ meetingId, onClose, onSaved }: { meetingId: string; onClose: () => void; onSaved: (message: string) => void }) {
+export function MeetingDialogHost({ meetingId, onClose, onSaved }: { meetingId: string; onClose: () => void; onSaved: (message: ReactNode, options?: SavedOptions) => void }) {
   const meeting = useMeeting(meetingId);
   if (meeting.data) return <ClientMeetingDialog meetingId={meetingId} clientId={meeting.data.clientId} onClose={onClose} onSaved={onSaved} />;
   return (
@@ -26,7 +27,7 @@ export function MeetingDialogHost({ meetingId, onClose, onSaved }: { meetingId: 
 }
 
 function ClientMeetingDialog({ meetingId, clientId, onClose, onSaved }: {
-  meetingId: string; clientId: string; onClose: () => void; onSaved: (message: string) => void;
+  meetingId: string; clientId: string; onClose: () => void; onSaved: (message: ReactNode, options?: SavedOptions) => void;
 }) {
   const context = useMeetingContext(clientId);
   const programs = useClientPrograms(clientId);

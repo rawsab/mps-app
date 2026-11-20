@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, type ReactNode } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { ArrowUpRightIcon, PlusIcon, TrashIcon } from '@/components/icons';
 import { Alert, Button, SelectField, Spinner, TextAreaField, TextField } from '@/components/ui';
@@ -7,7 +7,8 @@ import {
   openResourceUrl, schedulingError, useAddMeetingFile, useAddMeetingLink, useCorrectAttendance, useRecordAttendance, useRemoveMeetingResource,
   useSaveSharedNotes, type Attendance, type Meeting, type MeetingResource,
 } from './api';
-import { sessionMoment } from './time';
+import { attendanceMessage, sessionMoment } from './time';
+import type { SavedOptions } from '@/components/Toast';
 
 // Attendance, shared notes and resources for one meeting (decision 0047).
 
@@ -18,7 +19,7 @@ const ATTENDANCE_LABEL: Record<Attendance | 'scheduled', string> = { completed: 
  * recorded status is a correction, with an optional reason kept in the audit. Cancelled meetings
  * have nothing to record.
  */
-export function AttendanceSection({ meeting, onSaved }: { meeting: Meeting; onSaved: (message: string) => void }) {
+export function AttendanceSection({ meeting, timeZone, onSaved }: { meeting: Meeting; timeZone: string; onSaved: (message: ReactNode, options?: SavedOptions) => void }) {
   const record = useRecordAttendance();
   const correct = useCorrectAttendance();
   const recorded = meeting.status === 'completed' || meeting.status === 'no_show' ? meeting.status : null;
@@ -38,7 +39,7 @@ export function AttendanceSection({ meeting, onSaved }: { meeting: Meeting; onSa
       return;
     }
     if (value === 'scheduled') return;
-    record.mutate({ id: meeting.id, status: value }, { onSuccess: () => onSaved(value === 'completed' ? 'Recorded as attended.' : 'Recorded as a no-show.') });
+    record.mutate({ id: meeting.id, status: value }, { onSuccess: () => onSaved(attendanceMessage(meeting, value, timeZone), { toast: true, undoAttendance: meeting.id }) });
   }
 
   return (
@@ -59,7 +60,7 @@ export function AttendanceSection({ meeting, onSaved }: { meeting: Meeting; onSa
             onChange={(event) => setReason(event.target.value)} hint="Kept with the change. The client doesn’t see it." />
           <div className="flex flex-wrap gap-2">
             <Button busy={correct.isPending} disabled={busy}
-              onClick={() => correct.mutate({ id: meeting.id, status: to, reason }, { onSuccess: () => onSaved(`Attendance changed to ${ATTENDANCE_LABEL[to].toLowerCase()}.`) })}>
+              onClick={() => correct.mutate({ id: meeting.id, status: to, reason }, { onSuccess: () => onSaved(attendanceMessage(meeting, to, timeZone), { toast: true, undoAttendance: meeting.id }) })}>
               Save correction
             </Button>
             <Button variant="ghost" disabled={busy} onClick={() => { setTo(null); setReason(''); }}>Keep {ATTENDANCE_LABEL[recorded].toLowerCase()}</Button>
@@ -82,7 +83,7 @@ export function AttendanceSection({ meeting, onSaved }: { meeting: Meeting; onSa
   );
 }
 
-export function SharedNotesField({ meeting, onSaved }: { meeting: Meeting; onSaved: (message: string) => void }) {
+export function SharedNotesField({ meeting, onSaved }: { meeting: Meeting; onSaved: (message: ReactNode, options?: SavedOptions) => void }) {
   const save = useSaveSharedNotes();
   const [notes, setNotes] = useState(meeting.sharedNotes ?? '');
   return (

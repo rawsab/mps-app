@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { Dialog } from '@/components/Dialog';
 import { Alert, Badge, Button, Spinner, TextAreaField, TextField } from '@/components/ui';
@@ -11,6 +11,7 @@ import {
 import { AttendanceSection, ResourcesSection, SharedNotesField } from './MeetingRecord';
 import { defaultTopic, MeetingTopicFields, topicLabel } from './MeetingTopic';
 import { sessionDay, sessionMoment, sessionRange, sessionTime, todayIn, zoneLabel } from './time';
+import type { SavedOptions } from '@/components/Toast';
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -42,7 +43,7 @@ const NOTES_HINT = 'The client never sees these.';
 
 /** Adds a one-off meeting. */
 export function NewMeetingDialog({ clientId, context, programs, onClose, onSaved }: {
-  clientId: string; context: MeetingContext; programs: ProgramRow[]; onClose: () => void; onSaved: (message: string) => void;
+  clientId: string; context: MeetingContext; programs: ProgramRow[]; onClose: () => void; onSaved: (message: ReactNode, options?: SavedOptions) => void;
 }) {
   const timeZone = context.timezone;
   const add = useAddMeeting(clientId);
@@ -86,7 +87,7 @@ export function MeetingDialog({ meetingId, context, programs, onClose, onSaved, 
   context: MeetingContext;
   programs: ProgramRow[];
   onClose: () => void;
-  onSaved: (message: string) => void;
+  onSaved: (message: ReactNode, options?: SavedOptions) => void;
   onChangePattern: (schedule: MeetingSchedule, from: string) => void;
 }) {
   const meeting = useMeeting(meetingId);
@@ -121,7 +122,7 @@ function MeetingDetails({ meeting, context, programs, onClose, onSaved, onChange
   context: MeetingContext;
   programs: ProgramRow[];
   onClose: () => void;
-  onSaved: (message: string) => void;
+  onSaved: (message: ReactNode, options?: SavedOptions) => void;
   onChangePattern: (schedule: MeetingSchedule, from: string) => void;
 }) {
   const timeZone = meeting.timezone;
@@ -264,7 +265,7 @@ function MeetingDetails({ meeting, context, programs, onClose, onSaved, onChange
           </section>
         ) : null}
 
-        <AttendanceSection meeting={meeting} onSaved={onSaved} />
+        <AttendanceSection meeting={meeting} timeZone={timeZone} onSaved={onSaved} />
 
         {meeting.status === 'cancelled' || meeting.status === 'late_cancelled' ? (
           <section className="grid gap-3">

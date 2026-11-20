@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Dialog } from '@/components/Dialog';
 import { ToggleButton } from '@/components/controls';
 import { Alert, Button, SelectField, TextAreaField, TextField } from '@/components/ui';
@@ -8,6 +8,7 @@ import { formatDate } from '@/lib/format';
 import { schedulingError, useChangePattern, useCreatePattern, usePatternPreview, type MeetingContext, type MeetingSchedule, type MeetingTopic, type PatternInput } from './api';
 import { defaultTopic, MeetingTopicFields } from './MeetingTopic';
 import { sessionMoment, todayIn, zoneLabel } from './time';
+import type { SavedOptions } from '@/components/Toast';
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -34,7 +35,7 @@ export function PatternDialog({ clientId, context, programs, schedule, from, onC
   schedule?: MeetingSchedule;
   from?: string;
   onClose: () => void;
-  onSaved: (message: string) => void;
+  onSaved: (message: ReactNode, options?: SavedOptions) => void;
 }) {
   const timeZone = context.timezone;
   const today = todayIn(timeZone);

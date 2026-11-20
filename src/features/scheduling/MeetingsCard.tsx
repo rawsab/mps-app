@@ -16,6 +16,8 @@ import { topicLabel } from './MeetingTopic';
 import { PatternDialog } from './PatternDialog';
 import { sessionDay, sessionRange, todayIn, zoneLabel } from './time';
 import { isCancelled, useHideCancelled } from './useHideCancelled';
+import type { SavedOptions } from '@/components/Toast';
+import { useMeetingToast } from './useMeetingToast';
 
 const DAY_MS = 86_400_000;
 const LIST_DAYS = 31;
@@ -51,14 +53,15 @@ export function MeetingsCard({ clientId, heading, focusMeetingId, onFocusClosed 
   const range = useMemo(() => ({ from: now, to: new Date(now.getTime() + LIST_DAYS * DAY_MS) }), [now]);
   const meetings = useClientMeetings(clientId, range.from, range.to);
   const [open, setOpen] = useState<Open | null>(null);
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState<ReactNode>('');
+  const toast = useMeetingToast();
   const [showAll, setShowAll] = useState(false);
   const [hideCancelled, setHideCancelled] = useHideCancelled();
   const [tab, setTab] = useState<'upcoming' | 'past'>('upcoming');
 
   const current: Open | null = focusMeetingId ? { kind: 'meeting', id: focusMeetingId } : open;
   const close = () => { if (focusMeetingId) onFocusClosed(); setOpen(null); };
-  const saved = (message: string) => { close(); setNotice(message); };
+  const saved = (message: ReactNode, options?: SavedOptions) => { close(); if (options?.toast) toast.show(message, options); else setNotice(message); };
 
   if (context.isPending) return <Spinner label="Loading meetings" />;
   if (context.error) return <Alert title="Could not load meetings">{schedulingError(context.error)}</Alert>;
@@ -86,6 +89,7 @@ export function MeetingsCard({ clientId, heading, focusMeetingId, onFocusClosed 
       </div>
 
       <Alert visible={!!notice} tone="success" onDismiss={() => setNotice('')} className="mb-3">{notice}</Alert>
+      {toast.element}
       <SetupNotices context={c} onStop={() => setOpen({ kind: 'stop' })} />
 
       {c.schedules.length ? (
@@ -264,7 +268,7 @@ export function MeetingRow({ meeting, timeZone, onOpen, to }: { meeting: Meeting
   );
 }
 
-function PatternNotesDialog({ schedule, onClose, onSaved }: { schedule: MeetingSchedule; onClose: () => void; onSaved: (message: string) => void }) {
+function PatternNotesDialog({ schedule, onClose, onSaved }: { schedule: MeetingSchedule; onClose: () => void; onSaved: (message: ReactNode, options?: SavedOptions) => void }) {
   const save = useSavePatternNotes();
   const [notes, setNotes] = useState(schedule.notes ?? '');
   return (
@@ -284,7 +288,7 @@ function PatternNotesDialog({ schedule, onClose, onSaved }: { schedule: MeetingS
   );
 }
 
-function EndPatternDialog({ schedule, onClose, onSaved }: { schedule: MeetingSchedule; onClose: () => void; onSaved: (message: string) => void }) {
+function EndPatternDialog({ schedule, onClose, onSaved }: { schedule: MeetingSchedule; onClose: () => void; onSaved: (message: ReactNode, options?: SavedOptions) => void }) {
   const end = useEndPattern();
   const today = todayIn(schedule.timezone);
   const earliest = schedule.startsOn > today ? schedule.startsOn : today;
@@ -309,7 +313,7 @@ function EndPatternDialog({ schedule, onClose, onSaved }: { schedule: MeetingSch
   );
 }
 
-function StopDialog({ clientId, context, onClose, onSaved }: { clientId: string; context: MeetingContext; onClose: () => void; onSaved: (message: string) => void }) {
+function StopDialog({ clientId, context, onClose, onSaved }: { clientId: string; context: MeetingContext; onClose: () => void; onSaved: (message: ReactNode, options?: SavedOptions) => void }) {
   const stop = useStopMeetings(clientId);
   return (
     <Dialog title="Cancel remaining meetings?"

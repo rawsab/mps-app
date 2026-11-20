@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
-import { createPortal, flushSync } from 'react-dom';
+import { flushSync } from 'react-dom';
 import { Link } from 'react-router';
 import { ConfirmDialog } from '@/components/Dialog';
-import { NoticePresence } from '@/components/NoticePresence';
 import { CheckIcon, CrossIcon } from '@/components/icons';
+import { Toast, TOAST_EXIT_MS, ToastAction } from '@/components/Toast';
 import { Alert, Button, Spinner } from '@/components/ui';
 import { groupAttendanceByDay, nextFocus } from '@/domain/scheduling/attendance';
 import { formatDate } from '@/lib/format';
 import { schedulingError, useRecordAttendance, useRecordAttendanceMany, useUndoAttendance, type Attendance, type NeedsAttendance } from './api';
 import { topicLabel } from './MeetingTopic';
-import { sessionDay, sessionTime } from './time';
+import { attendanceMessage, sessionDay, sessionTime } from './time';
 
 /** Rows shown before "Show all". */
 const SHOWN = 8;
@@ -20,10 +20,6 @@ const ICON_BUTTON = 'inline-flex size-9 items-center justify-center rounded-card
 /** The last thing recorded here. `id` is set when it can be undone (one meeting, not the bulk action). */
 type Done = { id: string | null; message: string; key: number };
 
-/** How long a notice (and its Undo) stays, unless the pointer or focus is on it. */
-const NOTICE_MS = 10_000;
-/** NoticePresence's fold-away (index.css `.notice-motion[data-leaving]`: 100ms delay + 280ms). */
-const NOTICE_EXIT_MS = 400;
 /** Rows gliding into a gap left by a recorded meeting, or out of the way of one coming back. */
 const GLIDE_MS = 260;
 
@@ -52,7 +48,6 @@ export function RecordAttendance({ meetings, timeZone, meetingHref, onEmptyChang
   const pendingNotices = useRef(new Map<string, Omit<Done, 'key'>>());
   for (const meeting of meetings) seen.current.set(meeting.id, meeting);
   const [done, setDoneState] = useState<Done | null>(null);
-  const [paused, setPaused] = useState(false);
   // The meeting Undo brought back, which fades in once the rows below have made room.
   const [restored, setRestored] = useState<string | null>(null);
   const rowNodes = useRef(new Map<string, HTMLLIElement>());
@@ -73,11 +68,6 @@ export function RecordAttendance({ meetings, timeZone, meetingHref, onEmptyChang
     }
   };
   const setDone = (next: Omit<Done, 'key'> | null) => setDoneState(next && { ...next, key: Date.now() });
-  useEffect(() => {
-    if (!done || paused) return;
-    const timer = setTimeout(() => setDoneState(null), NOTICE_MS);
-    return () => clearTimeout(timer);
-  }, [done, paused]);
   const [showAll, setShowAll] = useState(false);
   const [confirmAll, setConfirmAll] = useState(false);
   const buttons = useRef(new Map<string, HTMLButtonElement>());
@@ -109,7 +99,7 @@ export function RecordAttendance({ meetings, timeZone, meetingHref, onEmptyChang
     // mutateAsync, not mutate: mutate's own callbacks only run for the latest call, and rows can be
     // marked faster than each save returns. The error still shows through record.error.
     record.mutateAsync({ id: meeting.id, status }).then(() => {
-      const notice = { id: meeting.id, message: `Marked ${meeting.clientName}’s ${sessionDay(meeting.startsAt, timeZone)} ${sessionTime(meeting.startsAt, timeZone)} meeting ${status === 'completed' ? 'completed' : 'as a no-show'}.` };
+      const notice = { id: meeting.id, message: attendanceMessage(meeting, status, timeZone) };
       // One movement at a time: the row fades out, then goes and the rows below glide up
       // (finishLeaving), and only then does the notice unfold. With reduced motion, all at once.
       if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
@@ -144,7 +134,7 @@ export function RecordAttendance({ meetings, timeZone, meetingHref, onEmptyChang
       onSuccess: () => {
         // The notice folds away first; the meeting comes back once it has gone.
         setDone(null);
-        const wait = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : NOTICE_EXIT_MS;
+        const wait = window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 0 : TOAST_EXIT_MS;
         window.setTimeout(() => glide(() => {
           setRestored(id);
           setLeaving((s) => toggle(s, id, false));
@@ -165,25 +155,12 @@ export function RecordAttendance({ meetings, timeZone, meetingHref, onEmptyChang
         ) : null}
       </div>
 
-      {/*
-        Floats at the bottom of the screen, so showing or hiding it never moves the list. Portalled to
-        the body: the route's entrance transform would otherwise anchor `fixed` to the page content.
-        Unfolds in and folds away (NoticePresence); a newer message fades over the last one.
-      */}
-      {createPortal(<div className="pointer-events-none fixed inset-x-0 bottom-4 z-40 flex justify-center px-4">
-        <div role="status" aria-live="polite" className="pointer-events-auto max-w-full"
-          onPointerEnter={() => setPaused(true)} onPointerLeave={() => setPaused(false)}
-          onFocus={() => setPaused(true)} onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setPaused(false); }}>
-          <NoticePresence visible={!!done}>
-            {done ? (
-              <p key={done.key} className="notice-swap flex min-h-11 flex-wrap items-center gap-x-3 rounded-card border border-line bg-surface-raised px-4 py-1 text-sm shadow-lg">
-                <span>{done.message}</span>
-                {done.id ? <button type="button" disabled={undo.isPending} onClick={undoLast} className="min-h-11 font-medium text-gold-fg underline underline-offset-2 disabled:opacity-50">Undo</button> : null}
-              </p>
-            ) : null}
-          </NoticePresence>
-        </div>
-      </div>, document.body)}
+      {/* Undo stays with the notice: one meeting can be undone, the bulk action can't. */}
+      <Toast onExpire={() => setDoneState(null)} toast={done && {
+        key: done.key,
+        content: done.message,
+        action: done.id ? <ToastAction disabled={undo.isPending} onClick={undoLast}>Undo</ToastAction> : undefined,
+      }} />
 
       {visible.length === 0 ? <p className="text-sm text-muted">All past meetings have attendance.</p> : null}
       {ordered.length ? (

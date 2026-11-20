@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { Link, useSearchParams } from 'react-router';
 import { useViewer } from '@/app/auth';
 import { Avatar } from '@/components/Avatar';
@@ -18,6 +18,7 @@ import { RecordAttendance } from './RecordAttendance';
 import { topicLabel } from './MeetingTopic';
 import { sessionDay, sessionMoment, sessionRange, sessionTime, todayIn, zoneLabel } from './time';
 import { isCancelled, useHideCancelled } from './useHideCancelled';
+import { useMeetingToast } from './useMeetingToast';
 
 const DAY_MS = 86_400_000;
 const HOUR_MS = 3_600_000;
@@ -68,12 +69,14 @@ export function MeetingsPage() {
 function MeetingsPageBody({ timeZone }: { timeZone: string }) {
   const [params, setParams] = useSearchParams();
   const openMeeting = params.get('meeting');
-  const [notice, setNotice] = useState('');
+  const [notice, setNotice] = useState<ReactNode>('');
+  const toast = useMeetingToast();
   const closeMeeting = () => setParams((p) => { p.delete('meeting'); return p; }, { replace: true });
   return (
     <div className="grid gap-8">
       <PageHeader title="Meetings" subtitle={`All your clients’ meetings. Times in ${zoneLabel(timeZone)}.`} />
       <Alert visible={!!notice} tone="success" onDismiss={() => setNotice('')} className="-mb-4">{notice}</Alert>
+      {toast.element}
       {/* One grid cell, so the to-dos' spacing folds away with them. */}
       <div className="min-w-0">
         <AtAGlance timeZone={timeZone} />
@@ -82,7 +85,7 @@ function MeetingsPageBody({ timeZone }: { timeZone: string }) {
       <MeetingCalendar timeZone={timeZone} />
       {openMeeting ? (
         <MeetingDialogHost key={openMeeting} meetingId={openMeeting} onClose={closeMeeting}
-          onSaved={(message) => { closeMeeting(); setNotice(message); }} />
+          onSaved={(message, options) => { closeMeeting(); if (options?.toast) toast.show(message, options); else setNotice(message); }} />
       ) : null}
     </div>
   );
@@ -126,7 +129,8 @@ function MeetingTodos({ timeZone }: { timeZone: string }) {
           */}
           <div className="collapsible min-w-0" data-collapsed={noAttendance || undefined} inert={noAttendance}>
             <div className="min-h-0 min-w-0 overflow-hidden">
-              <div className={hasRequests ? 'mt-6 border-t border-line pt-4 lg:mt-0 lg:border-l lg:border-t-0 lg:pl-9 lg:pt-0' : ''}>
+              {/* Fills the stretched column, so the divider runs the height of the taller side. */}
+              <div className={hasRequests ? 'mt-6 border-t border-line pt-4 lg:mt-0 lg:h-full lg:border-l lg:border-t-0 lg:pl-9 lg:pt-0' : ''}>
                 <RecordAttendance meetings={attendance.data} timeZone={timeZone} meetingHref={meetingHref} onEmptyChange={setAttendanceEmpty} />
               </div>
             </div>

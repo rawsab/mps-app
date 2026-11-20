@@ -31,3 +31,10 @@ export const todayIn = (timeZone: string) => zonedDateTime(new Date(), timeZone)
 
 /** "America/Toronto" → "America/Toronto" without underscores, for labels. */
 export const zoneLabel = (timeZone: string) => timeZone.replaceAll('_', ' ');
+
+/** The confirmation after recording or changing attendance, e.g. "Marked Grace Liu’s Tue, Nov 3 11:00 AM meeting completed." */
+export function attendanceMessage(meeting: { clientName: string; startsAt: string }, status: 'completed' | 'no_show' | 'scheduled', timeZone: string) {
+  const which = `${meeting.clientName}’s ${sessionDay(meeting.startsAt, timeZone)} ${sessionTime(meeting.startsAt, timeZone)} meeting`;
+  if (status === 'scheduled') return `Marked ${which} as not recorded.`;
+  return `Marked ${which} ${status === 'completed' ? 'completed' : 'as a no-show'}.`;
+}
