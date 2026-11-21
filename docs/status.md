@@ -447,3 +447,8 @@ Open items are tracked in `docs/todo.md`.
   - `list_pending_service_requests` no longer returns `unread` (migration 00050, applied locally). Activity keeps the read state.
   - Typecheck, 367 unit tests and build pass. Manual check pending.
 - **Local DB needs a reset:** `023`, `026` and `030` fail against the running local DB because of state left by manual testing (for example a third active nutrition enrollment). The other 35 files pass, including `032` and `035`. Run `pnpm db:reset` before the next full `pnpm test:db`.
+- Billing, phase A (decision 0053, a recorded scope addition: PRD §3 excludes billing):
+  - Migration 00051 is applied locally. It adds default and per-client prices, session charges created from attendance, monthly Mesocycle/Nutrition charges with the automatic bundle discount, payments with partial allocation and credit, voids, adjustments, an audit log and the coach e-transfer email.
+  - 73 new pgTAP assertions (`039_billing.test.sql`). The full suite passes apart from the 3 known `023` failures. `supabase db diff` shows no drift.
+  - `src/domain/billing/` has 10 unit tests; `pnpm verify` passes (377).
+  - No UI yet. Next: phase B (coach screens), then C (client screens).
