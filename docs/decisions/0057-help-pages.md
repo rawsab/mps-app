@@ -43,11 +43,20 @@ The test checks that the manifest and files match and that section ids are uniqu
 - [ ] Help search: type "credit", "late cancellation" or "time off". Results show the section, its page and a snippet with the match marked. Arrow keys and Enter work, Escape clears, and the page opens at that heading.
 - [ ] ⌘K: "help", "docs" and "billing" show the Help pages under a Help group.
 - [ ] Programs in Help lists Mesocycle, Personal training and Nutrition. Both training pages include the editor sections (Drafts and publishing through Current and archived programs) between their own sections, and their topic lists and search results show those headings.
+- [ ] Demos (Mesocycle or Personal training page): each plays when scrolled into view and stops when scrolled away. The pointer moves to each cell, the caption under it follows along, and Pause and Play work. With reduced motion turned on in your system settings, each opens on its last frame, paused. On a phone the picture shrinks to fit, and the pointer still lands on the right cells.
 - [ ] Read each page once for accuracy and tone.
 
 ## Phase 2 plan: detail, step-by-step guides and animated demos (owner choices, 2026-11-21)
 
-Status: **planned, not built.** The first pages explain what each area is for but rarely how to do things.
+Status: **step 1 built 2026-11-21** (the demo player and demos 1 to 3, waiting for the owner's review); the rest planned. The first pages explain what each area is for but rarely how to do things.
+
+**Step 1 as built:**
+- `src/domain/help/demo.ts`: the frame and script types, `demoProblems` (captions, frame lengths, a 30 s loop limit, no dashes) and `typing`.
+- `src/domain/help/spreadsheetDemos.ts`: the three scripts. A fictional program (generic exercise names) is typed in with `planEdits`, then edited with `planEdits`, `planGridRowMove` and `planClear`, so each frame shows exactly what the Spreadsheet would. A refused edit throws, so a script that drifts from the editor fails its test.
+- `src/features/help/demos/DemoPlayer.tsx`: plays any script on the `.help-demo` backdrop (the thumbnail gradient). The pointer glides to each frame's `data-demo-target`. Keys show as chips under the picture. The picture keeps its own size and scales down to fit narrow screens. Pause and Play sit in the top right.
+- `SpreadsheetDemo.tsx` draws a four-column slice of the Spreadsheet with the real column labels, widths and cell text.
+- The demos are in the shared editor text, so they show on both Mesocycle and Personal training: dragging a row under Spreadsheet, per-set targets under Writing targets, and Shift-select, Delete and Undo under Undo and redo.
+- `tests/domain/helpDemos.test.ts` checks every script, that the pointer only targets cells the frame draws, and the real results (`10 / 8 / 6`, the renumbering, and Undo giving back the starting table).
 
 **Pages (13).** Each page gets numbered step-by-step guides for its common jobs, with short explanations around them.
 

@@ -537,8 +537,9 @@ html[data-theme='light'] .sidebar-glow {
   opacity: var(--help-grain);
 }
 
-/* Help topic thumbnails: black rising into gold, with the same grain. */
-.help-thumb {
+/* Help topic thumbnails and animated demos: black (or cream) rising into gold, with the same grain. */
+.help-thumb,
+.help-demo {
   position: relative;
   isolation: isolate;
   background-color: var(--color-help-thumb);
@@ -546,7 +547,8 @@ html[data-theme='light'] .sidebar-glow {
     radial-gradient(120% 140% at 100% 100%, color-mix(in oklab, var(--color-gold) 70%, transparent), transparent 60%),
     linear-gradient(160deg, var(--color-help-thumb) 35%, color-mix(in oklab, var(--color-sidebar-gold) 55%, var(--color-help-thumb)));
 }
-.help-thumb::before {
+.help-thumb::before,
+.help-demo::before {
   content: '';
   position: absolute;
   inset: 0;
@@ -554,6 +556,27 @@ html[data-theme='light'] .sidebar-glow {
   pointer-events: none;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 1.6 -0.3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   opacity: 0.14;
+}
+
+/* Help demos: the pointer glides between targets; changed cells flash gold, then settle. */
+.help-demo-cursor {
+  transition: left 520ms var(--ease-ui), top 520ms var(--ease-ui);
+}
+.help-demo-changed {
+  animation: help-demo-changed 1400ms ease-out;
+}
+@keyframes help-demo-changed {
+  from { background-color: color-mix(in oklab, var(--color-gold) 30%, transparent); }
+}
+.help-demo-caret {
+  animation: help-demo-caret 1s steps(1) infinite;
+}
+@keyframes help-demo-caret {
+  50% { opacity: 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .help-demo-cursor { transition: none; }
+  .help-demo-changed, .help-demo-caret { animation: none; }
 }
 
 /* Help topic thumbnails: a small browser window with part of an app page in it (decision 0057). */

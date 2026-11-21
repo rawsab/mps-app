@@ -11,7 +11,7 @@ Development is moving from Claude Code to Codex. Agent instructions now live in 
 - [x] **Skeleton loading** (decision 0056, owner request, built 2026-11-21). Manual UI checks are in the decision record.
 - [x] **Help pages for coaches** (decision 0057, owner request, built 2026-11-21). MDX pages with live examples and section search. Manual UI checks are in the decision record.
 - [ ] **Help phase 2** (decision 0057, "Phase 2 plan"), in this order:
-  - [ ] `<Demo>` player (autoplay in view, Pause, reduced-motion final frame) and spreadsheet demos 1 to 3, for the owner to review.
+  - [x] `<Demo>` player (autoplay in view, Pause, reduced-motion final frame) and spreadsheet demos 1 to 3 (built 2026-11-21; waiting for the owner's review before more demos).
   - [x] Separate Mesocycle and Personal training pages, with shared editor text (built 2026-11-21).
   - [ ] More editor detail and step-by-step guides in the shared editor text (building, spreadsheet, publishing and history).
   - [ ] New pages: Roles and permissions, What clients see.

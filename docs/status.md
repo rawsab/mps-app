@@ -670,3 +670,9 @@ Decision 0055, "Owner follow-ups".
 - Help index: topic cards with browser-window thumbnails of the matching app page (rebuilt from components, light and dark), the topic list beside the index too, an Overview link at its top, lighter group labels, and wider gaps between groups. The topic list scrolls on its own with a fade while there's more below.
 - `Kbd` now has a fill instead of a border, and more vertical padding, everywhere it's used.
 - **Verification.** `pnpm verify` passes (423 tests). No browser checks; manual checks are in decision 0057.
+
+## Help phase 2, step 1: animated demos (2026-11-21)
+
+- Decision 0057. A demo player and three looping Spreadsheet demos, placed in the shared editor text on the Mesocycle and Personal training pages: per-set targets (`10 / 8 / 6`), dragging a row (with renumbering), and Shift-select, Delete, then Undo.
+- The scripts run the editor's own planners on a fictional program, so each frame matches the real Spreadsheet. The player plays only while on screen and the tab is visible. It has Pause and Play, and opens paused on the last frame with reduced motion. Screen readers get a description and the list of steps.
+- **Verification.** `pnpm verify` passes (429 tests, including `tests/domain/helpDemos.test.ts`). No browser checks; manual checks are in decision 0057.

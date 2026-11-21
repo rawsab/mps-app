@@ -1,6 +1,7 @@
 import { Callout, Example } from '../../blocks';
 import { SegmentedControl } from '@/components/controls';
 import { Badge } from '@/components/ui';
+import { SpreadsheetDemo } from '../../demos/SpreadsheetDemo';
 
 {/* The program editor, shared by the Mesocycle and Personal training pages. Headings here are part of both pages. */}
 
@@ -43,6 +44,8 @@ The Spreadsheet shows each week as a table, one row per exercise. It opens by de
 - Use **Add** to create weeks, days and sections.
 - The **+** bar under the table adds an exercise to the last section.
 
+<SpreadsheetDemo name="drag-row" />
+
 ### List View
 
 List View shows one workout at a time, with an outline of weeks and days on the side. Use it for things the spreadsheet doesn't show: program details, every-workout prep, resources, exercise alternatives, demo links and the muscles each exercise works.
@@ -57,11 +60,15 @@ List View shows one workout at a time, with an outline of weeks and days on the 
 | `45s` or `2 min` | A time instead of reps |
 | `1-2` in RIR | A range of 1 to 2 reps in reserve |
 
+<SpreadsheetDemo name="per-set-targets" />
+
 A load with no unit stays without one. The app never guesses kilograms or pounds. A blank cell means no value. It is different from 0.
 
 ## Undo and redo
 
 Use the undo and redo buttons, or press **Ctrl+Z** (**⌘Z** on a Mac) to undo and **Ctrl+Shift+Z** (**⌘⇧Z**) to redo. Undo covers your last 100 changes while the editor is open.
+
+<SpreadsheetDemo name="select-delete-undo" />
 
 ## When something goes wrong
 
