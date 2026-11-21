@@ -1,5 +1,28 @@
 # To-do
 
+## Next up (handoff, 2026-11-20)
+
+Development is moving from Claude Code to Codex. Agent instructions now live in `AGENTS.md` (`CLAUDE.md` just imports it). In priority order:
+
+- [ ] **Reset the local DB first.** Run `pnpm db:start && pnpm db:reset`. Manual testing left state that makes `023`, `026` and `030` fail. Then confirm `pnpm test:db` is fully green and `pnpm test:api` passes.
+- [ ] **Billing, phase C: client screens** (decision 0053, "Client" and "Phases"). Phase A (schema) and B (coach screens) are done. The data already comes from `get_client_billing` and `billing_payment_details`, so no migration should be needed.
+  - [ ] Home balance card, shown only when something is owed: "You owe $X", "Includes $Y from <month>" when carried over, then **Pay** and **View billing**.
+  - [ ] `/billing`, reached from that card and the profile menu (not a new tab): balance with **Pay**, this month's lines, past months in disclosures, payments. Paid vs unpaid by badge and text, not colour alone.
+  - [ ] Pay dialog: amount, the coach's e-transfer email with a copy button, the instructions from 0053. It never marks anything paid. If no email is set, say the coach hasn't set up e-Transfer yet.
+  - [ ] Unit tests for any new domain logic, and an HTTP test that a client reads only their own billing.
+- [ ] **Owner's manual UI checks** for decisions 0043–0053 (checklists are in each decision record and in `docs/status.md`).
+- [ ] **Scheduling phase C** (decision 0050): a client list of all upcoming meetings, each with the reschedule/cancel dialog.
+- [ ] Pick the next roadmap milestone. Audit M4–M6 exit criteria first (see "Handoff" in `AGENTS.md`).
+- [ ] Later candidates: Playwright e2e tests (promote the smoke script to `tests/e2e`), ESLint and a formatter, an `audit_events` table. The owner's backlog is at the end of "Next milestone" in `docs/status.md`.
+
+### Things to know
+
+- The repo is being made public as a portfolio project (the owner switches visibility on GitHub). Don't commit anything from `samples/`; it's MPS intellectual property and gitignored. Keep local seed people fictional on `@example.test`.
+- Never run browser automation or screenshots without the owner's explicit OK for that round.
+- The local stack may still have an unrelated Supabase project running (`mps-demo-verification`). Stop it with `pnpm exec supabase stop --project-id mps-demo-verification` if ports clash.
+
+## Planning session, 2026-11-20
+
 Open work from the 2026-11-20 planning session. Done so far: answered requests leave "To review" (decision 0043), required-field asterisks, mesocycle progress on the program page, and service request answers (decision 0044). See `docs/status.md`.
 
 ## Housekeeping

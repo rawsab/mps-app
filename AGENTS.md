@@ -1,0 +1,69 @@
+# AGENTS.md
+
+Guidance for coding agents (Codex, Claude Code and others) working in this repository. `CLAUDE.md` imports this file, so edit only this one.
+
+## Sources of truth
+
+- Behavior: `docs/modern-physique-systems-prd.md` (requirement IDs FR-xx / NFR-xx). Sequencing, schema plan and milestone exit criteria: `docs/modern-physique-systems-implementation-roadmap.md`. When they conflict, the PRD wins. Record the discrepancy instead of resolving it silently.
+- Progress and next milestone: `docs/status.md`. Material decisions: add a short record to `docs/decisions/` instead of asking repeatedly.
+- Reference PRD requirement IDs in work items, commits and acceptance checks.
+
+## Commands
+
+pnpm only (npm 10.9 crashes resolving vitest peers). Docker must be running for anything under Supabase.
+
+- `pnpm verify`: typecheck + unit tests + build. Single test: `pnpm vitest run --project unit tests/imports/mesocycle.test.ts -t "name"`
+- `pnpm test:db`: pgTAP policy tests in `supabase/tests/database/`
+- `pnpm db:reset && pnpm test:api`: HTTP isolation tests against the local stack (they need a fresh seed)
+- `pnpm exec supabase functions serve`: Edge Functions aren't picked up by an already-running `supabase start`
+- `pnpm spike:import`: importer on `samples/`. Output goes to gitignored `reports/`.
+
+## Verification preference
+
+- Do not run browser tests, browser automation, or screenshot analysis unless the user explicitly approves first. The user will check the UI themselves. Ask first if browser verification is essential.
+- Use appropriate typecheck, unit-test and build checks. Finish UI work with a short, plain-language checklist of what the user should check manually.
+
+## Stack constraints
+
+- Node 22.18 locally. react-router is pinned to 7.x because 8.x needs Node ≥ 22.22. Pin exact versions; prefer releases ≥ 2 weeks old unless there's a security fix.
+- Zod 4 (`z.email()`, `z.url()`, `z.iso.date()`). Tailwind 4 tokens live in `src/index.css` `@theme`. Use `rounded-card` (7px), `gold`, `ink`, `surface`. Light/dark themes swap the same variables (`html[data-theme]`), so never hard-code colors. Use `text-gold-fg` for gold text and `text-on-gold` on gold fills; `text-gold` fails contrast in light mode.
+- The importer (`src/domain/imports/`) must stay DOM-free. It runs in Node tests now and in a Web Worker in M7.
+
+## UI components
+
+Build pages from `src/components/` before writing styles (decision 0049). A call-site `className` should only add layout (margin, width, grid placement). Tailwind doesn't let it reliably override a component's own size or padding, so add a variant instead.
+
+- Buttons: `Button` (text), `IconButton` (icon only; `label` is required), `Chip` (filter pills), `ToggleButton` (gold on/off), `SegmentedControl`, `Tabs` (with a tabpanel).
+- Forms: `TextField`, `TextAreaField`, `SelectField`, `ComboboxField`, `Checkbox`. For a custom control, use `FieldShell` and `controlClass`.
+- Overlays: `Dialog`, `ConfirmDialog` and `DialogBody`; `ActionsMenu` with `ActionItem`; `PopupMenu` for context menus; `InfoTip`; `ChartTooltip`.
+- Charts: `ColumnTrend` (columns over time slots, with a screen-reader table).
+- Content: `Card`, `SectionHeading`, `PageHeader`, `Badge`, `Alert`, `EmptyState`, `AnimatedDisclosure`, `DisclosureSummary`, `Spinner`, `Skeleton`.
+
+## Invariants agents are likely to get wrong
+
+- RIR/RPE `1-2` is a numeric min/max range, never a date. Scalars use equal endpoints.
+- Null = missing/unanswered; zero = an actual value. Never coerce one to the other.
+- Prescriptions and actual results are separate. Imported logged values are history, never targets. History needs confirmed activity dates; a "date received" header is never one.
+- Published revisions and session target snapshots are immutable. Enforce this in the DB/function layer.
+- Program and Grid views share one canonical `ProgramDraft` (`src/domain/programs/contract.ts`) and one persistence path.
+- Every new table, view, function or bucket ships with RLS, explicit grants and pgTAP tests in the same migration. Policy helpers go in the `private` schema (`security definer`, `search_path = ''`). Route guards aren't authorization.
+- `clients.auth_user_id` is bound only by the `invite-client` Edge Function. Never by browser input or an email match.
+- Importer: never evaluate formulas or macros. Every source item must end mapped, excluded (with a reason) or unresolved (with an issue). Proposals are never applied silently. No bare number becomes lb or kg.
+- Weigh-in date and nutrition activity date are distinct ("calories day before" belongs to the previous date).
+
+## Safety rules
+
+- Never put service-role/`sb_secret_` keys or Resend secrets in `VITE_*` variables or the repo. `src/lib/env.ts` rejects them.
+- Don't create hosted resources, send real invitations (anything other than local Mailpit), or deploy without explicit authorization.
+- No mock backend fallback. Missing config shows an error. The one exception is the labelled, dev-only sample sessions in `src/features/scheduling/sampleSessions.ts` (decision 0026); keep them behind `import.meta.env.DEV` and delete them when scheduling lands. Local seed people are fictional, and their emails must stay on `@example.test`. The seed lives in `supabase/seed.sql`; demo programs are generated from `scripts/seed/` into `supabase/seed/programs.sql` (`pnpm seed:programs`, never hand-edit the SQL).
+- `samples/` holds MPS's template files. They're MPS intellectual property and gitignored: never commit them, copy their content into committed files, or quote them in docs. The repo is public. Tests that need them skip when they're absent. New fixtures should be generated by `tests/imports/fixtures/build.ts`.
+
+## Handoff
+
+- Start with `docs/todo.md` (open work, in priority order), then the latest section of `docs/status.md`.
+- To audit a milestone, follow `.claude/skills/milestone-check/SKILL.md` by hand: compare the roadmap milestone's tasks, verification list and exit criteria, and the PRD IDs it covers, against the code and tests.
+- When you finish a piece of work, add a dated entry to `docs/status.md`, tick it off in `docs/todo.md`, and add a decision record if it changed behaviour.
+
+## Git
+
+Solo repo: commit directly to `main`. No PR flow.

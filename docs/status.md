@@ -1,6 +1,6 @@
 # Status
 
-Started 2026-11-16 · Last updated 2026-11-20
+Started 2026-11-16 · Last updated 2026-11-20 · Open work: `docs/todo.md`
 
 ## Repository assessment (M0)
 
@@ -459,3 +459,10 @@ Open items are tracked in `docs/todo.md`.
   - Migration 00052 (pattern format in `schedule_document`) is applied locally. 74 pgTAP assertions in `039`, and 3 new HTTP tests in `tests/policies/billing.test.ts`. `pnpm verify` passes.
   - The monthly charge job was run once by hand locally, so the seeded clients have November charges.
   - Manual UI check pending. Next: phase C (client Home card, `/billing`, Pay dialog).
+
+## Public repository and agent handoff (2026-11-20)
+
+- The README was rewritten for a public portfolio, with an ownership and IP notice for Modern Physique Systems. The logo and business name link to the MPS website.
+- `samples/` (the three MPS templates) is gitignored and was removed from the whole Git history with `git filter-repo`, then force-pushed. Copies stay on the owner's machine only. `tests/imports/samples.test.ts` skips when the files are absent, and `pnpm spike:import` explains how to pass files instead.
+- Agent instructions moved to `AGENTS.md` for Codex; `CLAUDE.md` imports it. The next steps are listed in priority order at the top of `docs/todo.md`.
+- Typecheck and importer tests pass with and without the samples (34, or 21 plus 3 skipped).
