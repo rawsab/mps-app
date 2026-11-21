@@ -4,7 +4,9 @@ import { AllClear } from '@/components/AllClear';
 import { Dialog } from '@/components/Dialog';
 import { ScrollStripButtons, useScrollStrip } from '@/components/ScrollStrip';
 import { CheckIcon, CopyIcon, InboxIcon, SendIcon } from '@/components/icons';
-import { Alert, Button, Spinner } from '@/components/ui';
+import { Alert, Button } from '@/components/ui';
+import { LoadingRegion, SkeletonRows } from '@/components/Skeleton';
+import { MeetingRowsSkeleton } from '@/features/scheduling/MeetingSkeletons';
 import { ActivityRow } from '@/features/activity/ActivityViews';
 import { useLatestUnread, useUnreadCount } from '@/features/activity/api';
 import { schedulingError, useMeetingsToday } from '@/features/scheduling/api';
@@ -79,7 +81,7 @@ function ToReviewPanel() {
         <Link to="/coach/reviews" className="-my-3 inline-flex min-h-11 items-center text-sm text-gold-fg"><span className="link">View all</span></Link>
       </div>
       <Alert visible={!!(unread.error || latest.error)} title="Could not load activity">{friendlyError(unread.error ?? latest.error)}</Alert>
-      {latest.isPending ? <Spinner label="Loading activity" /> : null}
+      {latest.isPending ? <LoadingRegion label="Loading activity"><SkeletonRows count={LATEST_REVIEWS} leading="avatar" divided /></LoadingRegion> : null}
       {latest.data?.length === 0 ? <AllClear title="All caught up." detail="No unread workouts or logs from your clients." /> : null}
       {latest.data?.length ? (
         <ul className="min-w-0 divide-y divide-line">
@@ -105,7 +107,7 @@ function UpcomingSessionsPanel() {
         <h2 id="clients-upcoming" className="text-xs font-medium text-muted">Upcoming today</h2>
         <Link to="/coach/meetings" className="-my-3 inline-flex min-h-11 items-center text-sm text-gold-fg"><span className="link">View calendar</span></Link>
       </div>
-      {meetings.isPending ? <Spinner label="Loading meetings" /> : null}
+      {meetings.isPending ? <LoadingRegion label="Loading meetings"><MeetingRowsSkeleton count={UPCOMING_LIMIT} dayColumn={false} /></LoadingRegion> : null}
       <Alert visible={!!meetings.error} title="Could not load meetings">{schedulingError(meetings.error)}</Alert>
       {meetings.data && today.length === 0 ? <AllClear title="No upcoming meetings." detail="The rest of the day is clear." /> : null}
       {visible.length ? (

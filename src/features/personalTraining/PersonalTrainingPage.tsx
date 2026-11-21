@@ -3,7 +3,9 @@ import { useViewer } from '@/app/auth';
 import { ColumnTrend } from '@/components/ColumnTrend';
 import { Dialog, DialogBody } from '@/components/Dialog';
 import { CalendarIcon, HistoryIcon, ProgramIcon, ProgressIcon } from '@/components/icons';
-import { Alert, Badge, Button, PageHeader, SectionHeading, Spinner } from '@/components/ui';
+import { Alert, Badge, Button, PageHeader, SectionHeading } from '@/components/ui';
+import { MeetingListSkeleton } from '@/features/scheduling/MeetingSkeletons';
+import { LoadingRegion, Skeleton, SkeletonText, SkeletonRows } from '@/components/Skeleton';
 import { isPtSession, ptOutcome, ptStats, type PtOutcome } from '@/domain/scheduling/ptStats';
 import { useNow } from '@/features/home/api';
 import { UpcomingMeeting } from '@/features/home/UpcomingMeeting';
@@ -52,7 +54,7 @@ function YourProgram() {
   return (
     <section aria-labelledby="pt-program" className="min-w-0">
       <SectionHeading id="pt-program" icon={<ProgramIcon />} className="mb-3">Your program</SectionHeading>
-      {programs.isPending ? <Spinner label="Loading programs" /> : null}
+      {programs.isPending ? <LoadingRegion label="Loading programs"><SkeletonRows count={1} leading="avatar" size="lg" /></LoadingRegion> : null}
       <Alert visible={!!programs.error} title="Could not load your programs">{trainingErrorMessage(programs.error)}</Alert>
       {programs.data && !pt.length ? <p className="text-sm text-muted">Your coach hasn’t published a program yet. It will appear here once they do.</p> : null}
       {pt.length ? (
@@ -82,7 +84,19 @@ function PtProgress({ sessions, isPending, error, timeZone, now }: { sessions: M
   return (
     <section aria-labelledby="pt-progress" className="min-w-0">
       <SectionHeading id="pt-progress" icon={<ProgressIcon />} className="mb-3">Progress</SectionHeading>
-      {isPending ? <Spinner label="Loading sessions" /> : null}
+      {isPending ? (
+        <LoadingRegion label="Loading sessions" className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-9">
+          <div className="grid grid-cols-2 gap-x-4 gap-y-5 self-start">
+            {['w-32', 'w-20', 'w-24', 'w-20'].map((width, i) => (
+              <div key={i}><SkeletonText width={width} /><SkeletonText size="xl" width="w-12" className="mt-1" /></div>
+            ))}
+          </div>
+          <div className="min-w-0">
+            <SkeletonText width="w-48" className="mb-3" />
+            <Skeleton className="h-32" />
+          </div>
+        </LoadingRegion>
+      ) : null}
       <Alert visible={!!error} title="Could not load your sessions">{schedulingError(error)}</Alert>
       {stats && slots ? (
         <div className="grid gap-6 lg:grid-cols-[minmax(0,2fr)_minmax(0,3fr)] lg:gap-9">
@@ -119,7 +133,7 @@ function Upcoming({ clientId, timeZone, now, onOpen, className = '' }: { clientI
   return (
     <section aria-labelledby="pt-upcoming" className={`min-w-0 ${className}`}>
       <SectionHeading id="pt-upcoming" icon={<CalendarIcon />} className="mb-3">Upcoming <span className="text-sm font-normal text-muted">· next 4 weeks</span></SectionHeading>
-      {meetings.isPending ? <Spinner label="Loading sessions" /> : null}
+      {meetings.isPending ? <LoadingRegion label="Loading sessions"><MeetingListSkeleton count={2} /></LoadingRegion> : null}
       <Alert visible={!!meetings.error} title="Could not load your sessions">{schedulingError(meetings.error)}</Alert>
       {upcoming && !upcoming.length ? <p className="text-sm text-muted">No sessions in the next 4 weeks.</p> : null}
       {upcoming?.length ? (
@@ -140,7 +154,7 @@ function History({ sessions, isPending, error, timeZone, now, onOpen }: {
   return (
     <section aria-labelledby="pt-history" className="min-w-0">
       <SectionHeading id="pt-history" icon={<HistoryIcon />} className="mb-3">History</SectionHeading>
-      {isPending ? <Spinner label="Loading sessions" /> : null}
+      {isPending ? <LoadingRegion label="Loading sessions"><MeetingListSkeleton count={3} /></LoadingRegion> : null}
       <Alert visible={!!error} title="Could not load your sessions">{schedulingError(error)}</Alert>
       {ended && !ended.length ? <p className="text-sm text-muted">Your past sessions will appear here.</p> : null}
       {ended?.length ? (

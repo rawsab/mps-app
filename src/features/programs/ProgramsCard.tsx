@@ -2,7 +2,8 @@ import { NutritionIcon, PlusIcon, ProgramIcon, ProgressIcon, TrainingIcon } from
 import { useMemo, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router';
 import { Chip } from '@/components/controls';
-import { Alert, Badge, Button, SectionHeading, Spinner } from '@/components/ui';
+import { Alert, Badge, Button, SectionHeading } from '@/components/ui';
+import { LoadingRegion, SkeletonRows } from '@/components/Skeleton';
 import type { EnrollmentRow } from '@/features/clients/api';
 import { formatDate } from '@/lib/format';
 import { SERVICE_LABELS } from '@/lib/services';
@@ -54,7 +55,7 @@ export function ProgramsCard({ clientId, enrollments }: { clientId: string; enro
       <div role="group" aria-label="Filter programs by type" className="mb-4 flex flex-wrap gap-1.5">
         {programFilters.map((option) => <Chip key={option.value} pressed={filter === option.value} onClick={() => setFilter(option.value)}>{option.label}</Chip>)}
       </div>
-      {programs.isPending ? <Spinner label="Loading programs" /> : null}
+      {programs.isPending ? <LoadingRegion label="Loading programs" className="mb-4"><SkeletonRows count={2} leading="avatar" divided /></LoadingRegion> : null}
       <Alert visible={!!setCurrent.error} className="mb-3" title="Current program not changed">{programErrorMessage(setCurrent.error)}</Alert>
       <Alert visible={!!restore.error} className="mb-3" title="Program not restored">{programErrorMessage(restore.error)}</Alert>
       <Alert visible={!!programs.error} title="Could not load programs">{programErrorMessage(programs.error)}</Alert>

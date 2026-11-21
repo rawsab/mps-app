@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router';
 import { Avatar } from '@/components/Avatar';
-import { Alert, EmptyState, PageHeader, Spinner } from '@/components/ui';
+import { Alert, EmptyState, PageHeader } from '@/components/ui';
+import { LoadingRegion, Skeleton, SkeletonHeader } from '@/components/Skeleton';
 import { friendlyError, useClient, useClientPhoto } from '@/features/clients/api';
 import { ClientBillingPanel } from './ClientBilling';
 
@@ -16,7 +17,17 @@ export function BillingHistoryPage() {
     </Link>
   );
 
-  if (client.isPending) return <div>{back}<Spinner label="Loading client" /></div>;
+  if (client.isPending) {
+    return (
+      <div>
+        {back}
+        <LoadingRegion label="Loading client">
+          <SkeletonHeader avatar titleWidth="w-52" subtitle />
+          <Skeleton className="h-[5.75rem]" />
+        </LoadingRegion>
+      </div>
+    );
+  }
   if (client.error) return <div>{back}<Alert title="Could not load client">{friendlyError(client.error)}</Alert></div>;
   if (!client.data) {
     return <EmptyState title="Client not found" action={<Link className="inline-flex min-h-11 items-center text-sm text-gold-fg" to="/coach/clients"><span className="link">Back to clients</span></Link>}>

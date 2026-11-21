@@ -1,5 +1,7 @@
 import { Link, useParams } from 'react-router';
-import { Alert, Button, EmptyState, PageHeader, Spinner } from '@/components/ui';
+import { Alert, Button, EmptyState, PageHeader } from '@/components/ui';
+import { LoadingRegion, SkeletonHeader } from '@/components/Skeleton';
+import { MeetingListSkeleton } from './MeetingSkeletons';
 import { friendlyError, useClient } from '@/features/clients/api';
 import { schedulingError, useMeetingContext, usePastMeetings } from './api';
 import { MeetingRow } from './MeetingsCard';
@@ -21,7 +23,7 @@ export function MeetingHistoryPage() {
     </Link>
   );
 
-  if (client.isPending || context.isPending) return <div>{back}<Spinner label="Loading meetings" /></div>;
+  if (client.isPending || context.isPending) return <div>{back}<LoadingRegion label="Loading meetings"><SkeletonHeader titleWidth="w-52" subtitle /><MeetingListSkeleton count={6} /></LoadingRegion></div>;
   if (client.error) return <div>{back}<Alert title="Could not load client">{friendlyError(client.error)}</Alert></div>;
   if (!client.data) {
     return <EmptyState title="Client not found" action={<Link className="inline-flex min-h-11 items-center text-sm text-gold-fg" to="/coach/clients"><span className="link">Back to clients</span></Link>}>
@@ -37,7 +39,7 @@ export function MeetingHistoryPage() {
     <div>
       {back}
       <PageHeader title="Past meetings" subtitle={`${c.full_name} · Times in ${zoneLabel(timeZone)}`} />
-      {past.isPending ? <Spinner label="Loading past meetings" /> : null}
+      {past.isPending ? <LoadingRegion label="Loading past meetings"><MeetingListSkeleton count={6} /></LoadingRegion> : null}
       <Alert visible={!!past.error} title="Could not load past meetings">{schedulingError(past.error)}</Alert>
       {past.data && rows.length === 0 ? <p className="text-sm text-muted">No past meetings yet.</p> : null}
       {rows.length ? (

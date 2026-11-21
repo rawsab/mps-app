@@ -2,13 +2,15 @@ import { useEffect, useRef, useState, type FormEvent } from 'react';
 import { useViewer } from '@/app/auth';
 import { ComboboxField } from '@/components/ComboboxField';
 import { PlusIcon } from '@/components/icons';
-import { Alert, Button, Card, EmptyState, PageHeader, Spinner, TextAreaField, TextField } from '@/components/ui';
+import { Alert, Button, Card, EmptyState, PageHeader, TextAreaField, TextField } from '@/components/ui';
 import type { ServiceKind } from '@/domain/programs/contract';
 import { SERVICE_LABELS, SERVICES } from '@/lib/services';
 import { deviceTimeZone, timeZoneOptions } from '@/lib/timeZones';
 import { friendlyError, NewClientInput, useClients, useCreateClient } from './api';
 import { ClientsOverview } from './ClientsOverview';
 import { ClientsTable } from './ClientsTable';
+import { LoadingRegion, Skeleton, SkeletonText, SkeletonRows } from '@/components/Skeleton';
+import { MeetingRowsSkeleton } from '@/features/scheduling/MeetingSkeletons';
 
 export function ClientsPage() {
   const viewer = useViewer();
@@ -68,7 +70,7 @@ export function ClientsPage() {
           ) : null}
         </div>
       </div>
-      {clients.isPending ? <Spinner label="Loading clients" /> : null}
+      {clients.isPending ? <ClientsSkeleton /> : null}
       <Alert visible={!!clients.error} title="Could not load clients">{friendlyError(clients.error)}</Alert>
       {clients.data && clients.data.length === 0 ? (
         <EmptyState title="No clients yet">
@@ -96,6 +98,46 @@ export function ClientsPage() {
         </>
       ) : null}
     </div>
+  );
+}
+
+/** The dashboard and table in their usual places while clients load. */
+function ClientsSkeleton() {
+  return (
+    <LoadingRegion label="Loading clients">
+      <div className="mb-2 grid min-w-0 gap-x-9 border-b border-line md:grid-cols-2">
+        <div className="min-w-0 py-3">
+          <SkeletonText size="xs" width="w-16" className="mb-2" />
+          <SkeletonRows count={3} leading="avatar" divided />
+        </div>
+        <div className="min-w-0 border-t border-line py-3 md:border-l md:border-t-0 md:pl-9">
+          <SkeletonText size="xs" width="w-24" className="mb-2" />
+          <MeetingRowsSkeleton count={3} dayColumn={false} />
+        </div>
+      </div>
+      <div className="mb-5 grid grid-cols-2 gap-x-4 gap-y-3 sm:gap-x-9 lg:grid-cols-3">
+        {['w-14', 'w-12', 'w-16'].map((width, i) => (
+          <div key={width} className={`min-w-0 py-3 ${i === 2 ? 'col-span-2 lg:col-span-1' : ''}`}>
+            <SkeletonText size="xs" width={width} className="mb-2" />
+            <Skeleton className="h-32" />
+          </div>
+        ))}
+      </div>
+      <div className="grid gap-3">
+        <div className="flex flex-wrap items-end gap-2">
+          <div className="min-w-0 flex-1 basis-56">
+            <SkeletonText size="xs" width="w-12" className="mb-1" />
+            <Skeleton className="h-11" />
+          </div>
+          <Skeleton className="h-11 w-28" />
+          <Skeleton className="h-11 w-28" />
+        </div>
+        <SkeletonText size="xs" width="w-16" />
+        <div className="rounded-card border border-line">
+          <SkeletonRows count={6} leading="avatar" divided />
+        </div>
+      </div>
+    </LoadingRegion>
   );
 }
 

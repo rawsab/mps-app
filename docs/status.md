@@ -640,3 +640,10 @@ Decision 0055, "Owner follow-ups".
 
 - `supabase/seed/meetings.sql` leaves the last week's PT sessions for Daniel and Grace unrecorded (still `scheduled`), and adds a 15-minute one-off call with Maya four days ago, also unrecorded. With a fresh reset, Meetings > Record attendance lists all three. Unrecorded sessions aren't billed, so Daniel's and Grace's November totals are one session lower.
 - **Verification.** After `pnpm db:reset`, `pnpm test:db`, `pnpm test:api` (27) and `pnpm verify` pass. One full `test:api` run had a single failure in `billing.test.ts`, which passed on its own and on the next full run. No browser checks.
+
+## Skeleton loading (2026-11-21)
+
+- Decision 0056. Every page and section that loads data now shows a skeleton in its own shape, not a spinner. Spinners stay only for actions: busy buttons, saving, and quick checks inside dialogs. Skeletons appear after 150 ms and fade in; faster loads show nothing. App start-up shows the logo bar and placeholder cards instead of a full-screen spinner.
+- New `src/components/Skeleton.tsx` (`LoadingRegion`, `Skeleton`, `SkeletonText`, `SkeletonHeader`, `SkeletonRows`, `SkeletonCard`, `SkeletonTable`) and `src/features/scheduling/MeetingSkeletons.tsx`. `Skeleton` moved out of `ui.tsx`.
+- `tests/lib/loadingStates.test.ts` fails on any loading spinner outside the allowed list.
+- **Verification.** `pnpm verify` passes (409 tests). No browser checks; the manual checklist is in decision 0056.

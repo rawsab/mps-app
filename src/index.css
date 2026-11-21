@@ -232,6 +232,20 @@ html[data-theme='light'] .brand-logo {
 .page-enter {
   animation: page-enter 420ms var(--ease-enter) both;
 }
+/* Skeletons fade in after their delay instead of popping (decision 0056). */
+@keyframes skeleton-enter {
+  from {
+    opacity: 0;
+  }
+}
+.skeleton-enter {
+  animation: skeleton-enter 200ms ease-out both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .skeleton-enter {
+    animation: none;
+  }
+}
 @keyframes photo-enter {
   from {
     opacity: 0;

@@ -4,7 +4,8 @@ import { useViewer } from '@/app/auth';
 import { Chip, IconButton } from '@/components/controls';
 import { Dialog, DialogBody } from '@/components/Dialog';
 import { ArrowUpRightIcon, BillingIcon, CautionIcon, ChevronIcon } from '@/components/icons';
-import { Alert, Badge, Button, EmptyState, PageHeader, SectionTitle, Spinner, TextField } from '@/components/ui';
+import { Alert, Badge, Button, EmptyState, PageHeader, SectionTitle, TextField } from '@/components/ui';
+import { LoadingRegion, Skeleton, SkeletonText, SkeletonRows } from '@/components/Skeleton';
 import { periodLabel, sessionTypeLabel, serviceRateLabel, type ServiceRateKey } from '@/domain/billing/billing';
 import { centsToInput, formatCents, parseDollars } from '@/domain/billing/money';
 import { sessionMoment } from '@/features/scheduling/time';
@@ -62,7 +63,7 @@ export function BillingPage() {
     <div>
       <PageHeader title="Billing" subtitle="Charges and payments for your clients, in CAD. Payments count once you record them."
         actions={isAdmin ? <Button variant="secondary" onClick={() => setSettingsOpen(true)}>Default prices</Button> : null} />
-      {overview.isPending ? <Spinner label="Loading billing" /> : null}
+      {overview.isPending ? <BillingOverviewSkeleton /> : null}
       <Alert visible={!!overview.error} title="Could not load billing">{billingError(overview.error)}</Alert>
 
       {overview.data ? (
@@ -235,6 +236,34 @@ function ClientRow({ client, selected, onSelect }: { client: OverviewClient; sel
   );
 }
 
+/** Tiles, then the client list beside one client's billing, while the overview loads. */
+function BillingOverviewSkeleton() {
+  return (
+    <LoadingRegion label="Loading billing" className="grid gap-8">
+      <div className="grid grid-cols-2 gap-x-4 gap-y-5 border-b border-line pb-8 lg:grid-cols-4">
+        {['w-24', 'w-36', 'w-28', 'w-32'].map((width) => (
+          <div key={width}>
+            <SkeletonText width={width} />
+            <SkeletonText size="xl" width="w-24" className="mt-1" />
+            <SkeletonText size="xs" width="w-28" className="mt-0.5" />
+          </div>
+        ))}
+      </div>
+      <div className="grid min-w-0 items-start gap-8 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
+        <div className="min-w-0">
+          <div className="mb-2 flex min-h-11 items-center"><SkeletonText size="lg" width="w-20" className="w-20" /></div>
+          <div className="rounded-card border border-line"><SkeletonRows count={5} divided /></div>
+        </div>
+        <div className="hidden min-w-0 gap-5 lg:grid">
+          <SkeletonText size="lg" width="w-40" />
+          <Skeleton className="h-[5.75rem]" />
+          <Skeleton className="h-32" />
+        </div>
+      </div>
+    </LoadingRegion>
+  );
+}
+
 const RATE_ORDER = ['pt_solo_60', 'pt_solo_40', 'pt_partner_60', 'pt_partner_40', 'mesocycle_month', 'nutrition_month', 'bundle_discount_month'] as const;
 
 function rateLabel(key: (typeof RATE_ORDER)[number]) {
@@ -247,7 +276,11 @@ function BillingSettingsDialog({ onClose }: { onClose: () => void }) {
   return settings.data ? <SettingsForm settings={settings.data} onClose={onClose} /> : (
     <Dialog title="Default prices" onClose={onClose}>
       <DialogBody>
-        {settings.isPending ? <Spinner label="Loading prices" /> : null}
+        {settings.isPending ? (
+          <LoadingRegion label="Loading prices" className="grid gap-3">
+            {RATE_ORDER.map((key) => <div key={key}><SkeletonText size="xs" width="w-32" className="mb-1" /><Skeleton className="h-11" /></div>)}
+          </LoadingRegion>
+        ) : null}
         <Alert visible={!!settings.error} title="Could not load prices">{billingError(settings.error)}</Alert>
       </DialogBody>
     </Dialog>

@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from 'react';
 import { Dialog } from '@/components/Dialog';
-import { Alert, Spinner } from '@/components/ui';
+import { Alert } from '@/components/ui';
 import { useClientPrograms } from '@/features/programs/api';
 import { schedulingError, useMeeting, useMeetingContext, type MeetingSchedule } from './api';
 import { MeetingDialog } from './MeetingDialog';
+import { MeetingDialogSkeleton } from './MeetingSkeletons';
 import { PatternDialog } from './PatternDialog';
 import type { SavedOptions } from '@/components/Toast';
 
@@ -18,7 +19,7 @@ export function MeetingDialogHost({ meetingId, onClose, onSaved }: { meetingId: 
   return (
     <Dialog title="Meeting" onClose={onClose}>
       <div className="p-4 sm:p-5">
-        {meeting.isPending ? <Spinner label="Loading meeting" /> : null}
+        {meeting.isPending ? <MeetingDialogSkeleton /> : null}
         <Alert visible={!!meeting.error} title="Could not load the meeting">{schedulingError(meeting.error)}</Alert>
         {meeting.data === null ? <p className="text-sm text-muted">This meeting no longer exists.</p> : null}
       </div>
@@ -37,7 +38,7 @@ function ClientMeetingDialog({ meetingId, clientId, onClose, onSaved }: {
     return (
       <Dialog title="Meeting" onClose={onClose}>
         <div className="p-4 sm:p-5">
-          {context.isPending ? <Spinner label="Loading meeting" /> : null}
+          {context.isPending ? <MeetingDialogSkeleton /> : null}
           <Alert visible={!!context.error} title="Could not load the meeting">{schedulingError(context.error)}</Alert>
         </div>
       </Dialog>

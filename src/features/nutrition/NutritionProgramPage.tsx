@@ -6,7 +6,8 @@ import { DisclosureSummary } from '@/components/DisclosureSummary';
 import { DraftSaveIndicator, type DraftSaveState } from '@/components/DraftSaveIndicator';
 import { UseNotice } from '@/components/LegalFooter';
 import { SpreadsheetIcon } from '@/components/icons';
-import { Alert, Badge, Card, Button, PageHeader, RequiredNote, Spinner, SelectField, TextAreaField, TextField } from '@/components/ui';
+import { Alert, Badge, Card, Button, PageHeader, RequiredNote, SelectField, TextAreaField, TextField } from '@/components/ui';
+import { LoadingRegion, SkeletonHeader, SkeletonTable } from '@/components/Skeleton';
 import { optionalNumber, shiftDate } from '@/domain/nutrition';
 import { NutritionDailyEntry } from './NutritionDailyEntry';
 import { draftFromRevision, NutritionProgramDraft, nutritionHasUnpublishedChanges, nutritionPublishProblems, startingPrediction, type NutritionProgramSnapshot } from '@/domain/nutritionProgram';
@@ -19,7 +20,7 @@ export function NutritionProgramPage({ coach = false, published = false, id, emb
   const { programId: routeProgramId, clientId } = useParams();
   const programId=id ?? routeProgramId;
   const query = useNutritionProgram(programId, published);
-  if (query.isPending) return <Spinner label="Loading nutritional program" />;
+  if (query.isPending) return <LoadingRegion label="Loading nutritional program"><SkeletonHeader subtitle /><SkeletonTable /></LoadingRegion>;
   if (!query.data) return <div className="grid gap-4"><Alert title="Could not load nutritional program">{nutritionError(query.error)}</Alert><Button variant="secondary" onClick={() => void query.refetch()}>Retry</Button><Link className="link" to={coach ? `/coach/clients/${clientId}` : '/nutrition'}>Back to {coach ? 'client' : 'Nutrition'}</Link></div>;
   return <><Alert visible={!!query.error} title="Could not refresh the program">Your last loaded data is still shown. <button type="button" className="link" onClick={() => void query.refetch()}>Retry refresh</button></Alert><NutritionWorkspace key={`${programId}:${published}`} snapshot={query.data} coach={coach} published={published} embedded={embedded} /></>;
 }

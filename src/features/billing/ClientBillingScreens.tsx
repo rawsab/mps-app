@@ -4,7 +4,8 @@ import { useViewer } from '@/app/auth';
 import { AllClear, AllClearMark } from '@/components/AllClear';
 import { Dialog, DialogBody } from '@/components/Dialog';
 import { BillingIcon, CheckIcon, CopyIcon } from '@/components/icons';
-import { Alert, Button, Card, EmptyState, PageHeader, SectionHeading, Skeleton, TextAreaField, TextField } from '@/components/ui';
+import { Alert, Button, Card, EmptyState, PageHeader, SectionHeading, TextAreaField, TextField } from '@/components/ui';
+import { LoadingRegion, Skeleton } from '@/components/Skeleton';
 import { paymentMethodLabel, type ClientBilling } from '@/domain/billing/billing';
 import { balanceHeadline, clientPrices } from '@/domain/billing/client';
 import { centsToInput, formatCents, parseDollars } from '@/domain/billing/money';
@@ -81,7 +82,7 @@ export function ClientBillingPage() {
   return (
     <div className="grid gap-8">
       <PageHeader title="Billing" />
-      {billing.isPending ? <div role="status" className="grid gap-4"><span className="sr-only">Loading billing</span><Skeleton className="h-24" /><Skeleton className="h-40" /></div> : null}
+      {billing.isPending ? <LoadingRegion label="Loading billing" className="grid gap-4"><Skeleton className="h-24" /><Skeleton className="h-40" /></LoadingRegion> : null}
       <Alert visible={!!billing.error} title="Could not load billing">{billingError(billing.error)}</Alert>
       {billing.data && billing.data.charges.length === 0 && billing.data.payments.length === 0 ? (
         <EmptyState title="Nothing to pay yet">Your charges and payments will show here once your coach starts billing.</EmptyState>
@@ -162,7 +163,7 @@ function PayDialog({ onClose }: { onClose: () => void }) {
   const d = details.data;
 
   let body: ReactNode = null;
-  if (details.isPending) body = <Skeleton className="h-24" />;
+  if (details.isPending) body = <LoadingRegion label="Loading payment details"><Skeleton className="h-24" /></LoadingRegion>;
   else if (details.error) body = <Alert title="Could not load payment details">{billingError(details.error)}</Alert>;
   else if (d && d.balanceCents <= 0) body = <p className="text-sm text-muted">You don’t owe anything right now.</p>;
   else if (d && !d.etransferEmail) {

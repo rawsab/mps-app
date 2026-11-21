@@ -1,7 +1,8 @@
 import { Link, Navigate, useParams } from 'react-router';
 import { useViewer } from '@/app/auth';
 import { UseNotice } from '@/components/LegalFooter';
-import { Alert, Badge, Button, EmptyState, PageHeader, Spinner } from '@/components/ui';
+import { Alert, Badge, Button, EmptyState, PageHeader } from '@/components/ui';
+import { LoadingRegion, Skeleton, SkeletonText, SkeletonHeader, SkeletonTable } from '@/components/Skeleton';
 import { NutritionIcon } from '@/components/icons';
 import { activeNutritionProgram } from '@/domain/clientHome';
 import { nutritionWeeks } from '@/domain/nutritionProgram';
@@ -19,7 +20,7 @@ export function NutritionPage({ coach = false }: { coach?: boolean }) {
   const programs = useNutritionPrograms(coach ? undefined : viewer.data?.client?.id);
   const daily = useNutrition(coach ? undefined : viewer.data?.client?.id);
   if (coach) return <Navigate to={`/coach/clients/${clientId}`} replace />;
-  if (programs.isPending || daily.isPending) return <Spinner label="Loading nutrition" />;
+  if (programs.isPending || daily.isPending) return <LoadingRegion label="Loading nutrition"><SkeletonHeader subtitle /><SkeletonTable /></LoadingRegion>;
   const active = programs.data && daily.data ? activeNutritionProgram(programs.data, daily.data.today) : undefined;
   return <div>
     {active ? <NutritionProgramPage id={active.id} embedded /> : <PageHeader title="Nutrition" />}
@@ -46,14 +47,25 @@ export function NutritionProgressPage() {
   const programs = useNutritionPrograms(enabled ? viewer.data?.client?.id : undefined);
   return <div className="grid gap-5"><PageHeader title="Progress" />
     {!enabled ? <EmptyState title="Progress is on the way">Training trends will appear here when exercise history is available.</EmptyState>
-      : programs.isPending ? <Spinner label="Loading progress" /> : programs.error ? <Alert>{nutritionError(programs.error)}</Alert>
+      : programs.isPending ? <LoadingRegion label="Loading progress"><ProgramProgressSkeleton /></LoadingRegion> : programs.error ? <Alert>{nutritionError(programs.error)}</Alert>
       : programs.data.length === 0 ? <EmptyState title="No nutrition progress yet">Your program summaries will appear after your coach publishes a nutritional program.</EmptyState>
       : programs.data.map((program) => <ProgramProgress key={program.id} id={program.id} />)}
   </div>;
 }
+/** ProgramProgress's shape: title, the at-a-glance summary and the trend chart. */
+function ProgramProgressSkeleton() {
+  return (
+    <div className="grid gap-3">
+      <SkeletonText size="lg" width="w-48" />
+      <Skeleton className="h-24" />
+      <Skeleton className="h-[276px]" />
+    </div>
+  );
+}
+
 function ProgramProgress({ id }: { id: string }) {
   const query = useNutritionProgram(id, true);
-  if (query.isPending) return <Spinner label="Loading program progress" />;
+  if (query.isPending) return <LoadingRegion label="Loading program progress"><ProgramProgressSkeleton /></LoadingRegion>;
   if (query.error) return <Alert>{nutritionError(query.error)}</Alert>;
   const data = query.data;
   return <section className="grid min-w-0 gap-3"><h2 className="text-lg font-semibold">{data.revision.program_style}</h2>

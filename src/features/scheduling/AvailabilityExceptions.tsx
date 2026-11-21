@@ -3,7 +3,8 @@ import { ActionItem, ActionsMenu } from '@/components/ActionsMenu';
 import { Checkbox, SegmentedControl } from '@/components/controls';
 import { ConfirmDialog, Dialog, DialogBody } from '@/components/Dialog';
 import { CalendarIcon, ExtraHoursIcon, PlusIcon, TimeOffIcon } from '@/components/icons';
-import { Alert, Button, Card, SectionHeading, Spinner, TextAreaField, TextField } from '@/components/ui';
+import { Alert, Button, Card, SectionHeading, TextAreaField, TextField } from '@/components/ui';
+import { LoadingRegion, Skeleton, SkeletonText } from '@/components/Skeleton';
 import { exceptionFields, exceptionInstants, type ExceptionFields } from '@/domain/scheduling/availability';
 import {
   schedulingError, useMyAvailability, useRemoveAvailabilityException, useSaveAvailabilityException, type AvailabilityException, type Overlap,
@@ -40,7 +41,16 @@ export function AvailabilityExceptions({ timeZone, onSaved }: { timeZone: string
   return (
     <section aria-labelledby="availability-exceptions" className="min-w-0">
       <SectionHeading id="availability-exceptions" icon={<CalendarIcon />} className="mb-3">Time off &amp; extra hours</SectionHeading>
-      {availability.isPending ? <Spinner label="Loading time off" /> : null}
+      {availability.isPending ? (
+        <LoadingRegion label="Loading time off" className="grid lg:grid-cols-2 lg:gap-x-9">
+          {['w-14', 'w-20'].map((width, index) => (
+            <div key={width} className={`min-w-0 ${index ? 'mt-6 border-t border-line pt-4 lg:mt-0 lg:border-l lg:border-t-0 lg:pl-9 lg:pt-0' : ''}`}>
+              <div className="mb-2 flex min-h-11 items-center"><SkeletonText size="xs" width={width} /></div>
+              <Skeleton className="h-12" />
+            </div>
+          ))}
+        </LoadingRegion>
+      ) : null}
       <Alert visible={!!availability.error} title="Could not load time off">{schedulingError(availability.error)}</Alert>
       {availability.data ? (
         // Side by side with a divider on wide screens, stacked on phones (like To-dos and Record attendance).

@@ -8,6 +8,7 @@ Development is moving from Claude Code to Codex. Agent instructions now live in 
 - [x] **Billing: client screens and "I've sent it"** (decision 0055, built 2026-11-21). Manual UI checks are in `docs/status.md`.
 - [x] **Payment notices in Activity / To review** (decision 0055 follow-up, built 2026-11-21).
 - [x] **Coach search and sidebar clients list** (decision 0054, owner request, 2026-11-21). A ⌘K / Ctrl+K command palette for clients, pages and sections; active clients nested under Clients in the sidebar. Manual UI checks are in `docs/status.md`.
+- [x] **Skeleton loading** (decision 0056, owner request, built 2026-11-21). Manual UI checks are in the decision record.
 - [ ] **Owner's manual UI checks** for decisions 0043–0054 (checklists are in each decision record and in `docs/status.md`).
 - [ ] **Scheduling phase C** (decision 0050): a client list of all upcoming meetings, each with the reschedule/cancel dialog.
 - [ ] Pick the next roadmap milestone. Audit M4–M6 exit criteria first (see "Handoff" in `AGENTS.md`).

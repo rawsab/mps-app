@@ -20,7 +20,8 @@ import {
 } from '@/components/icons';
 import { IconButton } from '@/components/controls';
 import { Avatar } from '@/components/Avatar';
-import { Kbd, Skeleton } from '@/components/ui';
+import { Kbd } from '@/components/ui';
+import { LoadingRegion, SkeletonText } from '@/components/Skeleton';
 import { LegalFooter } from '@/components/LegalFooter';
 import { READ_FADE_MS, useUnreadCount } from '@/features/activity/api';
 import { usePaymentNotices } from '@/features/billing/api';
@@ -283,7 +284,7 @@ function NavClientList({ open, onNavigate }: { open: boolean; onNavigate?: () =>
   const shown = all ? active : active.slice(0, NAV_CLIENTS_SHOWN);
   const row = 'flex min-h-9 w-full items-center rounded-r-card border-l py-1 pl-3.5 pr-2 text-left text-sm transition-colors pointer-coarse:min-h-11';
 
-  if (clients.isPending) return <div className="grid gap-2 py-2 pl-3.5" aria-label="Loading clients"><Skeleton className="h-4 w-28" /><Skeleton className="h-4 w-20" /></div>;
+  if (clients.isPending) return <LoadingRegion label="Loading clients" className="py-1 pl-3.5"><SkeletonText width="w-28" className="py-2" /><SkeletonText width="w-20" className="py-2" /></LoadingRegion>;
   if (clients.error) return <p className="py-2 pl-3.5 text-xs text-muted">Couldn’t load clients.</p>;
   if (!active.length) return <p className="py-2 pl-3.5 text-xs text-muted">No active clients.</p>;
   return (

@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useBlocker, useParams, useSearchParams } from 'react-router';
 import { DismissibleNotice } from '@/components/DismissibleNotice';
 import { DraftSaveIndicator as SaveIndicator } from '@/components/DraftSaveIndicator';
@@ -6,7 +6,8 @@ import { CautionIcon, SectionIcon, SpreadsheetIcon } from '@/components/icons';
 import { scrollBehavior } from './useWeekMotion';
 import { Dialog } from '@/components/Dialog';
 import { Tabs } from '@/components/controls';
-import { Alert, Badge, Button, EmptyState, PageHeader, Spinner } from '@/components/ui';
+import { Alert, Badge, Button, EmptyState, PageHeader } from '@/components/ui';
+import { LoadingRegion, SkeletonText, SkeletonHeader, SkeletonTable } from '@/components/Skeleton';
 import { gridRows } from '@/domain/programs/grid';
 import { validateForPublish } from '@/domain/programs/contract';
 import { formatDate } from '@/lib/format';
@@ -24,7 +25,7 @@ export function ProgramEditorPage() {
   const { clientId, programId } = useParams();
   const program = useProgram(programId);
 
-  if (program.isPending) return <Spinner label="Loading program" />;
+  if (program.isPending) return <EditorSkeleton label="Loading program" />;
   if (program.error) return <Alert title="Could not load program">{friendlyError(program.error)}</Alert>;
   if (!program.data || program.data.client_id !== clientId) {
     return (
@@ -34,6 +35,20 @@ export function ProgramEditorPage() {
     );
   }
   return <Editor program={program.data} clientName={program.data.clients?.full_name ?? 'Client'} />;
+}
+
+/** The editor's back link, header and spreadsheet while the program or its draft loads. */
+function EditorSkeleton({ label, back }: { label: string; back?: ReactNode }) {
+  return (
+    <div className="grid gap-5">
+      {back ? <div>{back}</div> : null}
+      <LoadingRegion label={label} className="grid gap-5">
+        {back ? null : <SkeletonText width="w-28" />}
+        <SkeletonHeader titleWidth="w-64" subtitle action />
+        <SkeletonTable rows={8} />
+      </LoadingRegion>
+    </div>
+  );
 }
 
 function BackLink({ to, label }: { to: string; label: string }) {
@@ -82,7 +97,7 @@ function Editor({ program, clientName }: { program: NonNullable<ReturnType<typeo
   }, [editor.hasUnsavedWork]);
 
   const back = <BackLink to={`/coach/clients/${program.client_id}`} label={clientName} />;
-  if (state.saveState === 'loading') return <Spinner label="Loading draft" />;
+  if (state.saveState === 'loading') return <EditorSkeleton label="Loading draft" back={back} />;
   if (!state.draft) {
     return (
       <div className="grid gap-5">

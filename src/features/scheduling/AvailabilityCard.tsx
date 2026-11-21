@@ -1,7 +1,8 @@
 import { useState, type FormEvent } from 'react';
 import { Checkbox, IconButton } from '@/components/controls';
 import { PlusIcon, TrashIcon } from '@/components/icons';
-import { Alert, Button, Card, controlClass, Spinner, TextField } from '@/components/ui';
+import { Alert, Button, Card, controlClass, TextField } from '@/components/ui';
+import { LoadingRegion, Skeleton, SkeletonText } from '@/components/Skeleton';
 import {
   DEFAULT_RANGE, describeHours, hoursFromWeek, nextRange, rangeProblem, weekFromHours, weekProblems, type DayRange, type WeekHours,
 } from '@/domain/scheduling/availability';
@@ -20,7 +21,12 @@ export function AvailabilityCard() {
   return (
     <Card>
       <h2 id="profile-availability" className="mb-1 text-base font-semibold text-text">Availability</h2>
-      {availability.isPending ? <Spinner label="Loading availability" /> : null}
+      {availability.isPending ? (
+        <LoadingRegion label="Loading availability">
+          <SkeletonText width="w-64" className="mb-4" />
+          <div className="grid gap-2">{[0, 1, 2, 3, 4, 5, 6].map((day) => <Skeleton key={day} className="h-11" />)}</div>
+        </LoadingRegion>
+      ) : null}
       <Alert visible={!!availability.error} title="Could not load your availability">{schedulingError(availability.error)}</Alert>
       {availability.data ? <AvailabilityForm availability={availability.data} /> : null}
     </Card>

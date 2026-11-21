@@ -1,7 +1,8 @@
 import { useMemo, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { SegmentedControl } from '@/components/controls';
-import { Alert, Spinner } from '@/components/ui';
+import { Alert } from '@/components/ui';
+import { LoadingRegion, Skeleton, SkeletonText } from '@/components/Skeleton';
 import { fillSlots, foldRows, KIND_LABELS, TREND_RANGES, trendWindow, type TrendRange, type TrendRow } from '@/domain/activity/trends';
 import { Avatar } from '@/components/Avatar';
 import { ColumnTrend } from '@/components/ColumnTrend';
@@ -35,7 +36,21 @@ export function ActivityTrends({ range, onRange }: { range: TrendRange; onRange:
           options={TREND_RANGES.map((option) => ({ value: option, label: capitalize(option) }))} />
       </div>
       <Alert visible={!!stats.error} className="mb-3" title="Could not load trends">{friendlyError(stats.error)}</Alert>
-      {stats.isPending ? <Spinner label="Loading trends" /> : null}
+      {stats.isPending ? (
+        <LoadingRegion label="Loading trends" className="grid gap-7">
+          <div>
+            <SkeletonText size="xs" width="w-32" className="mb-2" />
+            <SkeletonText size="xl" width="w-24" className="mb-3" />
+            <Skeleton className="h-32" />
+          </div>
+          {['w-16', 'w-20'].map((width) => (
+            <div key={width}>
+              <SkeletonText size="xs" width={width} className="mb-2" />
+              <div className="grid gap-2">{[0, 1, 2].map((i) => <Skeleton key={i} className="h-8" />)}</div>
+            </div>
+          ))}
+        </LoadingRegion>
+      ) : null}
       {stats.data ? (
         <div className={`grid gap-7 transition-opacity ${stats.isPlaceholderData ? 'opacity-60' : ''}`}>
           <Panel title="Notifications received">

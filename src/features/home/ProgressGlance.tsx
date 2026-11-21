@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { ProgressIcon } from '@/components/icons';
-import { Alert, SectionHeading, Spinner } from '@/components/ui';
+import { Alert, SectionHeading } from '@/components/ui';
+import { LoadingRegion, Skeleton, SkeletonText } from '@/components/Skeleton';
 import { activeNutritionProgram } from '@/domain/clientHome';
 import { nutritionWeeks } from '@/domain/nutritionProgram';
 import { nutritionError } from '@/features/nutrition/api';
@@ -28,7 +29,15 @@ export function ProgressGlance({ clientId, nutrition, mesocycle, today }: { clie
 
 function MesocycleProgress({ today }: { today: string }) {
   const meso = useCurrentMesocycle(true);
-  if (meso.isPending) return <Spinner small label="Loading training progress" />;
+  if (meso.isPending) {
+    return (
+      <LoadingRegion label="Loading training progress">
+        <div className="flex items-baseline justify-between gap-2"><SkeletonText size="base" width="w-24" /><SkeletonText width="w-24" className="w-24" /></div>
+        <Skeleton shape="round" className="mt-2 h-1.5" />
+        <SkeletonText size="xs" width="w-40" className="mt-1.5" />
+      </LoadingRegion>
+    );
+  }
   if (meso.error) return <Alert title="Training progress unavailable">{trainingErrorMessage(meso.error)}</Alert>;
   if (!meso.program || !meso.sessions) return null;
   return <TrainingProgressBar program={meso.program} sessions={meso.sessions} today={today} />;
@@ -38,7 +47,20 @@ function NutritionProgress({ clientId, today }: { clientId: string; today: strin
   const programs = useNutritionPrograms(clientId);
   const program = programs.data ? activeNutritionProgram(programs.data, today) ?? programs.data.find((p) => p.is_current && !p.archived_at) : undefined;
   const detail = useNutritionProgram(program?.id, true);
-  if (programs.isPending || (program && detail.isPending)) return <Spinner small label="Loading nutrition progress" />;
+  if (programs.isPending || (program && detail.isPending)) {
+    return (
+      <LoadingRegion label="Loading nutrition progress" className="grid gap-4">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <SkeletonText size="base" width="w-16" className="w-16" />
+          <div className="grid w-full grid-cols-2 gap-3 sm:w-80">
+            {[0, 1].map((i) => <div key={i}><SkeletonText size="xs" width="w-10" className="mb-1" /><Skeleton className="h-11" /></div>)}
+          </div>
+        </div>
+        {/* NutritionTrendChart's plot height. */}
+        <Skeleton className="h-[276px]" />
+      </LoadingRegion>
+    );
+  }
   const error = programs.error ?? detail.error;
   if (error) return <Alert title="Nutrition progress unavailable">{nutritionError(error)}</Alert>;
   if (!detail.data) return null;

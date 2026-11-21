@@ -2,7 +2,8 @@ import { Fragment } from 'react';
 import { Avatar } from '@/components/Avatar';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { Chip } from '@/components/controls';
-import { Alert, Badge, Button, EmptyState, PageHeader, SectionHeading, Spinner, type BadgeTone } from '@/components/ui';
+import { Alert, Badge, Button, EmptyState, PageHeader, SectionHeading, type BadgeTone } from '@/components/ui';
+import { LoadingRegion, Skeleton, SkeletonText, SkeletonHeader } from '@/components/Skeleton';
 import { HistoryIcon } from '@/components/icons';
 import { activityDetails, activityFacts, activityTitle, activityWhere, groupByDay, relativeTime, type ActivityItem, type RequestActivity, type ReviewItem, type SessionActivity } from '@/domain/activity/feed';
 import { friendlyError, useClient, useClientPhoto, type ClientRow } from '@/features/clients/api';
@@ -142,6 +143,36 @@ function FactsCard({ item }: { item: ActivityItem }) {
   );
 }
 
+const ROW_TITLE_WIDTHS = ['w-40', 'w-32', 'w-48', 'w-36'];
+
+/** ActivityRow's shape: avatar, title and detail, and on the Activity page the client's name and a facts card. */
+function ActivityRowsSkeleton({ count, facts = false }: { count: number; facts?: boolean }) {
+  return (
+    <ul className="divide-y divide-line">
+      {Array.from({ length: count }, (_, i) => (
+        <li key={i} className="flex min-h-14 items-start gap-3 py-3 pl-3 pr-2">
+          <Skeleton shape="round" className="mt-0.5 size-9 shrink-0" />
+          <span className="min-w-0 flex-1">
+            {facts ? <SkeletonText width="w-28" className="mb-1" /> : null}
+            <SkeletonText size={facts ? 'sm' : 'base'} width={ROW_TITLE_WIDTHS[i % ROW_TITLE_WIDTHS.length]} />
+            {facts ? <Skeleton className="mt-2 h-14" /> : <SkeletonText width="w-3/5" className="mt-0.5" />}
+          </span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+
+/** A day's heading and its rows, for the full feeds. */
+function ActivityFeedSkeleton({ facts = false }: { facts?: boolean }) {
+  return (
+    <>
+      <SkeletonText width="w-20" className="mb-1" />
+      <ActivityRowsSkeleton count={facts ? 3 : 5} facts={facts} />
+    </>
+  );
+}
+
 /** The client page's latest few items, above Programs. */
 export function RecentUpdatesCard({ client }: { client: ClientRow }) {
   const recent = useRecentActivity(client.id, 3);
@@ -155,7 +186,7 @@ export function RecentUpdatesCard({ client }: { client: ClientRow }) {
           <Link to={`/coach/clients/${client.id}/activity`} className="-my-3 inline-flex min-h-11 items-center text-sm text-gold-fg"><span className="link">View full history</span></Link>
         ) : null}
       </div>
-      {recent.isPending ? <Spinner label="Loading recent updates" /> : null}
+      {recent.isPending ? <LoadingRegion label="Loading recent updates"><ActivityRowsSkeleton count={3} /></LoadingRegion> : null}
       <Alert visible={!!recent.error} title="Could not load recent updates">{friendlyError(recent.error)}</Alert>
       {recent.data?.length === 0 ? <p className="text-sm text-muted">{emptyMessage(client)}</p> : null}
       {recent.data?.length ? (
@@ -179,7 +210,7 @@ export function ClientActivityPage() {
     </Link>
   );
 
-  if (client.isPending) return <div>{back}<Spinner label="Loading client" /></div>;
+  if (client.isPending) return <div>{back}<LoadingRegion label="Loading client"><SkeletonHeader titleWidth="w-56" subtitle /><ActivityFeedSkeleton /></LoadingRegion></div>;
   if (client.error) return <div>{back}<Alert title="Could not load client">{friendlyError(client.error)}</Alert></div>;
   if (!client.data) {
     return <EmptyState title="Client not found" action={<Link className="inline-flex min-h-11 items-center text-sm text-gold-fg" to="/coach/clients"><span className="link">Back to clients</span></Link>}>
@@ -194,7 +225,7 @@ export function ClientActivityPage() {
     <div>
       {back}
       <PageHeader title="Activity history" subtitle={c.full_name} />
-      {history.isPending ? <Spinner label="Loading activity" /> : null}
+      {history.isPending ? <LoadingRegion label="Loading activity"><ActivityFeedSkeleton /></LoadingRegion> : null}
       <Alert visible={!!history.error} title="Could not load activity">{friendlyError(history.error)}</Alert>
       {history.data && items.length === 0 ? <p className="text-sm text-muted">{emptyMessage(c)}</p> : null}
       {groupByDay(items, new Date(), formatDate).map((group, index) => (
@@ -245,7 +276,7 @@ export function ReviewsPage() {
             {filters.map((option) => <Chip key={option.label} pressed={filter === option.value} onClick={() => setFilter(option.value)}>{option.label}</Chip>)}
           </div>
           <Alert visible={!!markAll.error} className="mb-4" title="Could not mark as read">{friendlyError(markAll.error)}</Alert>
-          {reviews.isPending ? <Spinner label="Loading activity" /> : null}
+          {reviews.isPending ? <LoadingRegion label="Loading activity"><ActivityFeedSkeleton facts /></LoadingRegion> : null}
           <Alert visible={!!reviews.error} title="Could not load activity">{friendlyError(reviews.error)}</Alert>
           {reviews.data && items.length === 0 ? <p className="text-sm text-muted">{unreadOnly ? 'You’re all caught up.' : filter === 'focused' ? 'No requests or payments to check.' : 'No client activity yet.'}</p> : null}
           {groupByDay(items, new Date(), formatDate).map((group, index) => (

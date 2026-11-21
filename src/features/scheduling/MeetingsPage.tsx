@@ -9,7 +9,8 @@ import { useClient, useClientPhoto } from '@/features/clients/api';
 import { programPath } from '@/features/programs/CurrentProgram';
 import { SERVICE_SHORT_LABELS } from '@/lib/services';
 import { Checkbox, SegmentedControl } from '@/components/controls';
-import { Alert, Badge, Card, Button, PageHeader, Skeleton, Spinner } from '@/components/ui';
+import { Alert, Badge, Card, Button, PageHeader } from '@/components/ui';
+import { LoadingRegion, SkeletonText, SkeletonHeader } from '@/components/Skeleton';
 import { timeOffOn } from '@/domain/scheduling/availability';
 import { CALENDAR_VIEWS, countdown, dayWindows, layoutDay, stepDate, viewDays, type CalendarView } from '@/domain/scheduling/calendar';
 import { addDays, isoWeekday, weekdayShort, zonedDateTime, zonedToInstant } from '@/domain/scheduling/pattern';
@@ -18,6 +19,7 @@ import {
   schedulingError, useAvailabilityWindows, useMeeting, useMeetingsBetween, useMeetingsNeedingAttendance, useMyAvailability, usePendingMeetingRequests,
   useRecordAttendance, type Meeting,
 } from './api';
+import { MeetingCardSkeleton, MeetingRowsSkeleton } from './MeetingSkeletons';
 import { AvailabilityExceptions } from './AvailabilityExceptions';
 import { MeetingDialogHost } from './MeetingDialogHost';
 import { RecordAttendance } from './RecordAttendance';
@@ -68,7 +70,7 @@ function useNow(intervalMs = 30_000) {
  */
 export function MeetingsPage() {
   const viewer = useViewer();
-  if (viewer.isPending) return <Spinner label="Loading meetings" />;
+  if (viewer.isPending) return <LoadingRegion label="Loading meetings"><SkeletonHeader /></LoadingRegion>;
   const timeZone = viewer.data?.timezone ?? 'UTC';
   return <MeetingsPageBody timeZone={timeZone} />;
 }
@@ -207,7 +209,12 @@ function AtAGlance({ timeZone }: { timeZone: string }) {
     <div className="grid gap-6 md:grid-cols-2 md:gap-9">
       <section aria-labelledby="next-meeting" className="min-w-0">
         <h2 id="next-meeting" className="mb-2 text-xs font-medium text-muted">Next meeting</h2>
-        {meetings.isPending ? <NextMeetingSkeleton /> : null}
+        {meetings.isPending ? (
+          <LoadingRegion label="Loading meetings">
+            <SkeletonText size="xl" width="w-44" className="mb-3" />
+            <MeetingCardSkeleton actions={2} />
+          </LoadingRegion>
+        ) : null}
         <Alert visible={!!meetings.error} title="Could not load meetings">{schedulingError(meetings.error)}</Alert>
         {running ? (
           <div role="status" aria-live="polite">
@@ -225,7 +232,7 @@ function AtAGlance({ timeZone }: { timeZone: string }) {
       </section>
       <section aria-labelledby="upcoming-meetings" className="min-w-0 border-t border-line pt-4 md:border-l md:border-t-0 md:pl-9 md:pt-0">
         <h2 id="upcoming-meetings" className="mb-2 text-xs font-medium text-muted">Upcoming</h2>
-        {meetings.isPending ? <UpcomingSkeleton /> : null}
+        {meetings.isPending ? <LoadingRegion label="Loading upcoming meetings"><MeetingRowsSkeleton count={UPCOMING_COUNT} /></LoadingRegion> : null}
         {meetings.data && ahead.length === 0 ? <p className="text-sm text-muted">Nothing upcoming.</p> : null}
         <ul>
           {ahead.slice(0, UPCOMING_COUNT).map((meeting) => (
@@ -310,50 +317,6 @@ const joinCall = (meeting: Meeting) => meeting.meetingUrl ? (
 ) : null;
 
 /** The next meeting in detail, with links to the meeting, the client page and the call. */
-/** The headline and card of "Next meeting", in their usual size, while meetings load. */
-function NextMeetingSkeleton() {
-  return (
-    <div role="status">
-      <span className="sr-only">Loading meetings</span>
-      <span className="flex h-[1.875rem] items-center"><Skeleton className="h-6 w-44" /></span>
-      <Card as="div" padding="sm" className="mt-3">
-        <div className="flex items-start gap-3">
-          <Skeleton className="size-12 shrink-0 rounded-full" />
-          <div className="min-w-0 flex-1">
-            <span className="flex h-6 items-center"><Skeleton className="h-4 w-32" /></span>
-            <span className="flex h-5 items-center"><Skeleton className="h-3.5 w-48 max-w-full" /></span>
-            <span className="mt-0.5 flex h-4 items-center"><Skeleton className="h-3 w-40 max-w-full" /></span>
-          </div>
-        </div>
-        <div className="mt-3 flex gap-2">
-          <Skeleton className="h-11 w-32" />
-          <Skeleton className="h-11 w-28" />
-        </div>
-      </Card>
-    </div>
-  );
-}
-
-/** Upcoming rows in their usual size while meetings load. */
-function UpcomingSkeleton() {
-  return (
-    <ul aria-hidden>
-      {Array.from({ length: UPCOMING_COUNT }, (_, i) => (
-        <li key={i} className="flex min-h-11 items-center gap-3 py-2 pl-2 pr-2">
-          <span className="w-1 shrink-0 self-stretch rounded-full bg-line" />
-          <span className="w-24 shrink-0">
-            <span className="flex h-5 items-center"><Skeleton className="h-3.5 w-16" /></span>
-            <span className="flex h-5 items-center"><Skeleton className="h-3.5 w-12" /></span>
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="flex h-5 items-center"><Skeleton className="h-3.5 w-28" /></span>
-            <span className="flex h-4 items-center"><Skeleton className="h-3 w-36 max-w-full" /></span>
-          </span>
-        </li>
-      ))}
-    </ul>
-  );
-}
 
 function NextMeetingCard({ meeting, timeZone }: { meeting: Meeting; timeZone: string }) {
   const meetingHref = useMeetingHref();
@@ -469,7 +432,8 @@ function MeetingCalendar({ timeZone }: { timeZone: string }) {
         <p className="mt-2 text-xs text-muted">Striped times are outside your availability. Change your week in <Link to="/coach/profile" className="text-gold-fg underline underline-offset-2">Profile settings</Link>.</p>
       ) : null}
       {preview ? <MeetingPreviewDialog meeting={preview} timeZone={timeZone} onClose={() => setPreview(null)} /> : null}
-      {meetings.isFetching && !meetings.data ? <Spinner label="Loading meetings" /> : null}
+      {/* The grid shows empty days while the first load runs; this only tells screen readers. */}
+      {meetings.isFetching && !meetings.data ? <p role="status" className="sr-only">Loading meetings</p> : null}
     </section>
   );
 }

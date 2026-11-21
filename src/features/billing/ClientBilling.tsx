@@ -2,7 +2,8 @@ import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { ActionItem, ActionsMenu } from '@/components/ActionsMenu';
 import { ChevronIcon, PlusIcon } from '@/components/icons';
-import { Alert, Badge, Button, Skeleton, type BadgeTone } from '@/components/ui';
+import { Alert, Badge, Button, type BadgeTone } from '@/components/ui';
+import { LoadingRegion, Skeleton, SkeletonText } from '@/components/Skeleton';
 import {
   chargeStatusLabel, isOverdue, paymentMethodLabel, periodLabel, statementShown, statements, unpaidCharges,
   type Charge, type ChargeLine, type ChargeStatus, type ClientBilling, type Payment, type Statement,
@@ -82,18 +83,17 @@ export function ClientBillingPanel({ clientId, clientName, heading, allStatement
 /** The panel's shape while it loads: summary, statements and payments. */
 function BillingSkeleton() {
   return (
-    <div role="status" className="grid gap-5">
-      <span className="sr-only">Loading billing</span>
+    <LoadingRegion label="Loading billing" className="grid gap-5">
       <Skeleton className="h-[5.75rem]" />
       <div className="grid gap-2">
-        <Skeleton className="h-5 w-24" />
+        <SkeletonText size="base" width="w-24" />
         <Skeleton className="h-32" />
       </div>
       <div className="grid gap-2">
-        <Skeleton className="h-5 w-20" />
+        <SkeletonText size="base" width="w-20" />
         <Skeleton className="h-10" />
       </div>
-    </div>
+    </LoadingRegion>
   );
 }
 

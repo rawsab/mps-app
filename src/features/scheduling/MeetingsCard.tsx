@@ -4,13 +4,15 @@ import { useViewer } from '@/app/auth';
 import { Dialog } from '@/components/Dialog';
 import { PencilIcon, PlusIcon, StopIcon } from '@/components/icons';
 import { Checkbox, SegmentedControl } from '@/components/controls';
-import { Alert, Badge, Button, Spinner, TextAreaField, TextField, type BadgeTone } from '@/components/ui';
+import { Alert, Badge, Button, TextAreaField, TextField, type BadgeTone } from '@/components/ui';
+import { LoadingRegion, Skeleton, SkeletonText } from '@/components/Skeleton';
 import type { ServiceKind } from '@/domain/programs/contract';
 import { describePattern } from '@/domain/scheduling/pattern';
 import { useClientPrograms } from '@/features/programs/api';
 import { formatDate } from '@/lib/format';
 import { SERVICE_SHORT_LABELS } from '@/lib/services';
 import { schedulingError, useClientMeetings, useEndPattern, useMeetingContext, usePastMeetings, useSavePatternNotes, useStopMeetings, type Meeting, type MeetingContext, type MeetingSchedule } from './api';
+import { MeetingListSkeleton } from './MeetingSkeletons';
 import { MeetingDialog, NewMeetingDialog } from './MeetingDialog';
 import { topicLabel } from './MeetingTopic';
 import { PatternDialog } from './PatternDialog';
@@ -63,7 +65,18 @@ export function MeetingsCard({ clientId, heading, focusMeetingId, onFocusClosed 
   const close = () => { if (focusMeetingId) onFocusClosed(); setOpen(null); };
   const saved = (message: ReactNode, options?: SavedOptions) => { close(); if (options?.toast) toast.show(message, options); else setNotice(message); };
 
-  if (context.isPending) return <Spinner label="Loading meetings" />;
+  if (context.isPending) {
+    return (
+      <section className="min-w-0">
+        <h2 className="text-lg font-semibold">{heading}</h2>
+        <LoadingRegion label="Loading meetings">
+          <SkeletonText size="xs" width="w-36" className="mb-3" />
+          <Skeleton className="mb-1 h-10 w-56" />
+          <MeetingListSkeleton />
+        </LoadingRegion>
+      </section>
+    );
+  }
   if (context.error) return <Alert title="Could not load meetings">{schedulingError(context.error)}</Alert>;
   const c = context.data;
   const programRows = programs.data ?? [];
@@ -143,7 +156,7 @@ export function MeetingsCard({ clientId, heading, focusMeetingId, onFocusClosed 
         <PastMeetings clientId={clientId} timeZone={c.timezone} onOpen={(id) => setOpen({ kind: 'meeting', id })} />
       ) : (
         <>
-          {meetings.isPending ? <Spinner label="Loading meetings" /> : null}
+          {meetings.isPending ? <LoadingRegion label="Loading meetings"><MeetingListSkeleton /></LoadingRegion> : null}
           <Alert visible={!!meetings.error} title="Could not load meetings">{schedulingError(meetings.error)}</Alert>
           {meetings.data && list.length === 0 ? (
             <p className="text-sm text-muted">{all.length ? 'Only cancelled meetings in the next 31 days.' : `No meetings in the next ${LIST_DAYS} days.`}</p>
@@ -182,7 +195,7 @@ function PastMeetings({ clientId, timeZone, onOpen }: { clientId: string; timeZo
   const rows = past.data?.pages[0] ?? [];
   return (
     <>
-      {past.isPending ? <Spinner label="Loading past meetings" /> : null}
+      {past.isPending ? <LoadingRegion label="Loading past meetings"><MeetingListSkeleton /></LoadingRegion> : null}
       <Alert visible={!!past.error} title="Could not load past meetings">{schedulingError(past.error)}</Alert>
       {past.data && rows.length === 0 ? <p className="text-sm text-muted">No past meetings yet.</p> : null}
       {rows.length ? (

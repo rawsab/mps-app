@@ -1,7 +1,8 @@
 import { useState, type ReactNode } from 'react';
 import { useViewer } from '@/app/auth';
 import { SegmentedControl } from '@/components/controls';
-import { Alert, Badge, Button, Spinner, TextField } from '@/components/ui';
+import { Alert, Badge, Button, TextField } from '@/components/ui';
+import { LoadingRegion, Skeleton } from '@/components/Skeleton';
 import { chargeStatusLabel, sessionType, type MeetingBilling, type SessionFormat } from '@/domain/billing/billing';
 import { centsToInput, formatCents, parseDollars } from '@/domain/billing/money';
 import { todayIn } from '@/features/scheduling/time';
@@ -19,7 +20,14 @@ const SOURCE: Record<NonNullable<MeetingBilling['priceSource']>, string> = {
 
 export function MeetingBillingSection({ meetingId, durationMinutes, onSaved }: { meetingId: string; durationMinutes: number; onSaved: (message: ReactNode) => void }) {
   const billing = useMeetingBilling(meetingId);
-  if (billing.isPending) return <Spinner small label="Loading price" />;
+  if (billing.isPending) {
+    return (
+      <LoadingRegion label="Loading price" className="grid gap-3 sm:grid-cols-2">
+        <Skeleton className="h-11" />
+        <Skeleton className="h-11" />
+      </LoadingRegion>
+    );
+  }
   if (billing.isError) return <Alert title="Could not load the price">{billingError(billing.error)}</Alert>;
   // Remount after each save so the fields show what was stored.
   return <PriceFields key={`${billing.data.format}-${billing.data.priceCents}-${billing.data.charge?.id}`} billing={billing.data} durationMinutes={durationMinutes} onSaved={onSaved} />;

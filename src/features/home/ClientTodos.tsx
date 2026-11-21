@@ -1,6 +1,7 @@
 import { Link } from 'react-router';
 import { CheckCircleIcon, TodoIcon } from '@/components/icons';
-import { Alert, SectionHeading, Spinner } from '@/components/ui';
+import { Alert, SectionHeading } from '@/components/ui';
+import { LoadingRegion, SkeletonText } from '@/components/Skeleton';
 import { activeNutritionProgram, dailyNutritionStatus, nextWorkout } from '@/domain/clientHome';
 import { nutritionError, useNutrition } from '@/features/nutrition/api';
 import { useNutritionPrograms } from '@/features/nutrition/programApi';
@@ -43,12 +44,27 @@ function TodoRow({ done, title, detail, to }: { done: boolean; title: string; de
   );
 }
 
+/** A to-do row's shape while its data loads. */
+function TodoSkeleton({ label }: { label: string }) {
+  return (
+    <li>
+      <LoadingRegion label={label} className="flex min-h-14 items-center gap-3 py-3 pl-2 pr-2">
+        <span className="m-0.5 size-4 shrink-0 rounded-full border-2 border-line" />
+        <span className="min-w-0 flex-1">
+          <SkeletonText width="w-36" />
+          <SkeletonText size="xs" width="w-56" />
+        </span>
+      </LoadingRegion>
+    </li>
+  );
+}
+
 const RowStatus = ({ children }: { children: React.ReactNode }) => <li className="py-3">{children}</li>;
 
 function NutritionTodo({ clientId }: { clientId: string }) {
   const daily = useNutrition(clientId);
   const programs = useNutritionPrograms(clientId);
-  if (daily.isPending || programs.isPending) return <RowStatus><Spinner small label="Loading nutrition" /></RowStatus>;
+  if (daily.isPending || programs.isPending) return <TodoSkeleton label="Loading nutrition" />;
   if (daily.error || programs.error) return <RowStatus><Alert title="Nutrition to-do unavailable">{nutritionError(daily.error ?? programs.error)}</Alert></RowStatus>;
   if (!activeNutritionProgram(programs.data, daily.data.today)) return null;
   const status = dailyNutritionStatus(daily.data);
@@ -61,7 +77,7 @@ const plural = (n: number, one: string) => `${n} ${one}${n === 1 ? '' : 's'}`;
 
 function WorkoutTodo({ today }: { today: string }) {
   const meso = useCurrentMesocycle(true);
-  if (meso.isPending) return <RowStatus><Spinner small label="Loading your next workout" /></RowStatus>;
+  if (meso.isPending) return <TodoSkeleton label="Loading your next workout" />;
   if (meso.error) return <RowStatus><Alert title="Workout to-do unavailable">{trainingErrorMessage(meso.error)}</Alert></RowStatus>;
   if (!meso.id || !meso.program || !meso.sessions) return null;
   const next = nextWorkout(meso.program, meso.sessions, today);

@@ -1,13 +1,14 @@
 import { useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { Dialog } from '@/components/Dialog';
-import { Alert, Badge, Button, Spinner, TextAreaField, TextField } from '@/components/ui';
+import { Alert, Badge, Button, TextAreaField, TextField } from '@/components/ui';
 import { addDays, zonedDateTime, zonedToInstant } from '@/domain/scheduling/pattern';
 import type { ProgramRow } from '@/features/programs/api';
 import {
   schedulingError, useAddMeeting, useCancelMeeting, useMeeting, useReinstateMeeting, useRespondToRequest, useSaveMeetingNotes, useUpdateMeeting,
   type Meeting, type MeetingContext, type MeetingSchedule, type MeetingTopic, type Overlap, type ProgramChoice,
 } from './api';
+import { MeetingDialogSkeleton } from './MeetingSkeletons';
 import { MeetingBillingSection } from '@/features/billing/MeetingBilling';
 import { AttendanceSection, ResourcesSection, SharedNotesField } from './MeetingRecord';
 import { MinutesField } from './MinutesField';
@@ -97,7 +98,7 @@ export function MeetingDialog({ meetingId, context, programs, onClose, onSaved, 
   return meeting.data ? <MeetingDetails meeting={meeting.data} context={context} programs={programs} onClose={onClose} onSaved={onSaved} onChangePattern={onChangePattern} /> : (
     <Dialog title="Meeting" onClose={onClose}>
       <div className="p-4 sm:p-5">
-        {meeting.isPending ? <Spinner label="Loading meeting" /> : null}
+        {meeting.isPending ? <MeetingDialogSkeleton /> : null}
         <Alert visible={!!meeting.error} title="Could not load the meeting">{schedulingError(meeting.error)}</Alert>
         {meeting.data === null ? <p className="text-sm text-muted">This meeting no longer exists.</p> : null}
       </div>

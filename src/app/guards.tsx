@@ -1,6 +1,7 @@
 import type { ReactNode } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router';
-import { Alert, Button, Card, Spinner } from '@/components/ui';
+import { Alert, Button, Card } from '@/components/ui';
+import { LoadingRegion, SkeletonHeader, SkeletonCard } from '@/components/Skeleton';
 import { clientSections, type ClientSection } from '@/lib/services';
 import { signOut, useAuth, useViewer } from './auth';
 
@@ -8,6 +9,31 @@ import { signOut, useAuth, useViewer } from './auth';
  * Route guards decide what to render. They are navigation conveniences only:
  * the database policies are what actually authorize every read and write (PRD §4).
  */
+
+/**
+ * The app's frame while the session and account load. Coach and client layouts differ and neither
+ * is known yet, so it's the shared top bar and a page of placeholders.
+ */
+function StartupSkeleton({ label }: { label: string }) {
+  return (
+    <div className="flex min-h-dvh flex-col">
+      <header className="border-b border-line bg-ink">
+        <div className="mx-auto flex max-w-[70rem] items-center px-4">
+          <img src="/logo/mps-full-logo.png" alt="Modern Physique Systems" className="brand-logo my-3 h-8 w-auto max-w-[45vw] sm:max-w-none" />
+        </div>
+      </header>
+      <main className="mx-auto w-full max-w-[70rem] flex-1 px-4 py-8">
+        <LoadingRegion label={label} className="grid gap-5">
+          <SkeletonHeader />
+          <div className="grid gap-5 md:grid-cols-2">
+            <SkeletonCard lines={3} />
+            <SkeletonCard lines={3} />
+          </div>
+        </LoadingRegion>
+      </main>
+    </div>
+  );
+}
 
 function FullPage({ children }: { children: ReactNode }) {
   return <div className="flex min-h-dvh items-center justify-center px-4">{children}</div>;
@@ -18,19 +44,11 @@ export function RequireSignedIn() {
   const location = useLocation();
   const viewer = useViewer();
   if (auth.status === 'loading') {
-    return (
-      <FullPage>
-        <Spinner label="Loading" />
-      </FullPage>
-    );
+    return <StartupSkeleton label="Loading" />;
   }
   if (auth.status === 'signed_out') return <Navigate to="/sign-in" replace state={{ from: location.pathname }} />;
   if (viewer.isPending) {
-    return (
-      <FullPage>
-        <Spinner label="Loading your account" />
-      </FullPage>
-    );
+    return <StartupSkeleton label="Loading your account" />;
   }
   if (viewer.error) {
     return (

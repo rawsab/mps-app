@@ -2,12 +2,13 @@ import { Avatar } from '@/components/Avatar';
 import { ActionItem, ActionsMenu } from '@/components/ActionsMenu';
 import { ArchiveIcon, BillingIcon, CalendarIcon, ServicesIcon, SettingsIcon, TrashIcon } from '@/components/icons';
 import { ConfirmDialog, DialogBody } from '@/components/Dialog';
-import { useState, type FormEvent } from 'react';
+import { useState, type FormEvent, type ReactNode } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
 import { AnimatedDisclosure } from '@/components/AnimatedDisclosure';
 import { useViewer } from '@/app/auth';
 import { Alert, Badge, Button, EmptyState, PageHeader, SectionHeading, SectionTitle, SelectField, Spinner, TextAreaField, TextField } from '@/components/ui';
 import { IconButton } from '@/components/controls';
+import { LoadingRegion, Skeleton, SkeletonText, SkeletonHeader, SkeletonRows, SkeletonCard } from '@/components/Skeleton';
 import type { ServiceKind } from '@/domain/programs/contract';
 import { RecentUpdatesCard } from '@/features/activity/ActivityViews';
 import { ClientBillingPanel } from '@/features/billing/ClientBilling';
@@ -49,7 +50,7 @@ export function ClientDetailPage() {
   const [params, setParams] = useSearchParams();
   const focusSession = params.get('session');
 
-  if (client.isPending) return <Spinner label="Loading client" />;
+  if (client.isPending) return <ClientDetailSkeleton back={<BackToClients />} />;
   if (client.error) return <Alert title="Could not load client">{friendlyError(client.error)}</Alert>;
   if (!client.data) {
     return (
@@ -62,12 +63,7 @@ export function ClientDetailPage() {
 
   return (
     <div className="grid gap-5">
-      <div>
-        <Link to="/coach/clients" className="-my-3 inline-flex min-h-11 items-center gap-1.5 text-sm text-muted hover:text-text">
-          <span aria-hidden className="arrow-back">←</span>
-          <span>Clients</span>
-        </Link>
-      </div>
+      <BackToClients />
       <PageHeader leading={<Avatar url={photo.data} name={c.full_name} className="size-14 sm:size-16" />} title={c.full_name} subtitle={<span className="break-all">{c.email}</span>} actions={statusBadge(c.status)} />
       <div className="grid min-w-0 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
         <div className="grid min-w-0 gap-8">
@@ -85,6 +81,56 @@ export function ClientDetailPage() {
         </div>
       </div>
       {isAdmin ? <ClientSettings client={c} /> : null}
+    </div>
+  );
+}
+
+function BackToClients() {
+  return (
+    <div>
+      <Link to="/coach/clients" className="-my-3 inline-flex min-h-11 items-center gap-1.5 text-sm text-muted hover:text-text">
+        <span aria-hidden className="arrow-back">←</span>
+        <span>Clients</span>
+      </Link>
+    </div>
+  );
+}
+
+/** The page's two columns while the client loads; each section fills in from its own query after. */
+function ClientDetailSkeleton({ back }: { back: ReactNode }) {
+  return (
+    <div className="grid gap-5">
+      {back}
+      <LoadingRegion label="Loading client" className="grid gap-5">
+        <SkeletonHeader avatar subtitle titleWidth="w-56" />
+        <div className="grid min-w-0 items-start gap-8 lg:grid-cols-[minmax(0,1fr)_20rem]">
+          <div className="grid min-w-0 gap-8">
+            <section>
+              <SkeletonText size="lg" width="w-40" className="mb-3" />
+              <SkeletonRows count={3} leading="avatar" divided />
+            </section>
+            <section>
+              <SkeletonText size="lg" width="w-28" className="mb-3" />
+              <SkeletonCard lines={2} />
+            </section>
+            <section>
+              <SkeletonText size="lg" width="w-28" className="mb-3" />
+              <Skeleton className="h-24" />
+            </section>
+          </div>
+          <div className="grid min-w-0 gap-8 lg:border-l lg:border-line lg:pl-6">
+            <section>
+              <SkeletonText size="lg" width="w-24" className="mb-3" />
+              <div className="grid gap-2">{[0, 1].map((i) => <Skeleton key={i} className="h-16" />)}</div>
+            </section>
+            <section>
+              <SkeletonText size="lg" width="w-16" />
+              <SkeletonText width="w-56" className="mb-3" />
+              <SkeletonRows count={2} divided />
+            </section>
+          </div>
+        </div>
+      </LoadingRegion>
     </div>
   );
 }
@@ -337,7 +383,7 @@ function NotesCard({ clientId }: { clientId: string }) {
     <section className="min-w-0">
       <h2 className="text-lg font-semibold">Notes</h2>
       <p className="mb-3 text-sm text-muted">Private to staff. The client never sees these.</p>
-      {notes.isPending ? <Spinner label="Loading notes" /> : null}
+      {notes.isPending ? <LoadingRegion label="Loading notes" className="mb-3"><SkeletonRows count={2} divided /></LoadingRegion> : null}
       <Alert visible={!!notes.error} title="Could not load notes">{friendlyError(notes.error)}</Alert>
       {notes.data && notes.data.length > 0 ? (
         <ul className="mb-3 divide-y divide-line">

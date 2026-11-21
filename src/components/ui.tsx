@@ -172,11 +172,6 @@ function AlertBody({ tone = 'error', title, children, onDismiss }: AlertProps) {
   );
 }
 
-/** A placeholder block in the shape of content that's still loading; size and round it with `className`. */
-export function Skeleton({ className = '' }: { className?: string }) {
-  return <span aria-hidden className={`block animate-pulse rounded-card bg-surface-raised motion-reduce:animate-none ${className}`} />;
-}
-
 export function Spinner({ small, label }: { small?: boolean; label?: string }) {
   return (
     <span role={label ? 'status' : undefined} className="inline-flex items-center gap-2 text-muted">

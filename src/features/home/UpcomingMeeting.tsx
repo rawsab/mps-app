@@ -4,7 +4,9 @@ import { Link } from 'react-router';
 import { Avatar } from '@/components/Avatar';
 import { ArrowUpRightIcon, CalendarIcon } from '@/components/icons';
 import { ConfirmDialog, DialogBody } from '@/components/Dialog';
-import { Alert, Badge, Button, Card, SectionHeading, Spinner } from '@/components/ui';
+import { Alert, Badge, Button, Card, SectionHeading } from '@/components/ui';
+import { MeetingCardSkeleton } from '@/features/scheduling/MeetingSkeletons';
+import { LoadingRegion } from '@/components/Skeleton';
 import type { ServiceKind } from '@/domain/programs/contract';
 import { countdown } from '@/domain/scheduling/calendar';
 import { canRequestChange, recentRequestOutcome } from '@/domain/scheduling/requests';
@@ -35,7 +37,7 @@ export function UpcomingMeeting({ timeZone, now, service, title = 'Upcoming meet
         onDismiss={() => outcome && dismiss(outcome.request.id)}>
         {outcome ? <OutcomeText meeting={outcome.meeting} timeZone={timeZone} /> : null}
       </Alert>
-      {meetings.isPending ? <Spinner label="Loading meetings" /> : null}
+      {meetings.isPending ? <LoadingRegion label="Loading meetings"><MeetingCardSkeleton actions={1} /></LoadingRegion> : null}
       <Alert visible={!!meetings.error} title="Could not load meetings">{schedulingError(meetings.error)}</Alert>
       {meetings.data && !meeting ? (
         <Card as="div" padding="sm" className="text-sm text-muted">No {service ? 'sessions' : 'meetings'} scheduled. Your coach will add them here.</Card>

@@ -4,7 +4,8 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useViewer, type Viewer } from '@/app/auth';
 import { Avatar } from '@/components/Avatar';
 import { ComboboxField } from '@/components/ComboboxField';
-import { Alert, Button, Card, PageHeader, Spinner, TextField } from '@/components/ui';
+import { Alert, Button, Card, PageHeader, TextField } from '@/components/ui';
+import { LoadingRegion, Skeleton, SkeletonHeader, SkeletonCard } from '@/components/Skeleton';
 import { saveEtransferEmail } from '@/features/billing/api';
 import { AvailabilityCard } from '@/features/scheduling/AvailabilityCard';
 import { deviceTimeZone, timeZoneOptions } from '@/lib/timeZones';
@@ -13,7 +14,15 @@ import { etransferSchema, localDate, profileSchema, schedulingSchema, validatePh
 
 export function ProfileSettingsPage() {
   const viewer = useViewer();
-  if (viewer.isPending) return <Spinner label="Loading profile" />;
+  if (viewer.isPending) {
+    return (
+      <LoadingRegion label="Loading profile" className="grid gap-5">
+        <SkeletonHeader />
+        <SkeletonCard lines={0}><div className="grid gap-4 sm:grid-cols-2">{[0, 1, 2, 3].map((i) => <Skeleton key={i} className="h-11" />)}</div></SkeletonCard>
+        <SkeletonCard lines={0}><Skeleton className="h-11" /></SkeletonCard>
+      </LoadingRegion>
+    );
+  }
   if (viewer.error) return <Alert>{viewer.error.message}</Alert>;
   return viewer.data ? <ProfileForm key={viewer.data.userId} viewer={viewer.data} /> : null;
 }

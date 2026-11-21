@@ -4,7 +4,8 @@ import { DisclosureSummary } from '@/components/DisclosureSummary';
 import { UseNotice } from '@/components/LegalFooter';
 import { CheckCircleIcon, SectionIcon, SpreadsheetIcon } from '@/components/icons';
 import { Chip, Tabs } from '@/components/controls';
-import { Alert, Badge, Button, EmptyState, PageHeader, Spinner } from '@/components/ui';
+import { Alert, Badge, Button, EmptyState, PageHeader } from '@/components/ui';
+import { LoadingRegion, Skeleton, SkeletonHeader, SkeletonRows, SkeletonTable } from '@/components/Skeleton';
 import { dayView, locateDay, prescriptionView, weekSummaries, type DayBlock, type DayView } from '@/domain/programs/clientView';
 import type { Exercise, ProgramDraft, ServiceKind } from '@/domain/programs/contract';
 import { programServiceIcon, programServiceIconStyle } from '@/features/programs/ProgramsCard';
@@ -31,7 +32,7 @@ export function ProgramListPage({ service }: { service: TrainingService }) {
   return (
     <div>
       <PageHeader title={SERVICE_SHORT_LABELS[service]} />
-      {programs.isPending ? <Spinner label="Loading programs" /> : null}
+      {programs.isPending ? <LoadingRegion label="Loading programs"><SkeletonRows count={2} leading="avatar" size="lg" divided /></LoadingRegion> : null}
       <Alert visible={!!programs.error} title="Could not load your programs">{trainingErrorMessage(programs.error)}</Alert>
       {listed?.length === 0 ? (
         <EmptyState title="No program yet">Your coach hasn’t published a program for you. It will appear here once they do.</EmptyState>
@@ -78,6 +79,17 @@ export function TrainingProgramPage({ service }: { service: TrainingService }) {
   return <TrainingProgramView programId={programId!} backTo={clientProgramPath(service)} backLabel={SERVICE_SHORT_LABELS[service]} />;
 }
 
+/** The program view's header, week and day picker, and day content while the program loads. */
+function ProgramViewSkeleton({ label }: { label: string }) {
+  return (
+    <LoadingRegion label={label}>
+      <SkeletonHeader titleWidth="w-56" subtitle />
+      <Skeleton className="mb-4 h-11 max-w-md" />
+      <SkeletonTable toolbar={false} rows={5} />
+    </LoadingRegion>
+  );
+}
+
 /** Old `/training` links (before decision 0051) open the program's own section. */
 export function LegacyTrainingRedirect() {
   const { programId } = useParams();
@@ -88,7 +100,7 @@ export function LegacyTrainingRedirect() {
     const fallback = clientSections(viewer.data?.services ?? []).mesocycle ? 'mesocycle' : 'personal_training';
     return <Navigate to={clientProgramPath(fallback)} replace />;
   }
-  if (program.isPending) return <Spinner label="Opening program" />;
+  if (program.isPending) return <ProgramViewSkeleton label="Opening program" />;
   // An unreadable program shows its error on the mesocycle route, as it did before.
   return <Navigate to={`${clientProgramPath(program.data?.service ?? 'mesocycle', programId)}${search}`} replace />;
 }
@@ -120,7 +132,7 @@ export function TrainingProgramView({ programId, backTo, backLabel, staff = fals
   const [params, setParams] = useSearchParams();
 
   const back = <Link to={backTo} className="mb-4 inline-flex min-h-11 items-center gap-1 text-sm text-muted hover:text-text">← {backLabel}</Link>;
-  if (program.isPending) return <div>{back}<Spinner label="Loading program" /></div>;
+  if (program.isPending) return <div>{back}<ProgramViewSkeleton label="Loading program" /></div>;
   if (program.error) return <div>{back}<Alert title="Could not open this program">{trainingErrorMessage(program.error)}</Alert></div>;
 
   const { document: doc, service, archivedAt, publishedAt } = program.data;
