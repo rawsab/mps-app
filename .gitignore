@@ -22,6 +22,9 @@ reports/
 CLAUDE.local.md
 .claude/settings.local.json
 
+# MPS sample templates are MPS intellectual property. Keep local copies only.
+samples/
+
 # Office lock files (e.g. an open sample workbook)
 ~$*
 *.tsbuildinfo

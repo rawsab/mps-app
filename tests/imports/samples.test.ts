@@ -1,17 +1,24 @@
 /**
  * Expectations for the supplied, anonymized sample templates (samples/). Each expected value was
  * checked by hand against the raw cell/paragraph dump, not copied from parser output.
+ * The templates are MPS property and aren't committed, so each suite skips when its file is absent.
  */
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { summarize, type NormalizedImport } from '@/domain/imports/contract';
 import { importFile } from '@/domain/imports/importFile';
 
 const load = (name: string) => importFile(new Uint8Array(readFileSync(`samples/${name}`)), name);
+const sampleSuite = (name: string, file: string, body: (r: NormalizedImport) => void) => {
+  const present = existsSync(`samples/${file}`);
+  describe.skipIf(!present)(name, async () => {
+    if (present) body(await load(file));
+    else it('needs the sample file in samples/', () => {});
+  });
+};
 const byCell = (r: NormalizedImport, id: string) => r.sourceItems.find((i) => i.id === id)!;
 
-describe('Mesocycle Sample', async () => {
-  const r = await load('Mesocycle Sample (Google Drive).xlsx');
+sampleSuite('Mesocycle Sample', 'Mesocycle Sample (Google Drive).xlsx', (r) => {
   const s = summarize(r);
 
   it('finds one week, six days and 47 exercises', () => {
@@ -67,8 +74,7 @@ describe('Mesocycle Sample', async () => {
   });
 });
 
-describe('Nutrition Template Sample', async () => {
-  const r = await load('Nutrition Template Sample (Google Drive).xlsx');
+sampleSuite('Nutrition Template Sample', 'Nutrition Template Sample (Google Drive).xlsx', (r) => {
 
   it('reads 28 dated weigh-ins and previous-day intake logs', () => {
     expect(r.history.bodyweights).toHaveLength(28);
@@ -88,8 +94,7 @@ describe('Nutrition Template Sample', async () => {
   });
 });
 
-describe('Personal Training Document Sample', async () => {
-  const r = await load('Personal Training Document Sample.docx');
+sampleSuite('Personal Training Document Sample', 'Personal Training Document Sample.docx', (r) => {
 
   it('reads preparation circuits and two full-body days in order', () => {
     const p = r.program!;

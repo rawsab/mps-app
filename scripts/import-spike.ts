@@ -5,7 +5,7 @@
  *
  *   pnpm spike:import [file ...]
  */
-import { mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, readdirSync, readFileSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { performance } from 'node:perf_hooks';
 import { summarize } from '../src/domain/imports/contract';
@@ -14,7 +14,9 @@ import { ImportError } from '../src/domain/imports/limits';
 
 const files = process.argv.slice(2).length
   ? process.argv.slice(2)
-  : readdirSync('samples').filter((f) => /\.(xlsx|docx)$/i.test(f)).map((f) => join('samples', f));
+  : !existsSync('samples')
+    ? (console.error('No samples/ directory. The MPS templates are not committed; pass file paths instead.'), process.exit(1))
+    : readdirSync('samples').filter((f) => /\.(xlsx|docx)$/i.test(f)).map((f) => join('samples', f));
 
 mkdirSync('reports', { recursive: true });
 

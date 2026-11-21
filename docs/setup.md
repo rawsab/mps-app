@@ -76,7 +76,7 @@ The training source lives in `scripts/seed/`. Run `pnpm seed:programs` after edi
 pnpm verify          # typecheck + unit tests + production build
 pnpm test:db         # pgTAP policy tests (local stack + seed)
 pnpm db:reset && pnpm test:api   # direct HTTP isolation tests with real sign-ins
-pnpm spike:import    # importer spike on samples/ → reports/ (gitignored)
+pnpm spike:import    # importer spike on a local samples/ folder (not committed) → reports/ (gitignored)
 ```
 
 `test:api` modifies Client A's status during the run and restores it. Run `pnpm db:reset` first for a known state.
