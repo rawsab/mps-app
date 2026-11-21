@@ -1,7 +1,7 @@
 -- Accepting and declining service requests (decision 0044). Run with: pnpm test:db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(27);
+select plan(26);
 
 create function pg_temp.act_as(uid uuid) returns void language plpgsql as $$
 begin
@@ -50,11 +50,8 @@ select is((select array_agg(e->>'id' order by n) from jsonb_array_elements(publi
   array[:nut_req, :pt_req], 'the assigned coach lists both pending requests, newest first');
 select is((select e->>'clientName' from jsonb_array_elements(public.list_pending_service_requests()) e where e->>'id' = :pt_req), 'Maya Chen',
   'the cross-client list names the client');
-select is((select (e->>'unread')::boolean from jsonb_array_elements(public.list_pending_service_requests(:maya)) e where e->>'id' = :pt_req), true,
-  'a request the coach has not opened is new');
-select public.mark_service_request_read(:pt_req);
-select is((select (e->>'unread')::boolean from jsonb_array_elements(public.list_pending_service_requests(:maya)) e where e->>'id' = :pt_req), false,
-  'opening it marks it seen');
+select ok(not exists (select 1 from jsonb_array_elements(public.list_pending_service_requests(:maya)) e where e ? 'unread'),
+  'the list leaves read state to Activity');
 
 -- ---------------------------------------------------------------------------
 -- Accepting

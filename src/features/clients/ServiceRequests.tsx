@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router';
-import { Dialog } from '@/components/Dialog';
+import { Dialog, DialogBody } from '@/components/Dialog';
 import { STRIP_ITEM, ScrollStripList, type ScrollStrip } from '@/components/ScrollStrip';
 import { CheckIcon } from '@/components/icons';
 import { Avatar } from '@/components/Avatar';
@@ -74,7 +74,7 @@ function ServiceRequestDialog({ request, onClose }: { request: PendingServiceReq
         <Button busy={answer.isPending} onClick={() => answer.mutate({ id: request.id, accept: true }, { onSuccess: onClose })}><CheckIcon />Accept</Button>
       </>}
     >
-      <div className="grid gap-4 p-4 sm:p-5">
+      <DialogBody className="grid gap-5">
         <div className="flex items-center gap-3">
           <Avatar url={photo.data} name={request.clientName} className="size-11" />
           <div className="min-w-0 flex-1">
@@ -83,7 +83,7 @@ function ServiceRequestDialog({ request, onClose }: { request: PendingServiceReq
           </div>
           {client.data ? statusBadge(client.data.status) : null}
         </div>
-        <dl className="grid gap-x-4 gap-y-2 text-sm sm:grid-cols-[9rem_1fr]">
+        <dl className="grid gap-x-4 gap-y-1 text-sm sm:grid-cols-[9rem_1fr] sm:gap-y-3 [&>dd]:mb-2 sm:[&>dd]:mb-0">
           <dt className="text-muted">Requested service</dt>
           <dd className="font-medium">{label}</dd>
           <dt className="text-muted">Requested</dt>
@@ -91,13 +91,13 @@ function ServiceRequestDialog({ request, onClose }: { request: PendingServiceReq
           <dt className="text-muted">Current services</dt>
           <dd>{client.data ? current.length ? current.map((e) => SERVICE_LABELS[e.service]).join(', ') : 'None' : '…'}</dd>
           <dt className="text-muted">Note</dt>
-          <dd className="whitespace-pre-wrap break-words">{request.message ? `“${request.message}”` : <span className="text-muted">No note</span>}</dd>
+          <dd className="whitespace-pre-wrap break-words leading-relaxed">{request.message ? request.message : <span className="text-muted">No note</span>}</dd>
         </dl>
         {rejecting
           ? <TextAreaField label="Reply (optional)" rows={3} maxLength={1000} value={reply} onChange={(e) => setReply(e.target.value)} hint="Shown to the client." />
           : <p className="text-xs text-muted">Accepting adds {label} from today as an active service.</p>}
         <Alert visible={answer.isError} title={rejecting ? 'Request not rejected' : 'Service not added'}>{friendlyError(answer.error)}</Alert>
-      </div>
+      </DialogBody>
     </Dialog>
   );
 }

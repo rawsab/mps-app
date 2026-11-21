@@ -22,5 +22,5 @@ Date: 2026-11-20 · Status: implemented (2026-11-20 planning session, plan item 
   - `useAllPastMeetings` pages through `list_past_meetings` 100 at a time to get the whole history for the stats. That's fine for years of weekly sessions. A summary RPC would be the next step if it gets slow.
   - RLS limits the list to the client's own meetings. `035_meeting_attendance_notes_resources.test.sql` now asserts this, with 2 more pgTAP checks.
 - **Verification.** `pnpm verify` passes (367 unit tests, 11 in `tests/domain/ptStats.test.ts`). The `035` pgTAP file passes.
-  - Four other pgTAP files (024, 026, 030, 031) fail against the current local DB because of state left from manual testing, such as a third active nutrition enrollment. They need `pnpm db:reset`; they aren't affected by this change.
+  - Three other pgTAP files (023, 026, 030) fail against the current local DB because of state left from manual testing, such as a third active nutrition enrollment. They need `pnpm db:reset`; they aren't affected by this change.
   - No browser checks.

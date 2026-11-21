@@ -46,7 +46,7 @@ Depends on the PT sessions work above. Done: decisions 0051 (navigation) and 005
 
 ## Small follow-ups offered
 
-- [ ] Optionally show the mesocycle progress bar on the coach's client log view too (client-only today).
-- [ ] Optionally use the grey inbox icon for the other "all clear" states on the Clients page ("All caught up.", "No upcoming meetings."), which still show the green tick.
-- [ ] Optionally apply the roomier card spacing to the service request modal too.
-- [ ] `list_pending_service_requests` still returns `unread`, which nothing displays. Drop it, or use it again if an indicator comes back.
+- [x] Optionally show the mesocycle progress bar on the coach's client log view too (client-only today).
+- [x] ~~Optionally use the grey inbox icon for the other "all clear" states on the Clients page.~~ Declined (2026-11-20): the owner prefers the green tick for "All caught up." and "No upcoming meetings."; only Follow up's "All done here." uses the inbox.
+- [x] Optionally apply the roomier card spacing to the service request modal too.
+- [x] `list_pending_service_requests` still returns `unread`, which nothing displays. Dropped (migration 00050).

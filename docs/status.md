@@ -1,6 +1,6 @@
-# Status: first increment (M0–M2 foundation)
+# Status
 
-Date: 2026-11-16
+Started 2026-11-16 · Last updated 2026-11-20
 
 ## Repository assessment (M0)
 
@@ -292,7 +292,7 @@ Date: 2026-11-16
 
 - **Programs:** program/revision tables, both coach editors, the client Training view and mesocycle session logging are implemented. Programs under an ended (but not archived) service still appear to the client (decision 0020, open question). Nutrition now has its own draft/publish/archive lifecycle, weekly spreadsheets, shared daily records, correction history and program-relative summaries (decision 0029). Import-batch and general audit tables remain pending; Client Home has saved-record nutrition tasks, while training task derivation remains pending.
 - **Activity feeds:** Training updates derive from latest record state, so a coach overwriting a client's only logged row can drop that workout from Reviews; general `audit_events` is still pending. Nutrition notifications use durable client/day activity, survive coach corrections and retain the separate before/after entry history (decision 0030). Feeds and unread counts poll every minute (no realtime).
-- **Meetings:** coach screens and Upcoming today are built (decisions 0037, 0039). Clients can ask to reschedule or cancel their next meeting from Home, picking from the coach's open times (decision 0050). A list of all upcoming meetings for clients, the client calendar and the UTC time zone prompt are still to do. Nothing emails Matt, and Google Calendar sync is in the backlog.
+- **Meetings:** coach screens and Upcoming today are built (decisions 0037, 0039). Clients can ask to reschedule or cancel their next meeting from Home, picking from the coach's open times (decision 0050). The PT dashboard lists the client's next 4 weeks of PT sessions and their history (decision 0052), but only the next meeting can be changed. A list of all upcoming meetings across services, the client calendar and the UTC time zone prompt are still to do. Nothing emails Matt, and Google Calendar sync is in the backlog.
 - **Invitations:** invite and recovery emails have only been verified against local Mailpit. Real Resend delivery is untested.
 - **Playwright:** not yet a project dependency. The browser smoke script lives outside the repo.
 - **No linting:** no ESLint or formatter is configured yet.
@@ -309,15 +309,16 @@ Date: 2026-11-16
 3. Decisions: the meaning of `qs` and `(1)`, whether "X or" rows are alternatives, whether `20, 18` are per-set targets, the default weight unit, and the PRD §15 items (calculation rules, retention, region).
 4. Authorization and accounts for hosted Supabase/Cloudflare and Resend SMTP. None of these were created.
 
-## Next milestone: M3 (program model, lifecycle, two editors)
+## Next milestone
 
-1. ~~Migration step 2: templates, programs, revisions and the content hierarchy with RLS and pgTAP.~~ Done (decision 0004).
-2. ~~A transactional `save_draft(expected_version, payload)` that validates against the `ProgramDraft` contract, and `publish_revision` that freezes the revision and moves the current pointer atomically.~~ Done (decision 0005).
-3. ~~Draft command model (update, reorder, duplicate, insert, remove by stable id), shared by both views.~~ Done (decision 0006).
-4. ~~The Program view, then the Grid view (bounded typed columns, keyboard navigation, rectangular paste preview, atomic save), with stale-draft conflict handling.~~ Done: 4a grid model, 4b editor shell + Program view, 4c Grid UI (decision 0007). Program deletion/archiving and Grid day/week removal added (decision 0008).
-5. ~~Client Training view (read-only).~~ Done (decision 0020). Owner still to check it at phone width as Maya (mesocycle) and Daniel (personal training).
-6. **Next:** add Playwright as a dev dependency and promote the smoke script to `tests/e2e`. Add ESLint and a formatter.
-7. Start the `audit_events` table for publish and access changes. It also gives Recent updates and Reviews edit history (before/after values).
+Work since M3 has followed owner priorities across M4–M6 rather than the roadmap order, so there is no single next milestone yet. The next planning session should pick one, ideally after running `/milestone-check` against M4–M6 to see what's left for their exit criteria.
+
+- **First:** the owner's manual UI checks for decisions 0043–0052 (checklists in each decision and in `docs/todo.md`).
+- **Open candidates:**
+  - Phase C of decision 0050: a client list of all upcoming meetings, with the change dialog for each.
+  - Playwright as a dev dependency, with the smoke script promoted to `tests/e2e`; ESLint and a formatter.
+  - The `audit_events` table for publish and access changes, which also gives Recent updates and Activity before/after history.
+- **Done in M3:** program tables, `save_draft` and `publish_revision`, the draft command model, both editors and the client Training view (decisions 0004–0008, 0020).
 
 ## Backlog (owner requests, not scheduled)
 
@@ -411,6 +412,10 @@ Date: 2026-11-16
 - Final checks: typecheck, 282 unit tests and production build passed. Full local database suite passes all 540 assertions after isolating legacy training activity fixtures from nutrition data, selecting a single enrollment deterministically, and comparing exact authorized enrollment IDs instead of seed-dependent counts. Fixture cleanup runs inside rolled-back transactions and does not reset development data.
 - Eight profile/nutrition HTTP boundary checks also passed. Existing Vite bundle-size warning remains. No commands skipped awaiting approval.
 
+## 2026-11-20 planning session work
+
+Open items are tracked in `docs/todo.md`.
+
 - Answered requests leave "To review" (decision 0043): accepted, declined and expired meeting requests, and service requests once the service is added, no longer count as unread. They stay in Reviews history. Migration 00040 is applied locally. 12 new pgTAP assertions; full suite passes (776). Manual UI check pending.
 - Required fields: the Program details fields that block publishing now show an asterisk, with `aria-required` and a "* Required to publish" note. They are Program Style (mesocycle), Title (personal training), and Program Style, Start Date, Weeks and both starting calorie fields (nutrition). There is no HTML `required`, so drafts still autosave. Typecheck, 318 unit tests and build pass. Manual check pending.
 - Mesocycle progress: the Home training progress bar is now a shared `TrainingProgressBar`. It also shows under the program notes on the client's mesocycle program page. Same checks; manual check pending.
@@ -426,3 +431,19 @@ Date: 2026-11-16
   - Short-notice requests warn the client and are flagged for the coach, never refused.
   - Migration 00049 is applied locally, and `supabase/seed/availability.sql` is loaded into the running DB (it is in `config.toml` for future resets). 40 new pgTAP assertions; the full suite passes (943). 356 unit tests and the build pass. No browser checks; manual check pending.
   - Next: a client list of all upcoming meetings with the same dialog (phase C).
+- Client navigation per service (decision 0051):
+  - Home · Mesocycle · Personal training · Nutrition · Progress, each section with its own guard.
+  - `/mesocycle` and `/personal-training` replace `/training`; old links redirect to the program's own section and keep the week and day.
+  - The phone tab bar says "PT", with the full name for screen readers.
+  - 356 unit tests and build pass. Manual check pending.
+- Personal training dashboard (decision 0052):
+  - `/personal-training` has Your program on top, then Next session beside Upcoming (4 weeks), Progress (completed, this month, weekly streak, attendance rate, 12-week chart) and History, whose rows open shared notes and resources.
+  - Stats are pure functions in `src/domain/scheduling/ptStats.ts` (11 unit tests). `ColumnTrend` moved into `src/components/`.
+  - No migration. 2 new pgTAP assertions check that clients list only their own past meetings. 367 unit tests and build pass. Manual check pending.
+- Follow-ups:
+  - The coach's client log view shows the mesocycle progress bar, using the client's time zone.
+  - The Clients page keeps the green tick for "All caught up." and "No upcoming meetings." (owner preference); only Follow up uses the grey inbox.
+  - The coach's service request dialog has roomier spacing.
+  - `list_pending_service_requests` no longer returns `unread` (migration 00050, applied locally). Activity keeps the read state.
+  - Typecheck, 367 unit tests and build pass. Manual check pending.
+- **Local DB needs a reset:** `023`, `026` and `030` fail against the running local DB because of state left by manual testing (for example a third active nutrition enrollment). The other 35 files pass, including `032` and `035`. Run `pnpm db:reset` before the next full `pnpm test:db`.

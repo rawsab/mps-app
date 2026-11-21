@@ -13,6 +13,7 @@ import { formatDate } from '@/lib/format';
 import { clientProgramPath, clientSections, SERVICE_LABELS, SERVICE_SHORT_LABELS } from '@/lib/services';
 import { isExerciseLogged, type TrainingSession } from '@/domain/training/volume';
 import { logErrorMessage, trainingErrorMessage, usePublishedProgram, usePublishedPrograms, useStartSession, useTrainingLog, type PublishedProgramSummary } from './api';
+import { useClient } from '@/features/clients/api';
 import { ProgramSpreadsheet } from './ProgramSpreadsheet';
 import { TrainingProgressBar } from './TrainingProgress';
 import { ResourceBody } from './ResourceBody';
@@ -97,8 +98,9 @@ export function CoachTrainingLogPage() {
   const { clientId, programId } = useParams();
   // Activity links pass where they came from; otherwise the log is reached from the editor.
   const from = useLocation().state as { backTo?: string; backLabel?: string } | null;
+  const client = useClient(clientId);
   return <TrainingProgramView programId={programId!} backTo={from?.backTo ?? `/coach/clients/${clientId}/programs/${programId}`}
-    backLabel={from?.backLabel ? `Back to ${from.backLabel}` : 'Back to editor'} staff />;
+    backLabel={from?.backLabel ? `Back to ${from.backLabel}` : 'Back to editor'} staff clientTimeZone={client.data?.timezone} />;
 }
 
 /**
@@ -106,7 +108,11 @@ export function CoachTrainingLogPage() {
  * Mesocycles add set logging, set totals and optional Stimulus & Fatigue answers; a logged day shows its session's own revision.
  * `view=sheet` swaps the day view for a read-only spreadsheet of the selected week.
  */
-export function TrainingProgramView({ programId, backTo, backLabel, staff = false }: { programId: string; backTo: string; backLabel: string; staff?: boolean }) {
+export function TrainingProgramView({ programId, backTo, backLabel, staff = false, clientTimeZone }: {
+  programId: string; backTo: string; backLabel: string; staff?: boolean;
+  /** Staff only: the client's zone, so progress counts the client's today rather than the coach's. */
+  clientTimeZone?: string | undefined;
+}) {
   const viewer = useViewer();
   const program = usePublishedProgram(programId);
   const logging = program.data?.service === 'mesocycle';
@@ -119,6 +125,8 @@ export function TrainingProgramView({ programId, backTo, backLabel, staff = fals
 
   const { document: doc, service, archivedAt, publishedAt } = program.data;
   const today = !staff && service === 'mesocycle' ? todayIn(viewer.data?.timezone ?? 'UTC') : undefined;
+  // Staff land on the first week rather than today's day, but still see the client's progress.
+  const progressToday = staff ? (service === 'mesocycle' && clientTimeZone ? todayIn(clientTimeZone) : undefined) : today;
   const located = locateDay(doc, params.get('week'), params.get('day'), today);
   const sheet = params.get('view') === 'sheet';
   const select = (weekId: string, dayId: string | null, nextSheet = sheet) =>
@@ -137,7 +145,7 @@ export function TrainingProgramView({ programId, backTo, backLabel, staff = fals
       <Alert visible={!!staff} className="mb-4" tone="note" title="Client log">You’re viewing the published program as the client sees it. Changes you make are saved to the client’s record and marked as coach edits.</Alert>
       <Alert visible={!!archivedAt} className="mb-4" tone="info" title="Archived program">Your coach archived this program on {archivedAt ? formatDate(archivedAt) : ''}. It’s kept here for reference.</Alert>
       {doc.coachNotes.trim() ? <Notes title="Program notes" body={doc.coachNotes} /> : null}
-      {today && log.data ? <TrainingProgressBar program={doc} sessions={log.data} today={today} title="Progress" className="mb-6" /> : null}
+      {progressToday && log.data ? <TrainingProgressBar program={doc} sessions={log.data} today={progressToday} title="Progress" className="mb-6" /> : null}
 
       {located ? <ViewTabs sheet={sheet} onSelect={(next) => select(located.week.id, located.day?.id ?? null, next)} /> : null}
       {located ? <div id="training-view-panel" role="tabpanel" aria-labelledby={`training-view-${sheet ? 'sheet' : 'workout'}`} tabIndex={0}>{sheet ? (
