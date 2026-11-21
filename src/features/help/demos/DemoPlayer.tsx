@@ -28,7 +28,9 @@ export function DemoPlayer<S>({ script, render }: { script: DemoScript<S>; rende
   const box = useRef<HTMLDivElement>(null);
   const stage = useRef<HTMLDivElement>(null);
   const [fit, setFit] = useState({ scale: 1, left: 0, height: 0 });
-  const [pointer, setPointer] = useState<{ x: number; y: number } | null>(null);
+  // Kept after its target goes, so it can fade out where it was. `jump` places it without gliding,
+  // for when it reappears somewhere new.
+  const [pointer, setPointer] = useState<{ x: number; y: number; shown: boolean; jump: boolean } | null>(null);
 
   useEffect(() => {
     if (!running) return;
@@ -68,13 +70,21 @@ export function DemoPlayer<S>({ script, render }: { script: DemoScript<S>; rende
     const inner = stage.current;
     const target = frame.pointer ? inner?.querySelector<HTMLElement>(`[data-demo-target="${CSS.escape(frame.pointer.target)}"]`) : null;
     if (!inner || !target) {
-      setPointer(null);
+      setPointer((p) => (p ? { ...p, shown: false, jump: false } : p));
       return;
     }
     const from = inner.getBoundingClientRect();
     const rect = target.getBoundingClientRect();
     const scale = fit.scale || 1;
-    setPointer({ x: (rect.left - from.left + Math.min(28, rect.width / 2)) / scale, y: (rect.top - from.top + rect.height * 0.6) / scale });
+    const at = { x: (rect.left - from.left + Math.min(28, rect.width / 2)) / scale, y: (rect.top - from.top + rect.height * 0.6) / scale };
+    let reveal = 0;
+    setPointer((p) => {
+      if (p?.shown) return { ...at, shown: true, jump: false };
+      // Hidden or new: move there out of sight, then fade in on the next frame.
+      reveal = requestAnimationFrame(() => setPointer((q) => (q ? { ...q, shown: true, jump: false } : q)));
+      return { ...at, shown: false, jump: true };
+    });
+    return () => cancelAnimationFrame(reveal);
   }, [frame, fit.scale]);
 
   const steps = demoSteps(script);
@@ -98,7 +108,7 @@ export function DemoPlayer<S>({ script, render }: { script: DemoScript<S>; rende
                 {frame.keys.map((key) => <Kbd key={key}>{key}</Kbd>)}
               </span>
             ) : null}
-            {pointer ? <DemoCursor x={pointer.x} y={pointer.y} press={!!frame.pointer?.press} /> : null}
+            {pointer ? <DemoCursor {...pointer} press={pointer.shown && !!frame.pointer?.press} /> : null}
           </div>
         </div>
       </div>
@@ -113,10 +123,10 @@ export function DemoPlayer<S>({ script, render }: { script: DemoScript<S>; rende
   );
 }
 
-/** An arrow pointer that glides between targets and dips with a gold ring when pressed. */
-function DemoCursor({ x, y, press }: { x: number; y: number; press: boolean }) {
+/** An arrow pointer that glides between targets, fades in and out, and dips with a gold ring when pressed. */
+function DemoCursor({ x, y, shown, jump, press }: { x: number; y: number; shown: boolean; jump: boolean; press: boolean }) {
   return (
-    <span className="help-demo-cursor pointer-events-none absolute z-10" style={{ left: x, top: y }}>
+    <span className={`help-demo-cursor pointer-events-none absolute z-10 ${shown ? 'opacity-100' : 'opacity-0'}`} data-jump={jump || undefined} style={{ left: x, top: y }}>
       <span className={`absolute -left-3 -top-3 size-6 rounded-full border-2 border-gold transition-[opacity,transform] duration-150 ${press ? 'scale-100 opacity-100' : 'scale-50 opacity-0'}`} />
       <svg viewBox="0 0 16 20" className={`relative size-5 drop-shadow transition-transform duration-150 ${press ? 'scale-90' : ''}`}>
         <path d="M1 1v15.5l4.2-4 2.9 6.6 2.6-1.1-2.8-6.5H14z" fill="var(--color-text)" stroke="var(--color-ink)" strokeWidth="1.4" strokeLinejoin="round" />

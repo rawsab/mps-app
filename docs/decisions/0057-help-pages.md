@@ -44,11 +44,12 @@ The test checks that the manifest and files match and that section ids are uniqu
 - [ ] ⌘K: "help", "docs" and "billing" show the Help pages under a Help group.
 - [ ] Programs in Help lists Mesocycle, Personal training and Nutrition. Both training pages include the editor sections (Drafts and publishing through Current and archived programs) between their own sections, and their topic lists and search results show those headings.
 - [ ] Demos (Mesocycle or Personal training page): each plays when scrolled into view and stops when scrolled away. The pointer moves to each cell, the caption under it follows along, and Pause and Play work. With reduced motion turned on in your system settings, each opens on its last frame, paused. On a phone the picture shrinks to fit, and the pointer still lands on the right cells.
+- [ ] Nutrition demos: the client's log card types three values and saves, and Tuesday's row fills in with the gold flash. The "Calories for Nov 2" note appears under Tuesday's calorie cell. Average Weight appears on Wednesday. In the second demo, the Missing cells, the corrected cell's tint, and Correction history opening below the table all read clearly.
 - [ ] Read each page once for accuracy and tone.
 
 ## Phase 2 plan: detail, step-by-step guides and animated demos (owner choices, 2026-11-21)
 
-Status: **step 1 built 2026-11-21** (the demo player and demos 1 to 3, waiting for the owner's review); the rest planned. The first pages explain what each area is for but rarely how to do things.
+Status: **steps 1 and 2 built 2026-11-21** (the demo player, demos 1 to 6, the fuller editor text and two nutrition demos); the rest planned. The first pages explain what each area is for but rarely how to do things.
 
 **Step 1 as built:**
 - `src/domain/help/demo.ts`: the frame and script types, `demoProblems` (captions, frame lengths, a 30 s loop limit, no dashes) and `typing`.
@@ -56,6 +57,22 @@ Status: **step 1 built 2026-11-21** (the demo player and demos 1 to 3, waiting f
 - `src/features/help/demos/DemoPlayer.tsx`: plays any script on the `.help-demo` backdrop (the thumbnail gradient). The pointer glides to each frame's `data-demo-target`. Keys show as chips under the picture. The picture keeps its own size and scales down to fit narrow screens. Pause and Play sit in the top right.
 - `SpreadsheetDemo.tsx` draws a four-column slice of the Spreadsheet with the real column labels, widths and cell text.
 - The demos are in the shared editor text, so they show on both Mesocycle and Personal training: dragging a row under Spreadsheet, per-set targets under Writing targets, and Shift-select, Delete and Undo under Undo and redo.
+- **Step 2** (owner approved step 1): two more demos in the same file.
+  - Paste review: `planPaste`, with the change list it returns. Incline's set count is already 3, so three cells change, not four.
+  - Publish readiness: the issues come from `validateForPublish`, and the button and list use the editor's wording.
+- The shared editor text now covers:
+  - publish rules and the readiness steps;
+  - Spreadsheet keys and dropdowns;
+  - building the program: weeks and days, Focus, the + menu, Add week and Add day, sections (Enable sections or Use sections), the exercise columns, alternatives, demo links, annotations and supersets;
+  - rearranging: the drag sources, the cell menu and the week ⋯ menu;
+  - copying and pasting;
+  - red cells;
+  - Make current, Delete program and Archive program, Restore, and Delete permanently.
+- **Nutrition demos** (owner request), in `src/domain/help/nutritionDemos.ts` and `NutritionDemo.tsx`:
+  - A week filling in: the client's daily log, then the row it fills.
+  - Missing entries and a coach correction, with Correction history.
+  - Each frame is drawn through `nutritionWeeks`, `nutritionGridText`, `nutritionGridMissing` and `nutritionGridCoachEdited`. Calculated cells use the spreadsheet's rounding (`nutritionNumber`). The correction is planned with `planNutritionCells`.
+- **Correction to the plan:** a log made on Tuesday goes on **Tuesday's** row, with Monday's calories in the "Day Before" columns. It does not go on Monday's row. Correction history lists calorie changes by the day the calories were eaten (`entry_date = activity_on`). The Nutrition page now says both.
 - `tests/domain/helpDemos.test.ts` checks every script, that the pointer only targets cells the frame draws, and the real results (`10 / 8 / 6`, the renumbering, and Undo giving back the starting table).
 
 **Pages (13).** Each page gets numbered step-by-step guides for its common jobs, with short explanations around them.

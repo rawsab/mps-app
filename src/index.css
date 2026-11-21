@@ -560,7 +560,21 @@ html[data-theme='light'] .sidebar-glow {
 
 /* Help demos: the pointer glides between targets; changed cells flash gold, then settle. */
 .help-demo-cursor {
-  transition: left 520ms var(--ease-ui), top 520ms var(--ease-ui);
+  transition: left 520ms var(--ease-ui), top 520ms var(--ease-ui), opacity 240ms ease-out;
+}
+.help-demo-cursor[data-jump] {
+  transition: opacity 240ms ease-out;
+}
+/* A demo's disclosure unfolds a little slower than the app's, so the move is easy to follow. */
+.animated-disclosure-content.help-demo-unfold {
+  transition: grid-template-rows 420ms var(--ease-ui), opacity 300ms var(--ease-ui) 80ms, visibility 0s linear 420ms;
+}
+.animated-disclosure-content.help-demo-unfold[data-open='true'] {
+  transition-delay: 0s, 80ms, 0s;
+}
+/* A hover note in a demo fades in and out instead of popping. */
+.help-demo-tip {
+  transition: opacity 240ms ease-out, translate 240ms var(--ease-ui);
 }
 .help-demo-changed {
   animation: help-demo-changed 1400ms ease-out;
@@ -575,7 +589,7 @@ html[data-theme='light'] .sidebar-glow {
   50% { opacity: 0; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .help-demo-cursor { transition: none; }
+  .help-demo-cursor, .help-demo-tip, .animated-disclosure-content.help-demo-unfold { transition: none; }
   .help-demo-changed, .help-demo-caret { animation: none; }
 }
 

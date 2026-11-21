@@ -7,7 +7,7 @@ import { SpreadsheetDemo } from '../../demos/SpreadsheetDemo';
 
 ## Drafts and publishing
 
-Every program starts as a draft. Drafts are visible to staff only.
+Every program starts as a draft. Drafts are visible to staff only, so you can build and change one as much as you like first.
 
 <Example caption="Labels you'll see on programs.">
   <Badge tone="gold">Live</Badge>
@@ -17,8 +17,18 @@ Every program starts as a draft. Drafts are visible to staff only.
 </Example>
 
 1. Build the program. Changes save on their own about a second after you stop.
-2. Open **Publish readiness** beside the Publish button. It lists anything you need to fix, such as an exercise with no name. Select an item to jump to it.
-3. Select **Publish**. The draft becomes the client's current program for this service.
+2. Check the button beside **Publish**. It shows how many publish issues are left, or **Ready to publish**.
+3. Select it to open **Publish readiness**. Select a problem to go straight to it.
+4. When nothing is left, select **Publish**. The draft becomes the client's current program for this service.
+
+<SpreadsheetDemo name="publish-readiness" />
+
+A program can't be published until:
+
+- it has a name (a Program Style for mesocycles, a Title for personal training),
+- it has at least one week,
+- every section and exercise has a name,
+- every exercise has a set count and a target.
 
 Publishing again later replaces what the client sees with your new version. Anything the client has already logged is kept.
 
@@ -32,23 +42,59 @@ If Publish is refused, you may not have permission to publish for this client. A
   <SegmentedControl label="Editor view example" value="grid" onChange={() => {}} options={[{ value: 'grid', label: 'Spreadsheet' }, { value: 'program', label: 'List View' }]} />
 </Example>
 
-Both views edit the same draft, so you can switch at any time.
+Both views edit the same draft, so you can switch at any time. Anything you change in one shows in the other.
 
 ### Spreadsheet
 
-The Spreadsheet shows each week as a table, one row per exercise. It opens by default.
+The Spreadsheet opens by default. Each week is its own table, with one row per exercise.
 
-- Type in a cell to change it. Paste a block of cells from another spreadsheet, and you'll be asked to review the change first.
-- Drag a day, section or exercise to reorder it. Shift-click or Shift-drag to select several cells.
-- Right-click a cell to duplicate or remove its day or week.
-- Use **Add** to create weeks, days and sections.
-- The **+** bar under the table adds an exercise to the last section.
-
-<SpreadsheetDemo name="drag-row" />
+- **To change a cell**, select it and type. Press Enter to save it, or Escape to cancel.
+- **To edit a Day or Section cell**, double-click it or press Enter or F2. The Day cell holds the day's Focus.
+- **Per side**, **Load mode** and **Unit** are dropdowns.
+- **To move around**, use the arrow keys.
 
 ### List View
 
-List View shows one workout at a time, with an outline of weeks and days on the side. Use it for things the spreadsheet doesn't show: program details, every-workout prep, resources, exercise alternatives, demo links and the muscles each exercise works.
+List View shows one workout at a time, with an outline of weeks and days on the side. It also has things the Spreadsheet doesn't show:
+
+- **Program details**: the program's name, notes for the client and resources.
+- **Every-workout prep**: warm-ups or mobility the client does before every workout.
+- Each exercise's alternatives, demo link, annotations and supersets.
+
+## Building the program
+
+### Weeks and days
+
+Weeks and days number themselves: Week 1, Week 2, and Day 1, Day 2 in each week. Moving or removing one renumbers the rest.
+
+Each day can have an optional **Focus**, such as "Push" or "Legs", shown under its number.
+
+To add to the Spreadsheet, select the **+** bar under a week's table and choose **New exercise**, **New section** or **New day**. In List View, use **Add week** and **Add day** in the outline.
+
+### Sections
+
+Sections group exercises within a day, such as "Warm-up" and "Main". They're off by default.
+
+To turn them on for a week, open the week's **⋯** menu in the Spreadsheet and choose **Enable sections**, or tick **Use sections** in List View. Turning them off hides the Section column. Your sections are kept.
+
+### Exercises
+
+| Column | What to enter |
+| --- | --- |
+| Sets | The number of working sets, such as `3` or a range like `2-3`. |
+| Reps / time | Reps or a time. See Writing targets below. |
+| Per side | **Yes** when the target is for each side. |
+| Load mode | **Weight**, **Bodyweight**, **Assisted**, **Band** or **None**. |
+| Load and Unit | The weight, with **lb** or **kg**. |
+| RIR and RPE | Effort, as a number or a range. |
+| Notes | Anything else the client should know, shown with the exercise. |
+
+In List View you can also add:
+
+- **Alternatives**: other exercises the client can do instead. Either one counts.
+- **Demo link**: a video showing the exercise. It needs a full link starting with `https://`.
+- **Annotations**: short labels for a set, such as "drop set". They appear once the exercise has a target.
+- **Supersets**: tick **Superset with** on an exercise to pair it with the one above. They're labelled A1, A2, and the client sees them grouped, to do back to back.
 
 ## Writing targets
 
@@ -62,11 +108,44 @@ List View shows one workout at a time, with an outline of weeks and days on the 
 
 <SpreadsheetDemo name="per-set-targets" />
 
-A load with no unit stays without one. The app never guesses kilograms or pounds. A blank cell means no value. It is different from 0.
+A list like `10 / 8 / 6` needs one value for each set. A load with no unit stays without one; the app never guesses kilograms or pounds. A blank cell means no value, which is different from 0.
+
+## Rearranging
+
+Drag a row to move it. Drag from an exercise's cells to move the exercise, from a Section cell to move the whole section, or from a Day cell to move the whole day. You can drop into another day or week. A superset moves as one.
+
+<SpreadsheetDemo name="drag-row" />
+
+Right-click a cell for more:
+
+- **Insert row above** or **Insert row below**. In the Day column this adds a day, in the Section column a section, and anywhere else an exercise.
+- **Move exercise…** to send it to another week, day or section.
+- **Duplicate day** or **Delete day**.
+
+Each week's **⋯** menu has **Duplicate week**, **Delete week**, **Move up** and **Move down**.
+
+<Callout tone="tip">
+To start a new week from the last one, use **Duplicate week**, then change what's different.
+</Callout>
+
+## Copying and pasting
+
+You can copy cells from Excel, Google Sheets or the Spreadsheet itself.
+
+1. Select the cell where the pasted block should start.
+2. Paste with **Ctrl+V** (**⌘V** on a Mac).
+3. Check the review. It lists every cell that will change, before and after.
+4. Select **Apply** to make the changes together.
+
+<SpreadsheetDemo name="paste-review" />
+
+If something in the paste doesn't fit, the review says what to fix and nothing changes. A paste can't run past the edge of the table.
+
+To clear cells, select them and press **Delete** or **Backspace**.
 
 ## Undo and redo
 
-Use the undo and redo buttons, or press **Ctrl+Z** (**⌘Z** on a Mac) to undo and **Ctrl+Shift+Z** (**⌘⇧Z**) to redo. Undo covers your last 100 changes while the editor is open.
+Use the undo and redo buttons, or press **Ctrl+Z** (**⌘Z** on a Mac) to undo and **Ctrl+Shift+Z** (**⌘⇧Z**) to redo. A whole paste or move is one step. Undo covers your last 100 changes while the editor is open.
 
 <SpreadsheetDemo name="select-delete-undo" />
 
@@ -75,9 +154,20 @@ Use the undo and redo buttons, or press **Ctrl+Z** (**⌘Z** on a Mac) to undo a
 - **A save fails**: your edits stay in the editor. Select **Retry**, or keep editing and it tries again.
 - **Someone else changed the draft**: nothing is overwritten. You choose whether to add your changes on top of theirs, replace theirs or discard yours.
 - **You close the page with unsaved edits**: a copy stays on this device. You'll be offered it the next time you open the program.
+- **A cell turns red**: the text couldn't be read. Hover over it to see why, then fix it or press Escape.
 
 ## Current and archived programs
 
-A client can have several programs. **Current** marks the one they see now. Use **Make current** to show a different program instead.
+A client can have several programs for a service. **Current** marks the one they see now, and meetings about this service use it unless another program is chosen. To switch, open the program's **⋯** menu on the client's page and choose **Make current**.
 
-Archived programs keep their history, and they can't be edited or published.
+### Removing a program
+
+Open the program's **⋯** menu on the client's page:
+
+- **Delete program** shows for a program that was never published. It deletes it for good.
+- **Archive program** shows for a published one. It becomes read-only, and its content and the client's history are kept.
+
+### Restoring and deleting archived programs
+
+- **Restore** brings an archived program back. Its service must still be active; otherwise the menu shows **Restore (service ended)**.
+- **Delete permanently** removes an archived program and every workout logged against it. Only administrators can do this, and you type the program's title to confirm. It can't be undone.

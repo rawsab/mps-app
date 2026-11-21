@@ -1,5 +1,6 @@
 import { Callout, Example } from '../blocks';
 import { Badge } from '@/components/ui';
+import { NutritionDemo } from '../demos/NutritionDemo';
 
 A nutritional program sets a client's calorie targets over a number of weeks. The client logs their weight and calories each day, and you follow along in a spreadsheet.
 
@@ -28,23 +29,39 @@ Each day the client enters three values:
 - Calories consumed yesterday.
 - Caloric output yesterday.
 
-The calories always belong to the day before, so a log made on Tuesday fills in Monday's calories. A value of 0 is a real zero. A blank means the client hasn't answered.
+The calories always belong to the day before. A log made on Tuesday holds Tuesday's weight and Monday's calories.
+
+In the spreadsheet, that whole log goes on Tuesday's row. The calorie columns are called **Calories Consumed Day Before** and **Caloric Output Day Before** for this reason. Hover over a calorie cell to see which day it's for.
+
+<NutritionDemo name="nutrition-week" />
+
+A value of 0 is a real zero. A blank means the client hasn't answered.
 
 ## The client spreadsheet
 
-The spreadsheet shows each week with the client's entries and the calculated columns, such as weekly caloric balance and average weight change. Calculated cells and future dates can't be edited.
+Each week is its own table, one row per day. Next to the client's entries are columns the app works out:
 
-Highlighted cells are missing a weight or calorie entry.
+- **Daily Caloric Balance**: calories consumed minus caloric output.
+- **Average Weight**: the average of the last seven days' weigh-ins. It appears once there are at least three.
+
+Each week also shows its weekly caloric balance, average output and predicted and actual weight change. Calculated cells and future dates can't be edited.
+
+Highlighted cells marked **Missing** are days up to today with no weight or calorie entry.
 
 ## Correcting an entry
 
-You can type over a client's entry in the spreadsheet. Your change saves straight to the client's records and is marked as a coach correction. Corrected cells have a light gold tint.
+1. Select the cell and type the right number.
+2. Press Enter. Your change saves straight to the client's record and is marked as a coach correction.
+
+Corrected cells have a light gold tint.
+
+<NutritionDemo name="nutrition-correction" />
 
 <Example caption="In Activity, entries you corrected carry this label.">
   <Badge>Edited by coach</Badge>
 </Example>
 
-Open **Correction history** to see the latest 100 changes, with the value before and after each one.
+Open **Correction history** to see the latest 100 changes, with the value before and after each one. Calorie changes are listed by the day the calories were eaten.
 
 ## Archived programs
 

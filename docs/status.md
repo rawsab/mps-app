@@ -676,3 +676,24 @@ Decision 0055, "Owner follow-ups".
 - Decision 0057. A demo player and three looping Spreadsheet demos, placed in the shared editor text on the Mesocycle and Personal training pages: per-set targets (`10 / 8 / 6`), dragging a row (with renumbering), and Shift-select, Delete, then Undo.
 - The scripts run the editor's own planners on a fictional program, so each frame matches the real Spreadsheet. The player plays only while on screen and the tab is visible. It has Pause and Play, and opens paused on the last frame with reduced motion. Screen readers get a description and the list of steps.
 - **Verification.** `pnpm verify` passes (429 tests, including `tests/domain/helpDemos.test.ts`). No browser checks; manual checks are in decision 0057.
+
+## Help phase 2, step 2: editor detail, paste and publish demos (2026-11-21)
+
+- Decision 0057. The shared editor text on the Mesocycle and Personal training pages now covers:
+  - publishing rules and readiness;
+  - Spreadsheet keys;
+  - weeks, days, Focus and sections;
+  - every exercise column, with alternatives, demo links, annotations and supersets;
+  - rearranging, with the cell and week menus;
+  - copying and pasting;
+  - current, archived and deleted programs.
+- Two new demos: the paste review (`planPaste`) and Publish readiness (`validateForPublish`), with fixing two issues and publishing.
+- **Verification.** `pnpm verify` passes (430 tests). No browser checks.
+
+## Help: nutrition demos (2026-11-21)
+
+- Decision 0057. Two demos on the Nutrition page, drawn through the app's own nutrition maths:
+  - A week filling in, one morning's log at a time, with the "Calories for …" note.
+  - Missing entries, a coach correction (planned with `planNutritionCells`), and Correction history.
+- The page now explains that a log fills one row: that morning's weight and the previous day's calories. It also explains the calculated columns. This corrects the earlier plan's wording.
+- **Verification.** `pnpm verify` passes (433 tests). No browser checks.

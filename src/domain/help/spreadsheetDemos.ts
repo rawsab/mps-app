@@ -1,6 +1,6 @@
 import { applyCommands, type DraftCommand } from '@/domain/programs/commands';
-import type { Exercise, ProgramDraft } from '@/domain/programs/contract';
-import { planClear, planEdits, type CellEdit, type GridColumnKey } from '@/domain/programs/grid';
+import { validateForPublish, type Exercise, type ProgramDraft } from '@/domain/programs/contract';
+import { gridColumns, gridRows, planClear, planEdits, planPaste, type CellChange, type CellEdit, type GridColumnKey } from '@/domain/programs/grid';
 import { planGridRowMove } from '@/domain/programs/gridRowMoves';
 import { typing, type DemoFrame, type DemoScript } from './demo';
 
@@ -28,11 +28,22 @@ export type GridDemoState = {
   changed?: DemoCell[];
   /** Whether Undo can be pressed. */
   canUndo?: boolean;
+  /** The paste review, open over the grid, with the planner's own list of changes. */
+  paste?: { text: string; changes: CellChange[] } | null;
+  /** The editor's publish controls: shown when set, with the readiness list open or closed. */
+  publishing?: { reviewOpen: boolean; published: boolean } | null;
 };
 
 /** `data-demo-target` names the grid renders. */
 export const cellTarget = (cell: DemoCell) => `cell:${cell.exerciseId}:${cell.column}`;
 export const UNDO_TARGET = 'undo';
+export const READINESS_TARGET = 'readiness';
+export const PUBLISH_TARGET = 'publish';
+export const APPLY_PASTE_TARGET = 'apply-paste';
+export const issueTarget = (index: number) => `issue:${index}`;
+
+/** The publish issues the editor would list for a draft. */
+export const publishIssues = (draft: ProgramDraft) => validateForPublish(draft).map((problem) => problem.message);
 
 function exercise(id: string, name: string): Exercise {
   return { id, logicalKey: id, name, alternatives: [], groupId: null, demoUrl: null, muscles: [], prescription: { setCount: null, targets: [] }, notes: '' };
@@ -126,10 +137,64 @@ function selectDeleteUndo(): DemoScript<GridDemoState> {
   return { id: 'select-delete-undo', description: 'Shift-clicking selects four cells, Delete clears them, and Undo brings them back.', frames };
 }
 
+/** Pasting a block copied from another spreadsheet, through the paste review. */
+function pasteReview(): DemoScript<GridDemoState> {
+  const start = demoProgram([['bench', 'Bench press', '3', '8-10'], ['incline', 'Incline dumbbell press', '3', '10'], ['fly', 'Cable fly', '2', '12-15']]);
+  const matrix = [['4', '6-8'], ['3', '10 / 8 / 6']];
+  const text = matrix.map((line) => line.join('\t')).join('\n');
+  const columns = gridColumns(start.service);
+  const plan = planPaste(start, gridRows(start), 0, columns.findIndex((column) => column.key === 'sets'), matrix, columns);
+  const done = apply(start, plan);
+  const at: DemoCell = { exerciseId: 'bench', column: 'sets' };
+  // The planner's own list: Incline's set count is already 3, so only three cells change.
+  const changed = plan.changes.map((change): DemoCell => ({ exerciseId: change.exerciseId, column: change.column as DemoColumn }));
+  const corner: DemoCell = { exerciseId: 'incline', column: 'effort' };
+  const review = 'Before anything changes, the review lists every cell, before and after.';
+  const frames: Frame[] = [
+    { state: { draft: start }, ms: 1200, caption: 'Copy a block of cells from another spreadsheet, then select where it starts.', pointer: { target: cellTarget(at) } },
+    { state: { draft: start, selection: { from: at, to: at } }, ms: 700, caption: 'Copy a block of cells from another spreadsheet, then select where it starts.', pointer: { target: cellTarget(at), press: true } },
+    { state: { draft: start, selection: { from: at, to: at } }, ms: 800, caption: 'Paste with Ctrl+V, or ⌘V on a Mac.', keys: ['⌘', 'V'], pointer: { target: cellTarget(at) } },
+    { state: { draft: start, selection: { from: at, to: at }, paste: { text, changes: plan.changes } }, ms: 2600, caption: review, pointer: { target: cellTarget(at) } },
+    { state: { draft: start, selection: { from: at, to: at }, paste: { text, changes: plan.changes } }, ms: 900, caption: 'Select Apply to make them all at once.', pointer: { target: APPLY_PASTE_TARGET } },
+    { state: { draft: start, selection: { from: at, to: at }, paste: { text, changes: plan.changes } }, ms: 400, caption: 'Select Apply to make them all at once.', pointer: { target: APPLY_PASTE_TARGET, press: true } },
+    { state: { draft: done, selection: { from: at, to: corner }, changed, canUndo: true }, ms: 2400, caption: 'The pasted values are in. One Undo takes the whole paste back.', pointer: { target: cellTarget(corner) } },
+  ];
+  return { id: 'paste-review', description: 'Pasting a two by two block shows a review of the three cells it changes, and Apply makes them together.', frames };
+}
+
+/** Fixing what Publish readiness lists, then publishing. */
+function publishReadiness(): DemoScript<GridDemoState> {
+  const start = edit(demoProgram([['bench', 'Bench press', '3', '8-10'], ['incline', 'Incline dumbbell press', '3', '10'], ['fly', '', '2', '12-15']]), [{ exerciseId: 'fly', column: 'sets', text: '' }]);
+  const name: DemoCell = { exerciseId: 'fly', column: 'name' };
+  const sets: DemoCell = { exerciseId: 'fly', column: 'sets' };
+  const named = edit(start, [{ ...name, text: 'Cable fly' }]);
+  const ready = edit(named, [{ ...sets, text: '2' }]);
+  const closed = { reviewOpen: false, published: false };
+  const open = { reviewOpen: true, published: false };
+  const fix = 'Select a problem to go straight to it, and fix it.';
+  const frames: Frame[] = [
+    { state: { draft: start, publishing: closed }, ms: 1300, caption: 'Beside Publish, the editor counts what still needs fixing.', pointer: { target: READINESS_TARGET } },
+    { state: { draft: start, publishing: closed }, ms: 400, caption: 'Beside Publish, the editor counts what still needs fixing.', pointer: { target: READINESS_TARGET, press: true } },
+    { state: { draft: start, publishing: open }, ms: 2000, caption: 'Publish readiness lists each problem.', pointer: { target: issueTarget(0) } },
+    { state: { draft: start, publishing: open }, ms: 400, caption: fix, pointer: { target: issueTarget(0), press: true } },
+    { state: { draft: start, publishing: closed, selection: { from: name, to: name } }, ms: 700, caption: fix, pointer: { target: cellTarget(name) } },
+    ...typing<GridDemoState>('Cable fly', 110, (text) => ({ state: { draft: start, publishing: closed, editing: { ...name, text } }, caption: fix, pointer: { target: cellTarget(name) } })),
+    { state: { draft: named, publishing: closed, selection: { from: name, to: name }, changed: [name] }, ms: 1100, caption: 'One down. The count goes down as you fix things.', pointer: { target: READINESS_TARGET } },
+    { state: { draft: named, publishing: closed, selection: { from: sets, to: sets } }, ms: 700, caption: 'One down. The count goes down as you fix things.', pointer: { target: cellTarget(sets), press: true } },
+    { state: { draft: named, publishing: closed, editing: { ...sets, text: '2' } }, ms: 600, caption: 'One down. The count goes down as you fix things.', pointer: { target: cellTarget(sets) } },
+    { state: { draft: ready, publishing: closed, selection: { from: sets, to: sets }, changed: [sets] }, ms: 1300, caption: 'Nothing left to fix: Ready to publish.', pointer: { target: PUBLISH_TARGET } },
+    { state: { draft: ready, publishing: closed }, ms: 400, caption: 'Select Publish.', pointer: { target: PUBLISH_TARGET, press: true } },
+    { state: { draft: ready, publishing: { reviewOpen: false, published: true } }, ms: 2600, caption: 'It is live. The client now sees this version.', pointer: { target: PUBLISH_TARGET } },
+  ];
+  return { id: 'publish-readiness', description: 'Publish readiness lists two problems, an exercise with no name and a missing set count. Fixing both makes the draft ready, and Publish makes it live.', frames };
+}
+
 export const SPREADSHEET_DEMOS = {
   'per-set-targets': perSetTargets(),
   'drag-row': dragRow(),
   'select-delete-undo': selectDeleteUndo(),
+  'paste-review': pasteReview(),
+  'publish-readiness': publishReadiness(),
 } satisfies Record<string, DemoScript<GridDemoState>>;
 
 export type SpreadsheetDemoName = keyof typeof SPREADSHEET_DEMOS;
