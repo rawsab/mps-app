@@ -14,6 +14,8 @@ export const ScheduleSchema = z.object({
   id: z.string(), cycleWeeks: z.number().int(), anchorOn: z.string(), startsOn: z.string(), endsOn: z.string().nullable(),
   timezone: z.string(), replacesId: z.string().nullable(), slots: z.array(SlotSchema),
   services: z.array(Service), programs: z.record(z.string(), z.string()), active: z.boolean(),
+  /** Solo or partner, for the PT price (migration 00052). */
+  format: z.enum(['solo', 'partner']),
   /** Staff only; null for clients and when there are none. */
   notes: z.string().nullable(),
 });
@@ -241,6 +243,8 @@ function useMeetingMutation<I, T>(fn: (input: I) => Promise<T>) {
       queryClient.invalidateQueries({ queryKey: meetingsKey }),
       // Answering a request changes its status in Reviews.
       queryClient.invalidateQueries({ queryKey: ['staff-activity'] }),
+      // Attendance charges and voids PT sessions (decision 0053).
+      queryClient.invalidateQueries({ queryKey: ['billing'] }),
     ]),
   });
 }

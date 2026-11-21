@@ -1,7 +1,7 @@
 -- Billing (decision 0053). Run with: pnpm test:db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(73);
+select plan(74);
 
 create function pg_temp.act_as(uid uuid) returns void language plpgsql as $$
 begin
@@ -251,6 +251,8 @@ select public.create_meeting_schedule(:grace, '{personal_training}', 1, null, :'
 select public.set_meeting_schedule_format(:'sched', 'partner') is not null as ok \gset
 select is((select count(*)::int from public.meetings where schedule_id = :'sched' and format <> 'partner'), 0,
   'a pattern''s format applies to its future meetings');
+select is((select e->>'format' from jsonb_array_elements(public.get_client_meetings(:grace)->'schedules') e where e->>'id' = :'sched'), 'partner',
+  'the pattern document carries its format');
 select is((public.get_meeting_billing((select id from public.meetings where schedule_id = :'sched' limit 1))->>'resolvedPriceCents')::int, 12000,
   'and a partner hour uses the partner price');
 

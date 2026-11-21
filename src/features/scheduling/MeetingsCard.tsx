@@ -103,6 +103,7 @@ export function MeetingsCard({ clientId, heading, focusMeetingId, onFocusClosed 
                 <div className="min-w-0 flex-1 text-sm">
                   <p className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span className="font-medium"><FadedDurations text={description.summary} /></span>
+                    {schedule.format === 'partner' && schedule.services.includes('personal_training') ? <Badge>Partner</Badge> : null}
                     {schedule.active ? null : <Badge>Paused</Badge>}
                   </p>
                   {description.weeks.map((week) => <p key={week} className="text-muted"><FadedDurations text={week} /></p>)}

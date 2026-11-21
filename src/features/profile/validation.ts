@@ -18,6 +18,11 @@ export const schedulingSchema = z.object({
   lateCancelHours: z.string().trim().regex(/^\d{1,3}$/, 'Enter whole hours from 0 to 168.').transform(Number).refine((hours) => hours <= 168, 'Enter whole hours from 0 to 168.'),
 });
 
+// Same rule as the profiles.etransfer_email check (migration 00051). Blank removes it.
+export const etransferSchema = z.object({
+  etransferEmail: z.union([z.literal(''), z.email('Enter a valid email address, or leave it blank.').max(254, 'Use 254 characters or fewer.')]),
+});
+
 export const PHOTO_MAX_BYTES = 5 * 1024 * 1024;
 export const PHOTO_TYPES = ['image/jpeg', 'image/png', 'image/webp'];
 export function validatePhoto(file: Pick<File, 'size' | 'type'>) {

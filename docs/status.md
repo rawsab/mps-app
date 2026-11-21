@@ -452,3 +452,10 @@ Open items are tracked in `docs/todo.md`.
   - 73 new pgTAP assertions (`039_billing.test.sql`). The full suite passes apart from the 3 known `023` failures. `supabase db diff` shows no drift.
   - `src/domain/billing/` has 10 unit tests; `pnpm verify` passes (377).
   - No UI yet. Next: phase B (coach screens), then C (client screens).
+- Billing, phase B (decision 0053): coach screens.
+  - A Billing sidebar page (overview, clients by balance, sessions needing a price, admin default prices).
+  - The same billing panel on the client page: pricing, monthly statements, payments, mark paid, edit, void, charges and credits.
+  - Solo/Partner and price in the meeting and pattern dialogs, and the e-transfer email in Profile settings.
+  - Migration 00052 (pattern format in `schedule_document`) is applied locally. 74 pgTAP assertions in `039`, and 3 new HTTP tests in `tests/policies/billing.test.ts`. `pnpm verify` passes.
+  - The monthly charge job was run once by hand locally, so the seeded clients have November charges.
+  - Manual UI check pending. Next: phase C (client Home card, `/billing`, Pay dialog).

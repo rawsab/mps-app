@@ -25,13 +25,14 @@ declare
   actor uuid;
   coach uuid;
 begin
+  -- PT sessions are 60 or 40 minutes, the lengths with default prices (decision 0053).
   for pattern in
     select * from (values
       ('maya-check-in', maya, '{mesocycle,nutrition}'::public.service_kind[], 2, 45, 6, time '18:00', 25,
         'Pull up the last two weekly averages and ask how the higher training volume is feeling.'),
-      ('daniel-pt', daniel, '{personal_training}', 1, 44, 1, time '17:30', 55,
+      ('daniel-pt', daniel, '{personal_training}', 1, 44, 1, time '17:30', 60,
         'Gym floor, near the dumbbell racks. Ask about his office schedule before planning the second lift.'),
-      ('grace-pt', grace, '{personal_training}', 1, 43, 4, time '11:00', 45,
+      ('grace-pt', grace, '{personal_training}', 1, 43, 4, time '11:00', 40,
         'Technique session. Film the second box squat set from the side if Grace is comfortable.')
     ) as v(key, client_id, services, cycle_weeks, days_ago, next_slot, at_time, duration, notes)
   loop
@@ -98,7 +99,7 @@ begin
   starts_at := (demo_on + 4 + time '09:00') at time zone coach_tz;
   insert into public.meetings (id, client_id, coach_id, starts_at, duration_minutes, timezone, services,
     status, modified, cancelled_at, cancelled_by, cancellation_reason, created_by, updated_by, created_at, updated_at)
-  values (meeting_id, daniel, coach, starts_at, 45, coach_tz, '{personal_training}',
+  values (meeting_id, daniel, coach, starts_at, 60, coach_tz, '{personal_training}',
     'cancelled', true, cancelled_at, actor, 'Out of town for a family weekend. I’ll train at the hotel instead.',
     coach, coach, (demo_on - 5 + time '11:00') at time zone coach_tz, cancelled_at)
   on conflict (id) do nothing;

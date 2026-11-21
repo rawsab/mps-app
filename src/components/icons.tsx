@@ -164,6 +164,8 @@ export const StimulusIcon = () => <Icon className="size-4 shrink-0"><path d="M13
 export const ProgressionIcon = () => <Icon className="size-4 shrink-0"><path d="m3 17 6-6 4 4 8-8M15 7h6v6" /></Icon>;
 export const ArrowUpRightIcon = () => <Icon className="size-4 shrink-0"><path d="M7 17 17 7M9 7h8v8" /></Icon>;
 export const CalendarIcon = () => <Icon><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M4 10h16M8.5 3v4M15.5 3v4" /></Icon>;
+/** Billing: a card with a stripe. */
+export const BillingIcon = () => <Icon><rect x="3" y="5.5" width="18" height="13" rx="2" /><path d="M3 10h18M7 14.5h4" /></Icon>;
 /** Recent activity: a clock with a return arrow. */
 /** Time off (decision 0050): a calendar crossed out. */
 export const TimeOffIcon = () => <Icon><rect x="4" y="5" width="16" height="15" rx="2" /><path d="M4 10h16M8.5 3v4M15.5 3v4M10 13.5l4 4M14 13.5l-4 4" /></Icon>;

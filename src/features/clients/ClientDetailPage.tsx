@@ -1,6 +1,6 @@
 import { Avatar } from '@/components/Avatar';
 import { ActionItem, ActionsMenu } from '@/components/ActionsMenu';
-import { ArchiveIcon, CalendarIcon, ServicesIcon, SettingsIcon, TrashIcon } from '@/components/icons';
+import { ArchiveIcon, BillingIcon, CalendarIcon, ServicesIcon, SettingsIcon, TrashIcon } from '@/components/icons';
 import { ConfirmDialog, DialogBody } from '@/components/Dialog';
 import { useState, type FormEvent } from 'react';
 import { Link, useParams, useSearchParams } from 'react-router';
@@ -10,6 +10,7 @@ import { Alert, Badge, Button, EmptyState, PageHeader, SectionHeading, SectionTi
 import { IconButton } from '@/components/controls';
 import type { ServiceKind } from '@/domain/programs/contract';
 import { RecentUpdatesCard } from '@/features/activity/ActivityViews';
+import { ClientBillingPanel } from '@/features/billing/ClientBilling';
 import { ProgramsCard } from '@/features/programs/ProgramsCard';
 import { MeetingsCard } from '@/features/scheduling/MeetingsCard';
 import { CurrentProgramBox } from '@/features/programs/CurrentProgram';
@@ -76,6 +77,7 @@ export function ClientDetailPage() {
               focusMeetingId={focusSession} onFocusClosed={() => setParams((p) => { p.delete('session'); return p; }, { replace: true })} />
           ) : null}
           <ProgramsCard clientId={c.id} enrollments={c.service_enrollments} />
+          <ClientBillingPanel clientId={c.id} clientName={c.full_name} heading={<span className="flex items-center gap-2"><SectionTitle icon={<BillingIcon />}>Billing</SectionTitle></span>} />
         </div>
         <div className="grid min-w-0 gap-8 lg:border-l lg:border-line lg:pl-6">
           <ServicesCard clientId={c.id} enrollments={c.service_enrollments} canEdit={isAdmin} />

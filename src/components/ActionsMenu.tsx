@@ -2,8 +2,8 @@ import { useEffect, useId, useRef, useState, type ComponentPropsWithRef, type Re
 import { IconButton } from './controls';
 import { MoreIcon } from './icons';
 
-/** A disclosure of ordinary buttons: Tab navigates actions; Escape returns to the trigger. */
-export function ActionsMenu({ label, children }: { label: string; children: ReactNode }) {
+/** A disclosure of ordinary buttons: Tab navigates actions; Escape returns to the trigger. `sm` for a ⋯ inside a dense list row. */
+export function ActionsMenu({ label, size = 'md', children }: { label: string; size?: 'sm' | 'md'; children: ReactNode }) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -27,7 +27,7 @@ export function ActionsMenu({ label, children }: { label: string; children: Reac
     }} onBlur={(event) => {
       if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
     }}>
-      <IconButton ref={trigger} label={label} title={label} aria-expanded={open} aria-controls={id}
+      <IconButton ref={trigger} label={label} title={label} size={size} aria-expanded={open} aria-controls={id}
         onMouseDown={(event) => event.preventDefault()}
         onClick={(event) => { event.currentTarget.focus(); setOpen((value) => !value); }}>
         <MoreIcon />

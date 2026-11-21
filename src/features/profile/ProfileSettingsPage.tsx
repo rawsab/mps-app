@@ -4,10 +4,11 @@ import { useViewer, type Viewer } from '@/app/auth';
 import { Avatar } from '@/components/Avatar';
 import { ComboboxField } from '@/components/ComboboxField';
 import { Alert, Button, Card, PageHeader, Spinner, TextField } from '@/components/ui';
+import { saveEtransferEmail } from '@/features/billing/api';
 import { AvailabilityCard } from '@/features/scheduling/AvailabilityCard';
 import { deviceTimeZone, timeZoneOptions } from '@/lib/timeZones';
 import { changePhoto, saveProfile, saveSchedulingSettings, saveTimeZone } from './api';
-import { localDate, profileSchema, schedulingSchema, validatePhoto } from './validation';
+import { etransferSchema, localDate, profileSchema, schedulingSchema, validatePhoto } from './validation';
 
 export function ProfileSettingsPage() {
   const viewer = useViewer();
@@ -23,9 +24,10 @@ function ProfileForm({ viewer }: { viewer: Viewer }) {
   const [phoneNumber, setPhoneNumber] = useState(viewer.phoneNumber ?? '');
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [message, setMessage] = useState<{ error: boolean; text: string } | null>(null);
-  const [busy, setBusy] = useState<'profile' | 'photo' | 'timezone' | 'sessions' | null>(null);
+  const [busy, setBusy] = useState<'profile' | 'photo' | 'timezone' | 'sessions' | 'payments' | null>(null);
   const [meetingUrl, setMeetingUrl] = useState(viewer.scheduling?.meetingUrl ?? '');
   const [lateCancelHours, setLateCancelHours] = useState(String(viewer.scheduling?.lateCancelHours ?? 24));
+  const [etransferEmail, setEtransferEmail] = useState(viewer.etransferEmail ?? '');
   const device = deviceTimeZone();
   const input = useRef<HTMLInputElement>(null);
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['viewer', viewer.userId] });
@@ -81,6 +83,26 @@ function ProfileForm({ viewer }: { viewer: Viewer }) {
       setMessage({ error: false, text: 'Session settings saved.' });
     } catch (error) {
       setMessage({ error: true, text: error instanceof Error ? error.message : 'Could not save your session settings. Please try again.' });
+    } finally { setBusy(null); }
+  }
+
+  async function submitPayments(event: FormEvent) {
+    event.preventDefault();
+    setMessage(null);
+    const parsed = etransferSchema.safeParse({ etransferEmail: etransferEmail.trim() });
+    if (!parsed.success) {
+      setErrors(Object.fromEntries(parsed.error.issues.map((issue) => [String(issue.path[0]), issue.message])));
+      return;
+    }
+    setErrors({});
+    setBusy('payments');
+    try {
+      const saved = await saveEtransferEmail(parsed.data.etransferEmail);
+      await refresh();
+      setEtransferEmail(saved.etransferEmail ?? '');
+      setMessage({ error: false, text: saved.etransferEmail ? 'E-transfer email saved.' : 'E-transfer email removed.' });
+    } catch (error) {
+      setMessage({ error: true, text: error instanceof Error ? error.message : 'Could not save your e-transfer email. Please try again.' });
     } finally { setBusy(null); }
   }
 
@@ -163,6 +185,19 @@ function ProfileForm({ viewer }: { viewer: Viewer }) {
           </Card>
         ) : null}
         {viewer.scheduling ? <AvailabilityCard /> : null}
+        {viewer.staffRole ? (
+          <Card>
+            <h2 className="mb-4 text-base font-semibold text-text">Payments</h2>
+            <form onSubmit={(event) => void submitPayments(event)} className="space-y-5" noValidate>
+              <fieldset disabled={!!busy} className="min-w-0 space-y-5">
+                <TextField label="E-transfer email" type="email" inputMode="email" autoComplete="off" value={etransferEmail} onChange={(event) => setEtransferEmail(event.target.value)}
+                  maxLength={254} placeholder={viewer.email} error={errors.etransferEmail}
+                  hint="Clients you’re the primary coach for see this when they pay. It can differ from your sign-in email. Leave blank if you don’t take e-transfers." />
+                <Button type="submit" busy={busy === 'payments'}>Save e-transfer email</Button>
+              </fieldset>
+            </form>
+          </Card>
+        ) : null}
       </div>
     </div>
   );

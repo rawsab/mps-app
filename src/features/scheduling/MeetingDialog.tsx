@@ -8,7 +8,9 @@ import {
   schedulingError, useAddMeeting, useCancelMeeting, useMeeting, useReinstateMeeting, useRespondToRequest, useSaveMeetingNotes, useUpdateMeeting,
   type Meeting, type MeetingContext, type MeetingSchedule, type MeetingTopic, type Overlap, type ProgramChoice,
 } from './api';
+import { MeetingBillingSection } from '@/features/billing/MeetingBilling';
 import { AttendanceSection, ResourcesSection, SharedNotesField } from './MeetingRecord';
+import { MinutesField } from './MinutesField';
 import { defaultTopic, MeetingTopicFields, topicLabel } from './MeetingTopic';
 import { sessionDay, sessionMoment, sessionRange, sessionTime, todayIn, zoneLabel } from './time';
 import type { SavedOptions } from '@/components/Toast';
@@ -29,12 +31,13 @@ function overlapNotice(overlaps: Overlap[], timeZone: string): string {
   return ` It overlaps ${overlaps.map((o) => `${o.clientName} at ${sessionTime(o.startsAt, timeZone)}`).join(' and ')}.`;
 }
 
-function WhenFields({ when, onChange }: { when: When; onChange: (when: When) => void }) {
+/** `pt`: Personal training lengths are 60 or 40 minutes, so every session has a price. */
+function WhenFields({ when, onChange, pt }: { when: When; onChange: (when: When) => void; pt: boolean }) {
   return (
     <div className="grid gap-3 sm:grid-cols-3">
       <TextField label="Date" type="date" value={when.date} onChange={(event) => onChange({ ...when, date: event.target.value })} />
       <TextField label="Start" type="time" step={300} value={when.time} onChange={(event) => onChange({ ...when, time: event.target.value })} />
-      <TextField label="Minutes" type="text" inputMode="numeric" maxLength={3} value={when.duration} onChange={(event) => onChange({ ...when, duration: event.target.value })} />
+      <MinutesField pt={pt} value={when.duration} onChange={(duration) => onChange({ ...when, duration })} />
     </div>
   );
 }
@@ -68,7 +71,7 @@ export function NewMeetingDialog({ clientId, context, programs, onClose, onSaved
         <Button busy={add.isPending} onClick={save}>Add meeting</Button>
       </>}>
       <div className="grid gap-5 p-4 sm:p-5">
-        <WhenFields when={when} onChange={setWhen} />
+        <WhenFields when={when} onChange={setWhen} pt={topic.services.includes('personal_training')} />
         <MeetingTopicFields context={context} programs={programs} value={topic} onChange={setTopic} />
         <TextAreaField label="Private notes (optional)" rows={3} maxLength={5000} value={notes} onChange={(event) => setNotes(event.target.value)} hint={NOTES_HINT} />
         <Alert visible={!!problem}>{problem}</Alert>
@@ -219,7 +222,7 @@ function MeetingDetails({ meeting, context, programs, onClose, onSaved, onChange
             </div>
             {pending.kind === 'reschedule' ? (
               started ? <p className="text-sm text-muted">The meeting has started, so this request can only be declined.</p>
-                : <WhenFields when={when} onChange={setWhen} />
+                : <WhenFields when={when} onChange={setWhen} pt={meeting.billable} />
             ) : null}
             <TextAreaField label="Reply (optional)" rows={2} maxLength={1000} value={reply} onChange={(event) => setReply(event.target.value)} />
             <div className="flex flex-wrap gap-2">
@@ -241,7 +244,7 @@ function MeetingDetails({ meeting, context, programs, onClose, onSaved, onChange
         {meeting.status === 'scheduled' && !pending ? (
           <section aria-labelledby="meeting-change" className="grid gap-4">
             <h3 id="meeting-change" className="text-base font-semibold">Change this meeting only</h3>
-            <WhenFields when={when} onChange={setWhen} />
+            <WhenFields when={when} onChange={setWhen} pt={topic.services.includes('personal_training')} />
             <MeetingTopicFields context={context} programs={programs} value={topic} onChange={setTopic} />
             <div className="flex flex-wrap gap-2">
               <Button busy={update.isPending} disabled={busy} onClick={saveChanges}>Save meeting</Button>
@@ -271,6 +274,8 @@ function MeetingDetails({ meeting, context, programs, onClose, onSaved, onChange
         ) : null}
 
         <AttendanceSection meeting={meeting} timeZone={timeZone} onSaved={onSaved} />
+
+        {meeting.billable && meeting.status !== 'cancelled' ? <MeetingBillingSection meetingId={meeting.id} durationMinutes={meeting.durationMinutes} onSaved={onSaved} /> : null}
 
         {meeting.status === 'cancelled' || meeting.status === 'late_cancelled' ? (
           <section className="grid gap-3">

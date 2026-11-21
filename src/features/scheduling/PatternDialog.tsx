@@ -1,12 +1,15 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Dialog } from '@/components/Dialog';
-import { ToggleButton } from '@/components/controls';
+import { SegmentedControl, ToggleButton } from '@/components/controls';
 import { Alert, Button, SelectField, TextAreaField, TextField } from '@/components/ui';
 import { anchorFor, cycleWeekOf, weekdayName, weekdayShort, WEEKDAYS, type PatternSlot } from '@/domain/scheduling/pattern';
+import type { SessionFormat } from '@/domain/billing/billing';
+import { useSetScheduleFormat } from '@/features/billing/api';
 import type { ProgramRow } from '@/features/programs/api';
 import { formatDate } from '@/lib/format';
 import { schedulingError, useChangePattern, useCreatePattern, usePatternPreview, type MeetingContext, type MeetingSchedule, type MeetingTopic, type PatternInput } from './api';
 import { defaultTopic, MeetingTopicFields } from './MeetingTopic';
+import { MinutesField } from './MinutesField';
 import { sessionMoment, todayIn, zoneLabel } from './time';
 import type { SavedOptions } from '@/components/Toast';
 
@@ -41,7 +44,8 @@ export function PatternDialog({ clientId, context, programs, schedule, from, onC
   const today = todayIn(timeZone);
   const create = useCreatePattern(clientId);
   const change = useChangePattern();
-  const saving = create.isPending || change.isPending;
+  const setScheduleFormat = useSetScheduleFormat();
+  const saving = create.isPending || change.isPending || setScheduleFormat.isPending;
   const [cycleWeeks, setCycleWeeks] = useState(schedule?.cycleWeeks ?? 1);
   const [slots, setSlots] = useState<SlotDraft[]>(() => (schedule?.slots ?? []).map((slot) => ({
     cycleWeek: slot.cycleWeek, weekday: slot.weekday, startTime: slot.startTime, duration: String(slot.durationMinutes),
@@ -54,6 +58,9 @@ export function PatternDialog({ clientId, context, programs, schedule, from, onC
     ? { services: schedule.services.filter((s) => context.services.some((live) => live.service === s)), programs: schedule.programs }
     : defaultTopic(context));
   const [notes, setNotes] = useState('');
+  // Solo or partner sets the PT price (decision 0053). A "this and following" change keeps the old one.
+  const [format, setFormat] = useState<SessionFormat>(schedule?.format ?? 'solo');
+  const billed = topic.services.includes('personal_training');
   const [showErrors, setShowErrors] = useState(false);
 
   const problems = useMemo(() => {
@@ -100,19 +107,24 @@ export function PatternDialog({ clientId, context, programs, schedule, from, onC
   const updateSlot = (target: SlotDraft, patch: Partial<SlotDraft>) =>
     setSlots((current) => current.map((slot) => (slot === target ? { ...slot, ...patch } : slot)));
 
+  // The pattern is saved first; its format follows, so a failure there leaves a pattern to fix, never a lost one.
+  const applyFormat = async (saved: MeetingSchedule) => {
+    if (billed && saved.format !== format) await setScheduleFormat.mutateAsync({ scheduleId: saved.id, format });
+  };
+
   function save() {
     if (!input) return setShowErrors(true);
     if (schedule) {
       change.mutate({ ...input, ...topic, scheduleId: schedule.id }, {
-        onSuccess: (result) => onSaved(`Repeating meetings changed from ${formatDate(input.startsOn)}.${result.keptMeetings
-          ? ` ${result.keptMeetings} ${result.keptMeetings === 1 ? 'meeting you had changed was' : 'meetings you had changed were'} kept as they were.` : ''}`),
+        onSuccess: (result) => void applyFormat(result).then(() => onSaved(`Repeating meetings changed from ${formatDate(input.startsOn)}.${result.keptMeetings
+          ? ` ${result.keptMeetings} ${result.keptMeetings === 1 ? 'meeting you had changed was' : 'meetings you had changed were'} kept as they were.` : ''}`), () => undefined),
       });
     } else {
-      create.mutate({ ...input, ...topic, notes }, { onSuccess: () => onSaved('Repeating meetings set up.') });
+      create.mutate({ ...input, ...topic, notes }, { onSuccess: (result) => void applyFormat(result).then(() => onSaved('Repeating meetings set up.'), () => undefined) });
     }
   }
 
-  const error = create.error ?? change.error;
+  const error = create.error ?? change.error ?? setScheduleFormat.error;
 
   return (
     <Dialog wide title={schedule ? 'Change repeating meetings' : 'Set up repeating meetings'}
@@ -124,6 +136,16 @@ export function PatternDialog({ clientId, context, programs, schedule, from, onC
       </>}>
       <div className="grid gap-5 p-4 sm:p-5">
         <MeetingTopicFields context={context} programs={programs} value={topic} onChange={setTopic} />
+        {billed ? (
+          <div className="grid gap-1.5">
+            <span className="text-sm font-medium">Personal training session</span>
+            <div className="flex">
+              <SegmentedControl label="Personal training session" size="md" value={format} onChange={setFormat}
+                options={[{ value: 'solo', label: 'Solo' }, { value: 'partner', label: 'Partner' }]} />
+            </div>
+            <p className="text-xs text-muted">Partner sessions use the partner price, charged to this client.</p>
+          </div>
+        ) : null}
         <div className="grid gap-4 sm:grid-cols-3">
           <SelectField label="Repeats" value={cycleWeeks} onChange={(event) => setCycle(Number(event.target.value))}>
             <option value={1}>Every week</option>
@@ -162,7 +184,7 @@ export function PatternDialog({ clientId, context, programs, schedule, from, onC
                     <li key={slot.weekday} className="grid grid-cols-[5.5rem_minmax(0,1fr)_minmax(0,1fr)] items-end gap-3">
                       <span className="pb-3 text-sm font-medium">{weekdayName(slot.weekday)}</span>
                       <TextField label="Start" type="time" step={300} value={slot.startTime} onChange={(event) => updateSlot(slot, { startTime: event.target.value })} />
-                      <TextField label="Minutes" type="text" inputMode="numeric" maxLength={3} value={slot.duration} onChange={(event) => updateSlot(slot, { duration: event.target.value })} />
+                      <MinutesField pt={billed} value={slot.duration} onChange={(duration) => updateSlot(slot, { duration })} />
                     </li>
                   ))}
                 </ul>

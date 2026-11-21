@@ -184,6 +184,57 @@ A trigger on `meetings.status` calls `private.sync_session_charge`. It covers `r
   - `pnpm verify`: 377 unit tests (10 new in `tests/domain/billing.test.ts`) and the build pass.
 - **Local data:** the hourly job will charge the seeded clients' current month the first time it runs (for example Maya's Mesocycle + Nutrition bundle, $300). Sessions recorded from now on are charged; seeded past sessions aren't, because the trigger only fires on changes.
 
+## Phase B (built 2026-11-20, manual UI checks pending)
+
+- **Billing page** (`/coach/billing`, a sidebar item after Meetings):
+  - Tiles: Outstanding (and how many clients owe), From previous months, Billed this month, Received this month (credits excluded).
+  - "Sessions that need a price": each row opens the meeting on the client page.
+  - A client list filtered Owing · All · In credit, showing balance, an "overdue" badge for carried-over amounts, unpaid since, last paid and the monthly plan.
+  - Choosing a client (`?client=`) opens their billing beside the list. On phones the panel replaces the list, with "All clients" to go back.
+  - Admins get "Default prices", which edits the seven defaults.
+- **ClientBillingPanel** (`src/features/billing/ClientBilling.tsx`), the same component on the Billing page and in a new Billing section on the client page, after Programs:
+  - Balance, From previous months, Monthly plan.
+  - Pricing: each rate with a Default or Custom badge and a pencil. "Use default" resets it.
+  - Statements: one disclosure per month, newest open. Each charge has a status badge and a ⋯ menu with Mark paid, Edit and Void; programming charges list their lines, each editable. "Mark {month} paid" pays what's left on the month.
+  - Payments, with void. Unapplied credit is shown.
+  - The header has Record payment, and ⋯ has Add a charge and Add a credit.
+- **Dialogs** (`BillingDialogs.tsx`):
+  - Payments: record, credit and mark paid. Each picks a browser id once per dialog.
+  - Price, add charge (month picker, never a future month), edit line (a discount is entered positive), and void (reason required).
+  - Amounts are typed in dollars and parsed to cents. Blank is never $0.
+- **Meeting dialog:** billable meetings that aren't ordinary cancellations get a Price section with:
+  - Solo / Partner.
+  - A price field. Blank uses the client's price, shown as the placeholder, with a line saying where it comes from.
+  - The charge status, "Waived" when voided.
+  - A one-click "Mark $X paid" (e-Transfer, today).
+- **Patterns:** the pattern dialog has Solo / Partner whenever Personal training is chosen. It's saved after the pattern with `set_meeting_schedule_format`. Partner patterns show a Partner badge.
+  - Migration 00052 adds `format` to `schedule_document`. It's otherwise identical to migration 00035's version, notes included.
+- **Profile settings:** a Payments card for staff, with the e-transfer email (validated like the database check; blank removes it). The viewer now loads `etransferEmail`.
+- **Freshness:** billing mutations refresh billing and meetings. Meeting mutations (attendance in particular) now refresh billing too.
+- **Schemas** live in `src/features/billing/schemas.ts`, typed against the domain types. `tests/policies/billing.test.ts` (3 HTTP tests, read-only) parses real responses with them and checks isolation.
+- **Verification:**
+  - `pnpm verify`: 377 unit tests and the build pass.
+  - `039_billing.test.sql`: 74 pgTAP assertions, passing.
+  - Full `pnpm test:db`: passes apart from the 3 known `023` failures.
+  - `supabase db diff`: no drift.
+  - No browser checks.
+
+**Revised the same day (owner feedback):**
+- **PT lengths:** the Minutes field is a 60 / 40 dropdown for Personal training, in the add, change and reschedule-answer forms and in pattern slots (`MinutesField`). A meeting that already has another length keeps it as a "no default price" option. Other meetings still take any length.
+- **Seed:** PT patterns are now 60 minutes (Daniel) and 40 minutes (Grace), and Daniel's one-off is 60. The local demo rows were updated in place by their seed ids, without a reset.
+- **Billing page:**
+  - Wide screens open the top client in the list until one is chosen. Phones keep the list.
+  - An empty filter shows "Nothing owing" or "No one is in credit".
+  - "Sessions that need a price" is collapsible (chevron at the top right, open at first) and shows a count.
+- **Panel:**
+  - A skeleton in the panel's shape while it loads, with the header buttons kept in place, so switching clients doesn't change the height.
+  - Pricing moved from inline rows into "Edit client's prices" in the panel's ⋯ menu. It opens one dialog with every price, grouped Monthly programming / Personal training, each with its default underneath and "Use default" when it differs. Blank or the default amount follows the default. Only changed prices are saved.
+  - The Billing page's client rows show the balance alone as a large amount. The selected client's name links to their page (↗), replacing "Open client page".
+  - A divider sits under the stat tiles. A statement's "left to pay" amount is large, with a quieter label on the same baseline.
+  - Statement months and "Sessions that need a price" expand and collapse with the app's height animation. An open month stops clipping once settled, so its ⋯ menus aren't cut off.
+  - A charge's own status badge shows only when it differs from its month's, e.g. one paid charge in a part-paid month.
+  - Charge and payment rows are vertically centred on a smaller ⋯ button (`ActionsMenu size="sm"`).
+
 ## Owner decisions (2026-11-20)
 
 1. **Partner sessions:** the whole partner price is billed to the client the meeting belongs to, and the partner is only a label. Billing both partners would need meetings with two clients, which is a bigger scheduling change and is deferred.

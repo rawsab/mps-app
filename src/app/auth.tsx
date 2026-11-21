@@ -18,6 +18,8 @@ export type Viewer = {
   timezone: string;
   /** Staff only: the meeting link shown on their sessions and the late-cancellation window. */
   scheduling: { meetingUrl: string | null; lateCancelHours: number } | null;
+  /** Staff only: where clients send e-transfers (decision 0053). */
+  etransferEmail: string | null;
   /** Null when the user is not a client, or is a disabled client (RLS hides the record). */
   client: { id: string; fullName: string; status: string } | null;
   services: ServiceKind[];
@@ -60,7 +62,7 @@ async function loadViewer(session: Session): Promise<Viewer> {
   const [role, client, profile] = await Promise.all([
     supabase.from('staff_roles').select('role').eq('auth_user_id', userId).maybeSingle(),
     supabase.from('clients').select('id, full_name, status, timezone').eq('auth_user_id', userId).maybeSingle(),
-    supabase.from('profiles').select('display_name, date_of_birth, phone_number, avatar_path, timezone, meeting_url, late_cancel_hours').eq('auth_user_id', userId).maybeSingle(),
+    supabase.from('profiles').select('display_name, date_of_birth, phone_number, avatar_path, timezone, meeting_url, late_cancel_hours, etransfer_email').eq('auth_user_id', userId).maybeSingle(),
   ]);
   for (const r of [role, client, profile]) if (r.error) throw r.error;
 
@@ -86,6 +88,7 @@ async function loadViewer(session: Session): Promise<Viewer> {
     staffRole: (role.data?.role as Viewer['staffRole']) ?? null,
     timezone: client.data?.timezone ?? profile.data?.timezone ?? 'UTC',
     scheduling: role.data ? { meetingUrl: profile.data?.meeting_url ?? null, lateCancelHours: profile.data?.late_cancel_hours ?? 24 } : null,
+    etransferEmail: role.data ? profile.data?.etransfer_email ?? null : null,
     client: client.data ? { id: client.data.id, fullName: client.data.full_name, status: client.data.status } : null,
     services,
   };

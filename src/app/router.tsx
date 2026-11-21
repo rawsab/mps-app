@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate } from 'react-router';
+import { BillingPage } from '@/features/billing/BillingPage';
 import { PersonalTrainingPage } from '@/features/personalTraining/PersonalTrainingPage';
 import { ProfileSettingsPage } from '@/features/profile/ProfileSettingsPage';
 import { MeetingsPage } from '@/features/scheduling/MeetingsPage';
@@ -82,6 +83,7 @@ export const router = createBrowserRouter([
               { path: '/coach/templates', element: <CoachPlaceholderPage title="Templates" body="Reusable program templates arrive with the program model in M3." /> },
               { path: '/coach/reviews', element: <ReviewsPage />, handle: wideRoute },
               { path: '/coach/meetings', element: <MeetingsPage />, handle: wideRoute },
+              { path: '/coach/billing', element: <BillingPage />, handle: wideRoute },
             ],
           },
         ],
