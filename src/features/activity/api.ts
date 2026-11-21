@@ -29,9 +29,13 @@ const ServiceRequestActivitySchema = z.object({
   kind: z.literal('service_request'), id: z.string(), service: z.enum(['personal_training', 'mesocycle', 'nutrition']), message: z.string(),
   status: z.enum(['pending', 'enrolled', 'declined']), response: z.string().optional(), activityAt: z.string(), staffEdited: z.boolean(),
 });
+const PaymentNoticeActivitySchema = z.object({
+  kind: z.literal('payment_notice'), id: z.string(), amountCents: z.number().int(), sentOn: z.string(), message: z.string(),
+  chargeLabels: z.array(z.string()), status: z.enum(['pending', 'confirmed', 'dismissed', 'settled']), activityAt: z.string(), staffEdited: z.boolean(),
+});
 export const ActivitySchema = z.discriminatedUnion('kind',[SessionActivitySchema,NutritionActivitySchema]);
 const reviewFields = { clientId: z.string(), clientName: z.string(), unread: z.boolean() };
-export const ReviewSchema = z.discriminatedUnion('kind',[SessionActivitySchema.extend(reviewFields),NutritionActivitySchema.extend(reviewFields),RequestActivitySchema.extend(reviewFields),ServiceRequestActivitySchema.extend(reviewFields)]);
+export const ReviewSchema = z.discriminatedUnion('kind',[SessionActivitySchema.extend(reviewFields),NutritionActivitySchema.extend(reviewFields),RequestActivitySchema.extend(reviewFields),ServiceRequestActivitySchema.extend(reviewFields),PaymentNoticeActivitySchema.extend(reviewFields)]);
 
 export const activityKey = (clientId: string) => ['client-activity', clientId];
 export const HISTORY_PAGE = 25;
@@ -68,6 +72,8 @@ export function activityLink(clientId: string, item: ActivityItem): string {
   // The client page opens the session (and its request) from ?session=.
   if (item.kind === 'request') return `/coach/clients/${clientId}?${new URLSearchParams({ session: item.meetingId })}`;
   if (item.kind === 'service_request') return `/coach/clients/${clientId}`;
+  // The Billing page selects the client and opens Record payment for the notice (?notice=).
+  if (item.kind === 'payment_notice') return `/coach/billing?${new URLSearchParams({ client: clientId, notice: item.id })}`;
   if (item.kind === 'nutrition') return item.programId
     ? `/coach/clients/${clientId}/nutrition/${item.programId}/log#nutrition-day-${item.loggedOn}`
     : `/coach/clients/${clientId}`;
@@ -88,7 +94,7 @@ export const READ_FADE_MS = 300;
 
 export type ReviewFilter = 'all' | 'focused' | 'unread';
 
-/** Focused: service requests and meeting requests (decision 0042). */
+/** Focused: service requests, meeting requests (decision 0042) and payment notices (0055). */
 export function useReviews(filter: ReviewFilter) {
   return useInfiniteQuery({
     queryKey: [...listKey, filter],
@@ -147,6 +153,8 @@ export function useMarkActivityRead() {
         ? await requireSupabase().rpc('mark_nutrition_activity_read', { p_activity_id: item.id })
         : item?.kind === 'service_request'
         ? await requireSupabase().rpc('mark_service_request_read', { p_request_id: item.id })
+        : item?.kind === 'payment_notice'
+        ? await requireSupabase().rpc('mark_payment_notice_read', { p_notice_id: item.id })
         : item?.kind === 'request'
         ? await requireSupabase().rpc('mark_request_read', { p_request_id: item.id })
         : await requireSupabase().rpc('mark_activity_read', item ? { p_session_id: item.id } : {});
@@ -177,7 +185,7 @@ export function useMarkActivityRead() {
 const ActivityStatsSchema = z.object({
   total: z.number().int(),
   buckets: z.array(z.object({ bucket: z.string(), count: z.number().int() })),
-  kinds: z.array(z.object({ kind: z.enum(['completed', 'logged', 'skipped', 'started', 'nutrition', 'request', 'service_request']), count: z.number().int() })),
+  kinds: z.array(z.object({ kind: z.enum(['completed', 'logged', 'skipped', 'started', 'nutrition', 'request', 'service_request', 'payment_notice']), count: z.number().int() })),
   clients: z.array(z.object({ clientId: z.string(), clientName: z.string(), count: z.number().int() })),
 });
 export type ActivityStats = z.infer<typeof ActivityStatsSchema>;

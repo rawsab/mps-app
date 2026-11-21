@@ -522,3 +522,96 @@ Decision 0054 (owner request; not covered by the PRD). Manual UI checks pending.
   - [ ] Unpaid charges don't show Mark unpaid.
 - **Follow-up.** Under Payments, a payment's ⋯ menu says **Mark unpaid** instead of Void (same `void_payment`; reason prefilled; a voided payment reads "Marked unpaid: reason"). Credits keep **Void**, since there's nothing to un-pay.
   - [ ] A payment's ⋯ shows Mark unpaid. Confirming makes its charges owed again and the row reads "Marked unpaid: …". A credit still shows Void.
+
+## Overdue badges (2026-11-21)
+
+- Billing > Clients: the red badge under a client's balance now reads just **Overdue** (was "$X overdue").
+- Statements: a past month with anything left to pay shows a red **Overdue** badge instead of Unpaid or Part paid (`isOverdue` in `src/domain/billing/billing.ts`). The current month keeps Unpaid / Part paid. Charge badges inside the month are unchanged.
+- **Verification.** `pnpm verify` passes (398 unit tests, one new). No browser checks.
+- **Manual checks for the owner:**
+  - [ ] Billing > Clients: a client with an unpaid earlier month shows "Overdue" with no amount.
+  - [ ] Daniel's October statement shows "Overdue"; November still shows "Unpaid". Mark October paid and it shows "Paid".
+
+## Settled months move to a statements page; no ring around the page (2026-11-21)
+
+- **Statements.** The billing panel lists this month and past months with something left to pay. A past month that becomes fully paid collapses out with the disclosure animation (rows stay mounted, clipped only while moving so ⋯ menus aren't cut off; instant with reduced motion). When any month is hidden, **See statements for previous months** links to `/coach/clients/:id/billing` (`BillingHistoryPage`), the same panel with every month. A page rather than a modal, so charge dialogs don't stack on a dialog, and it matches the meetings history page. `statementShown` in `src/domain/billing/billing.ts`, with a test.
+- **Focus ring.** `#main-content` no longer shows the gold focus outline when the skip link or a route change focuses it (`src/index.css`). Controls keep theirs.
+- **Verification.** `pnpm verify` passes (399 unit tests). No browser checks.
+- **Manual checks for the owner:**
+  - [ ] Mark Daniel's October paid: it slides out, and "See statements for previous months" appears.
+  - [ ] That link opens All statements with every month, and its ⋯ menus (Mark unpaid, etc.) work. Mark October unpaid there, go back, and it's listed again.
+  - [ ] An open month's ⋯ menu isn't clipped on the client page or the Billing page.
+  - [ ] Using the skip link or changing pages no longer draws a gold border around the page content. Tabbing to buttons and links still shows the ring.
+
+## Restore a payment marked unpaid; All statements header (2026-11-21)
+
+- **Restore.** A payment marked unpaid now has a ⋯ menu with **Mark paid** (**Restore** for a credit). Migration `20261121000053_restore_payment.sql` adds `restore_payment(id)`: staff with access only, idempotent, clears the void and re-applies the payment to the oldest open charges (its old allocations were deleted when it was voided, so if the coach recorded another payment in between, it may land on different charges or become credit). Audited as `payment_restored`. pgTAP: `040_restore_payment.test.sql` (8).
+- **All statements** header shows the client's photo and a larger name.
+- **Verification.** `pnpm verify` (399) and `pnpm test:db` pass. No browser checks.
+- **Manual checks for the owner:**
+  - [ ] Mark a payment unpaid, then ⋯ → Mark paid: it loses the strike-through and its charges are paid again.
+  - [ ] All statements shows the client's photo (or initials) and the name larger under the title.
+
+## Recent payments (2026-11-21)
+
+- The billing panel's Payments list shows the 5 most recent. With more, **See all payments** opens the client's All statements page at Payments (`#payments`, scrolled and outlined by `useHashTarget`). There the list also starts at 5, with **Show all payments** to expand it.
+- **Verification.** `pnpm verify` passes (399). No browser checks.
+- **Manual checks for the owner:**
+  - [ ] A client with more than 5 payments shows 5 and "See all payments" on the client page and Billing page. Clients with 5 or fewer show no link.
+  - [ ] The link opens All statements scrolled to Payments with a brief outline, and "Show all payments" lists the rest.
+
+## Client billing and "I've sent it" (2026-11-21)
+
+Decision 0055 (0053 phase C plus the phase D notice). The Activity item is still to do (see `docs/todo.md`).
+
+- **Home.** Owing: "You owe $X", "Includes $Y from October" (or "from September onward") when an earlier month is unpaid, **View billing** and **Pay**. Otherwise a quiet "Billing: Paid up" or "$X in credit" line. Hidden for clients with no billing yet. A pending notice adds "You told your coach you sent $X on …".
+- **`/billing`** (from Home and a new Billing card on Profile settings): balance with Pay, this month with its charges, past months in disclosures (Overdue / Unpaid / Part paid / Paid badges, each charge's status in words), Your prices (monthly services, bundle discount when both, PT rates that have a price), and payments.
+- **Pay dialog.** Amount, the primary coach's e-Transfer email with Copy, and the 0053 instructions. No email: "<coach> hasn't set up e-Transfer yet." **I've sent it** asks for amount (prefilled with the balance), date and an optional message, then tells the coach. It never changes the balance.
+- **Coach.** Billing page: **Payments clients reported (N)** above Sessions that need a price. **Record payment** opens the payment dialog prefilled and confirms the notice in the same call (`record_reported_payment`). **Dismiss** asks for a staff-only reason.
+- **Database.** Migration `20261121000054_billing_payment_notices.sql`: one pending notice per client (a new report updates it), idempotent ids, RLS (clients read their own, staff the clients they can access), no column grant on the dismiss reason, audit events.
+- **Verification.** `pnpm verify` (406 unit tests; 7 new in `tests/domain/billingClient.test.ts`), `pnpm test:db` (new `041_billing_payment_notices.test.sql`, 24) and `pnpm test:api` (27; a new test keeps staff billing calls and notice reasons from clients) pass after `pnpm db:reset`. `clientTraining.test.ts` "published title and week count" failed once right after the reset, then passed three times. It's flaky and unrelated to billing. No browser checks.
+- **Manual checks for the owner:**
+  - [ ] Sign in as Daniel (client): Home shows "You owe $…" with Includes … from October, View billing and Pay.
+  - [ ] /billing: balance, This month with the Nutrition line and sessions, October under Past months marked Overdue, Your prices (Nutrition $200/mo, Session · 60 min $100 …), Payments. Statuses read in words as well as colour.
+  - [ ] Pay: amount, Priya's e-Transfer email (or the "hasn't set up e-Transfer" text if she has none; set one under the coach's Profile → Payments), Copy email works.
+  - [ ] I've sent it → Let my coach know → thanks screen. Home and /billing show "You told your coach you sent …". The balance is unchanged.
+  - [ ] As the coach, Billing shows "Payments clients reported (1)". Record payment is prefilled with the amount and date; saving lowers Daniel's balance and removes the notice. Dismiss needs a reason and removes it too.
+  - [ ] Profile settings (client) has a Billing card linking to /billing. A client with no charges sees no billing line on Home.
+  - [ ] Phone width (320px): the Home card, /billing rows and the Pay dialog don't overflow.
+
+## Client billing follow-ups: shared statements, "I've paid this", Activity (2026-11-21)
+
+Decision 0055, "Owner follow-ups".
+
+- **Home.** A "Billing" heading with the billing icon above the "You owe …" card.
+- **/billing statements** now use the coach's statement rows: months as disclosures with total and badge, charges with service lines, "$X left to pay". No staff actions. An unpaid charge's ⋯ has **I've paid this** (amount prefilled with what's left, editable for partial payments), and a month has **I've paid <month>**. A charge with a pending report shows "You said you paid $X on … · waiting for your coach".
+- **Notices** can name charges, so a client can have several pending (one per set of charges; the same set again updates it). Recording one pays those charges first. The coach's list and dialog say what it's for.
+- **Settling.** When the coach records payments some other way (Mark paid, Mark month paid, Record payment, credits), notices settle: once their charges are paid, or once the balance is 0. They leave "Payments clients reported".
+- **Activity / Clients > To review.** New `payment_notice` items: "Says they paid $300", gold **Payment** badge, then Recorded / Dismissed / Paid when handled. Unread while pending. In Focused, the unread badge and trends. Opening one goes to Billing with the client selected and marks it read.
+- **Database.** Migration 00054 rewritten (uncommitted, never deployed): `charge_ids`, `settled`, `reported_at`, `staff_payment_notice_seen`, `apply_credit` now settles notices. New migration 00055 for the Activity feed. pgTAP `041` (34) covers reporting, isolation, Activity read state, confirming onto named charges, settling and dismissing.
+- **Verification.** `pnpm verify` (408 unit tests; 2 new feed tests), `pnpm test:db` and `pnpm test:api` (27) pass after `pnpm db:reset`. No browser checks.
+- **Manual checks for the owner:**
+  - [ ] Home (Daniel): "Billing" heading with icon above "You owe …".
+  - [ ] /billing: statements look like the coach's. ⋯ on an unpaid charge shows only "I've paid this". The month button says "I've paid November 2026". No Edit links.
+  - [ ] Report $50 for one session: the charge shows "You said you paid $50 …". Reporting the same session again says it replaces the earlier one.
+  - [ ] As Matt/Priya: Activity and Clients > To review show "Says they paid $50" with a Payment badge and an unread dot. Opening it goes to Billing with Daniel selected. Focused includes it.
+  - [ ] Payments clients reported says "for Personal training · 60 min". Record payment pays that session first.
+  - [ ] Report the whole balance from Pay → I've sent it, then as the coach Mark each month paid until the balance is 0. Daniel disappears from Payments clients reported, and Activity shows the item as Paid.
+
+## Billing page keeps the open client (2026-11-21)
+
+- With no client chosen, the Billing page opens the top client on the Owing list. That client now stays open (and listed) after they stop owing, e.g. once the coach marks the last month paid, instead of switching to the next client. Changing the filter chip picks the top of the new list again. Home's billing section also got a "Billing" heading, the green "Paid up" tick (shared `AllClear` in `src/components/`), a larger amount and a divider.
+- **Verification.** `pnpm verify` passes (408). No browser checks.
+- **Manual checks for the owner:**
+  - [ ] Billing (no client in the URL): mark every month of the first client paid. Their panel stays open showing Paid up, and they stay in the list until you change the filter or reload.
+  - [ ] Choosing another client or a filter chip still works as before.
+
+## Profile settings: Save only when something changed (2026-11-21)
+
+- Every Save button on Profile settings is disabled until its section differs from what's saved: Save profile (name, date of birth, phone), Save time zone, Save session settings, Save e-transfer email, and Save availability (working hours and booking rules). Clients see the first two. Comparisons ignore surrounding spaces. `ComboboxField` gained an optional `onValueChange`.
+- **Verification.** `pnpm verify` passes. No browser checks.
+- **Manual checks for the owner:**
+  - [ ] Coach with an e-transfer email set: Save e-transfer email is greyed out on load, enables when you edit it, and greys out again if you type it back or after saving.
+  - [ ] Same for Save profile, Save time zone (pick a different zone), Save session settings and Save availability (tick a day, change a time or a rule).
+  - [ ] As a client: Save profile and Save time zone behave the same.
+  - [ ] "Use it" (device time zone) still saves directly.

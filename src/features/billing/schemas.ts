@@ -64,4 +64,19 @@ export type SessionNeedingPrice = z.infer<typeof NeedsPriceSchema>[number];
 export const SettingsSchema = z.object({ timezone: z.string(), rates: z.record(z.string(), z.number().int()) });
 export type BillingSettings = z.infer<typeof SettingsSchema>;
 
-export const PaymentDetailsSchema = z.object({ etransferEmail: z.string().nullable(), coachName: z.string().nullable(), balanceCents: z.number().int() });
+// "I've sent it" (migration 00054, decision 0055).
+const NoticeFields = {
+  id: z.string(), amountCents: z.number().int(), sentOn: z.string(), message: z.string(),
+  /** Empty: the whole balance. */
+  chargeIds: z.array(z.string()), chargeLabels: z.array(z.string()),
+  status: z.enum(['pending', 'confirmed', 'dismissed', 'settled']), reportedAt: z.string(), createdAt: z.string(), updatedAt: z.string(),
+};
+export const PaymentDetailsSchema = z.object({
+  etransferEmail: z.string().nullable(), coachName: z.string().nullable(), balanceCents: z.number().int(),
+  pendingNotices: z.array(z.object(NoticeFields)),
+});
+export type PaymentDetails = z.infer<typeof PaymentDetailsSchema>;
+export type ClientNotice = PaymentDetails['pendingNotices'][number];
+
+export const PaymentNoticesSchema = z.array(z.object({ ...NoticeFields, clientId: z.string(), clientName: z.string() }));
+export type PaymentNotice = z.infer<typeof PaymentNoticesSchema>[number];

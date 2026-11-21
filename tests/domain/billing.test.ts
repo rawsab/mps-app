@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
+  isOverdue,
+  statementShown,
   periodLabel,
   previewSessionPrice,
   sessionTypeLabel,
@@ -108,5 +110,26 @@ describe('statements', () => {
   it('calls a month with only void charges empty and a fully paid one paid', () => {
     expect(statements([charge('a', '2026-11-01', 5000, 0, 'void')])[0]!.status).toBe('empty');
     expect(statements([charge('a', '2026-11-01', 0, 0)])[0]!.status).toBe('paid');
+  });
+
+  it('marks only past months with a balance left as overdue', () => {
+    const [nov, oct, sep] = statements([
+      charge('a', '2026-11-01', 10000, 0),
+      charge('b', '2026-10-01', 9000, 4000),
+      charge('c', '2026-09-01', 5000, 5000),
+    ]);
+    expect(isOverdue(nov!, '2026-11-01')).toBe(false);
+    expect(isOverdue(oct!, '2026-11-01')).toBe(true);
+    expect(isOverdue(sep!, '2026-11-01')).toBe(false);
+  });
+
+  it('hides settled past months but always shows this month', () => {
+    const [nov, oct, sep, aug] = statements([
+      charge('a', '2026-11-01', 10000, 10000),
+      charge('b', '2026-10-01', 9000, 4000),
+      charge('c', '2026-09-01', 5000, 5000),
+      charge('d', '2026-08-01', 5000, 0, 'void'),
+    ]);
+    expect([nov, oct, sep, aug].map((s) => statementShown(s!, '2026-11-01'))).toEqual([true, true, false, false]);
   });
 });

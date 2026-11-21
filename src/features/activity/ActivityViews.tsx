@@ -31,11 +31,15 @@ const REQUEST_BADGE: Record<RequestActivity['status'], BadgeSpec | null> = {
 /** What kind of request it is, ahead of its status (decision 0042). */
 function categoryBadge(item: ActivityItem): BadgeSpec | null {
   if (item.kind === 'service_request') return { label: 'Service Request', tone: 'violet' };
+  if (item.kind === 'payment_notice') return { label: 'Payment', tone: 'gold' };
   if (item.kind === 'request') return item.requestKind === 'cancel' ? { label: 'Cancellation request', tone: 'danger' } : { label: 'Reschedule request', tone: 'info' };
   return null;
 }
 
+const NOTICE_BADGE = { pending: null, confirmed: { label: 'Recorded', tone: 'success' }, dismissed: { label: 'Dismissed', tone: 'neutral' }, settled: { label: 'Paid', tone: 'success' } } as const;
+
 function itemBadge(item: ActivityItem): BadgeSpec | null {
+  if (item.kind === 'payment_notice') return NOTICE_BADGE[item.status];
   if (item.kind === 'service_request') return item.status === 'enrolled' ? { label: 'Enrolled', tone: 'success' } : item.status === 'declined' ? { label: 'Declined', tone: 'neutral' } : null;
   if (item.kind === 'request') return REQUEST_BADGE[item.status];
   if (item.kind === 'nutrition') return item.status === 'completed' ? STATUS_BADGE.completed : { label: 'Partial entry', tone: 'neutral' };
@@ -71,7 +75,7 @@ export function ActivityRow({ clientId, item, from, review, leaving = false, com
   const details = activityDetails(item);
   const badge = itemBadge(item);
   const category = categoryBadge(item);
-  const performedOn = item.kind === 'request' || item.kind === 'service_request' ? null : item.performedOn;
+  const performedOn = item.kind === 'request' || item.kind === 'service_request' || item.kind === 'payment_notice' ? null : item.performedOn;
   // Read items in Reviews recede, and come back to full strength under the pointer or keyboard focus.
   const read = review && !review.unread && !compact;
   // On the Activity page the time and arrow sit on the name line, so the detail card spans the row.
@@ -243,7 +247,7 @@ export function ReviewsPage() {
           <Alert visible={!!markAll.error} className="mb-4" title="Could not mark as read">{friendlyError(markAll.error)}</Alert>
           {reviews.isPending ? <Spinner label="Loading activity" /> : null}
           <Alert visible={!!reviews.error} title="Could not load activity">{friendlyError(reviews.error)}</Alert>
-          {reviews.data && items.length === 0 ? <p className="text-sm text-muted">{unreadOnly ? 'You’re all caught up.' : filter === 'focused' ? 'No service or meeting requests.' : 'No client activity yet.'}</p> : null}
+          {reviews.data && items.length === 0 ? <p className="text-sm text-muted">{unreadOnly ? 'You’re all caught up.' : filter === 'focused' ? 'No requests or payments to check.' : 'No client activity yet.'}</p> : null}
           {groupByDay(items, new Date(), formatDate).map((group, index) => (
             <Fragment key={`${group.label}-${index}`}>
               <h2 className={`mb-1 text-sm font-medium text-muted ${index === 0 ? '' : 'mt-6'}`}>{group.label}</h2>

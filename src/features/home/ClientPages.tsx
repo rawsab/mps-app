@@ -1,5 +1,6 @@
 import { useViewer } from '@/app/auth';
 import { EmptyState, PageHeader } from '@/components/ui';
+import { HomeBalanceCard } from '@/features/billing/ClientBillingScreens';
 import { todayIn } from '@/features/scheduling/time';
 import { useNow } from './api';
 import { ClientTodos } from './ClientTodos';
@@ -26,6 +27,7 @@ export function ClientHomePage() {
         title={firstName ? `Hi, ${firstName}` : 'Welcome'}
         subtitle={new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric', timeZone: v.timezone }).format(new Date(now))}
       />
+      {v.client ? <HomeBalanceCard clientId={v.client.id} /> : null}
       <div className="grid gap-6 md:grid-cols-2 md:gap-9">
         <UpcomingMeeting timeZone={v.timezone} now={now} />
         <ServiceLinks services={v.services} className="border-t border-line pt-6 md:border-l md:border-t-0 md:pl-9 md:pt-0" />

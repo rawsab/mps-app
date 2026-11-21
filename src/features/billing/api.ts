@@ -3,11 +3,11 @@ import { z } from 'zod';
 import type { PaymentMethod, ServiceRateKey, SessionFormat } from '@/domain/billing/billing';
 import { requireSupabase } from '@/lib/supabase';
 import {
-  ClientBillingSchema, MeetingBillingSchema, NeedsPriceSchema, OverviewSchema, PaymentDetailsSchema, SettingsSchema,
+  ClientBillingSchema, MeetingBillingSchema, NeedsPriceSchema, OverviewSchema, PaymentDetailsSchema, PaymentNoticesSchema, SettingsSchema,
   type BillingSettings,
 } from './schemas';
 
-export type { BillingOverview, BillingSettings, OverviewClient, SessionNeedingPrice } from './schemas';
+export type { BillingOverview, BillingSettings, ClientNotice, OverviewClient, PaymentDetails, PaymentNotice, SessionNeedingPrice } from './schemas';
 
 // ---------------------------------------------------------------------------------------------
 // Billing (migration 00051, decision 0053). Every rule lives in the database; this reads its documents.
@@ -57,7 +57,7 @@ export function useBillingSettings() {
   return useQuery({ queryKey: [...billingKey, 'settings'], queryFn: () => rpc('get_billing_settings', {}, SettingsSchema) });
 }
 
-/** For the client's Pay dialog: their primary coach's e-transfer email and what they owe. */
+/** For the client's Pay dialog: their primary coach's e-transfer email, what they owe and any pending "I've sent it". */
 export function usePaymentDetails(enabled = true) {
   return useQuery({ queryKey: [...billingKey, 'payment-details'], enabled, queryFn: () => rpc('billing_payment_details', {}, PaymentDetailsSchema) });
 }
@@ -101,6 +101,10 @@ export function useMarkChargesPaid() {
 
 export function useVoidPayment() {
   return useBillingMutation(({ id, reason }: { id: string; reason: string }) => rpc('void_payment', { p_payment_id: id, p_reason: reason }, ClientBillingSchema));
+}
+
+export function useRestorePayment() {
+  return useBillingMutation((id: string) => rpc('restore_payment', { p_payment_id: id }, ClientBillingSchema));
 }
 
 export function useVoidCharge() {
@@ -150,4 +154,35 @@ export async function saveEtransferEmail(email: string) {
   const { data, error } = await requireSupabase().rpc('save_etransfer_email', { p_email: email });
   if (error) throw error.code === '22023' ? new Error('Enter a valid email address, or leave it blank.') : error;
   return z.object({ etransferEmail: z.string().nullable() }).parse(data);
+}
+
+/**
+ * The client's "I've sent it" (no charges: the whole balance) or "I've paid this" (chosen charges). It never
+ * changes the balance; staff confirm it by recording the payment.
+ */
+export function useReportPaymentSent() {
+  return useBillingMutation((input: { id: string; amountCents: number; sentOn: string; message: string; chargeIds: string[] }) => rpc('report_payment_sent', {
+    p_id: input.id, p_amount_cents: input.amountCents, p_sent_on: input.sentOn, p_message: input.message, p_charge_ids: input.chargeIds,
+  }, PaymentDetailsSchema));
+}
+
+/**
+ * Staff: pending notices across their clients, oldest first. Confirmed, dismissed and settled ones
+ * (paid some other way, or nothing owed) drop out. Polls like the Activity badge, because clients
+ * report payments without the coach doing anything.
+ */
+export function usePaymentNotices() {
+  return useQuery({ queryKey: [...billingKey, 'notices'], refetchInterval: 60_000, queryFn: () => rpc('list_payment_notices', {}, PaymentNoticesSchema) });
+}
+
+export function useRecordReportedPayment() {
+  return useBillingMutation((input: { noticeId: string; id: string; amountCents: number; receivedOn: string; method: PaymentMethod; note: string }) =>
+    rpc('record_reported_payment', {
+      p_notice_id: input.noticeId, p_payment_id: input.id, p_amount_cents: input.amountCents, p_received_on: input.receivedOn,
+      p_method: input.method, p_note: input.note,
+    }, ClientBillingSchema));
+}
+
+export function useDismissPaymentNotice() {
+  return useBillingMutation(({ id, reason }: { id: string; reason: string }) => rpc('dismiss_payment_notice', { p_notice_id: id, p_reason: reason }, PaymentNoticesSchema));
 }

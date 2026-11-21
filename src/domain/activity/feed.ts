@@ -1,3 +1,4 @@
+import { formatCents } from '../billing/money';
 import { dayHeading, weekName } from '../programs/labels';
 import type { SessionStatus } from '../training/volume';
 
@@ -41,23 +42,30 @@ export type ServiceRequestActivity = {
   kind: 'service_request'; id: string; service: 'personal_training' | 'mesocycle' | 'nutrition'; message: string;
   status: 'pending' | 'enrolled' | 'declined'; response?: string; activityAt: string; staffEdited: boolean;
 };
-export type ActivityItem = SessionActivity | NutritionActivity | RequestActivity | ServiceRequestActivity;
+/** A client's "I've sent it" / "I've paid this" (decision 0055). Reviews only. `chargeLabels` empty: the whole balance. */
+export type PaymentNoticeActivity = {
+  kind: 'payment_notice'; id: string; amountCents: number; sentOn: string; message: string; chargeLabels: string[];
+  status: 'pending' | 'confirmed' | 'dismissed' | 'settled'; activityAt: string; staffEdited: boolean;
+};
+export type ActivityItem = SessionActivity | NutritionActivity | RequestActivity | ServiceRequestActivity | PaymentNoticeActivity;
 
 /** A Reviews item: timed by the client's own latest change, with this staff member's read state. */
 export type ReviewItem = ActivityItem & { clientId: string; clientName: string; unread: boolean };
 
 /** Training kinds plus the shared daily nutrition and PT request categories. */
-export type ActivityKind = 'completed' | 'logged' | 'skipped' | 'started' | 'nutrition' | 'request' | 'service_request';
+export type ActivityKind = 'completed' | 'logged' | 'skipped' | 'started' | 'nutrition' | 'request' | 'service_request' | 'payment_notice';
 
-export function activityKind(item: Pick<SessionActivity, 'status' | 'setCount' | 'feedbackCount'> | NutritionActivity | RequestActivity | ServiceRequestActivity): ActivityKind {
+export function activityKind(item: Pick<SessionActivity, 'status' | 'setCount' | 'feedbackCount'> | NutritionActivity | RequestActivity | ServiceRequestActivity | PaymentNoticeActivity): ActivityKind {
   if ('requestKind' in item) return 'request';
   if ('kind' in item && item.kind === 'service_request') return 'service_request';
+  if ('kind' in item && item.kind === 'payment_notice') return 'payment_notice';
   if (!('setCount' in item)) return 'nutrition';
   if (item.status === 'completed' || item.status === 'skipped') return item.status;
   return item.setCount > 0 || item.feedbackCount > 0 ? 'logged' : 'started';
 }
 
 export function activityTitle(item: ActivityItem): string {
+  if (item.kind === 'payment_notice') return `Says they paid ${formatCents(item.amountCents)}`;
   if (item.kind === 'service_request') return `Requested ${SERVICE_NAMES[item.service]}`;
   if (item.kind === 'request') return item.status === 'withdrawn' ? 'Withdrew a meeting request' : item.requestKind === 'cancel' ? 'Asked to cancel a meeting' : 'Asked to reschedule a meeting';
   if (item.kind === 'nutrition') return item.status === 'completed' ? 'Logged daily nutrition' : item.weight !== null ? 'Logged weight' : item.intake !== null || item.output !== null ? 'Logged calories' : 'Updated daily nutrition';
@@ -69,6 +77,7 @@ export function activityTitle(item: ActivityItem): string {
     case 'nutrition': return 'Logged daily nutrition';
     case 'request': return 'Meeting request';
     case 'service_request': return 'Service request';
+    case 'payment_notice': return 'Payment sent';
   }
 }
 
@@ -76,7 +85,11 @@ export function activityTitle(item: ActivityItem): string {
 const SERVICE_NAMES = { personal_training: 'Personal training', mesocycle: 'Mesocycle', nutrition: 'Nutrition' } as const;
 const SESSION_TIME = new Intl.DateTimeFormat(undefined, { weekday: 'short', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
+const NOTICE_STATUS = { pending: 'Waiting for you to record it', confirmed: 'Recorded', dismissed: 'Dismissed', settled: 'Paid another way' } as const;
+const noticeFor = (item: PaymentNoticeActivity) => (item.chargeLabels.length ? item.chargeLabels.join(', ') : 'Their balance');
+
 export function activityWhere(item: ActivityItem): string {
+  if (item.kind === 'payment_notice') return `${noticeFor(item)} · ${NOTICE_STATUS[item.status]}`;
   if (item.kind === 'service_request') return { enrolled: 'Now enrolled', declined: 'Declined', pending: 'Waiting for a reply' }[item.status];
   if (item.kind === 'request') return `${item.services.map((s) => SERVICE_NAMES[s]).join(' · ')} · ${SESSION_TIME.format(new Date(item.startsAt))} · ${item.durationMinutes} min`;
   if (item.kind === 'nutrition') return item.programTitle;
@@ -87,6 +100,7 @@ const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? o
 
 /** Facts worth a glance; nothing is listed for counts the client hasn't produced. */
 export function activityDetails(item: ActivityItem): string[] {
+  if (item.kind === 'payment_notice') return [item.message ? `“${item.message}”` : ''].filter(Boolean);
   if (item.kind === 'service_request') return [item.message ? `“${item.message}”` : '', item.response ? `Reply: “${item.response}”` : ''].filter(Boolean);
   if (item.kind === 'request') return [
     item.message ? `“${item.message}”` : '',
@@ -113,7 +127,10 @@ export type ActivityFact = { label: string; value: string; long?: boolean };
 export function activityFacts(item: ActivityItem, formatDate: (value: string) => string): ActivityFact[] {
   const facts: (ActivityFact | false)[] = [];
   const note = (label: string, text: string | undefined) => !!text?.trim() && { label, value: `“${text.trim()}”`, long: true };
-  if (item.kind === 'service_request') {
+  if (item.kind === 'payment_notice') {
+    facts.push({ label: 'Amount', value: formatCents(item.amountCents) }, { label: 'Sent on', value: formatDate(item.sentOn) },
+      { label: 'For', value: noticeFor(item) }, { label: 'Status', value: NOTICE_STATUS[item.status] }, note('Note', item.message));
+  } else if (item.kind === 'service_request') {
     facts.push({ label: 'Service', value: SERVICE_NAMES[item.service] }, { label: 'Status', value: activityWhere(item) },
       note('Note', item.message), note('Reply', item.response));
   } else if (item.kind === 'request') {

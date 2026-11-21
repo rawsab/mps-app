@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { activityDetails, activityFacts, activityKind, activityTitle, activityWhere, groupByDay, relativeTime, type SessionActivity, type NutritionActivity, type RequestActivity, type ServiceRequestActivity } from '@/domain/activity/feed';
+import { activityDetails, activityFacts, activityKind, activityTitle, activityWhere, groupByDay, relativeTime, type SessionActivity, type NutritionActivity, type RequestActivity, type ServiceRequestActivity, type PaymentNoticeActivity } from '@/domain/activity/feed';
 import { activityLink, ReviewSchema } from '@/features/activity/api';
 
 const item = (overrides: Partial<SessionActivity> = {}): SessionActivity => ({
@@ -120,6 +120,27 @@ describe('service requests', () => {
   it('opens the client page and parses from Reviews', () => {
     expect(activityLink('c1', request())).toBe('/coach/clients/c1');
     expect(ReviewSchema.parse({ ...request(), clientId: 'c1', clientName: 'Maya Chen', unread: true }).kind).toBe('service_request');
+  });
+});
+
+describe('payment notices (decision 0055)', () => {
+  const notice = (overrides: Partial<PaymentNoticeActivity> = {}): PaymentNoticeActivity => ({
+    kind: 'payment_notice', id: 'n1', amountCents: 30000, sentOn: '2026-11-21', message: 'Ref 123', chargeLabels: [], status: 'pending',
+    activityAt: '2026-11-21T12:00:00Z', staffEdited: false, ...overrides,
+  });
+
+  it('says what was sent and for what', () => {
+    expect(activityKind(notice())).toBe('payment_notice');
+    expect(activityTitle(notice())).toBe('Says they paid $300');
+    expect(activityWhere(notice())).toBe('Their balance · Waiting for you to record it');
+    expect(activityWhere(notice({ chargeLabels: ['Personal training · 60 min'], status: 'settled' }))).toBe('Personal training · 60 min · Paid another way');
+    expect(activityDetails(notice())).toEqual(['“Ref 123”']);
+    expect(activityFacts(notice(), (d) => d).map((f) => f.label)).toEqual(['Amount', 'Sent on', 'For', 'Status', 'Note']);
+  });
+
+  it('opens the client on the Billing page and parses from Reviews', () => {
+    expect(activityLink('c1', notice())).toBe('/coach/billing?client=c1&notice=n1');
+    expect(ReviewSchema.parse({ ...notice(), clientId: 'c1', clientName: 'Daniel Okafor', unread: true }).kind).toBe('payment_notice');
   });
 });
 

@@ -5,12 +5,8 @@
 Development is moving from Claude Code to Codex. Agent instructions now live in `AGENTS.md` (`CLAUDE.md` just imports it). In priority order:
 
 - [ ] **Reset the local DB first.** Run `pnpm db:start && pnpm db:reset`. Manual testing left state that makes `023`, `026` and `030` fail. Then confirm `pnpm test:db` is fully green and `pnpm test:api` passes.
-- [ ] **Billing: client screens and "I've sent it"** (decision 0055, planned 2026-11-21; 0053 phase C plus the phase D notice).
-  - [ ] Home card: "You owe $X" with Pay / View billing, or a quiet "Paid up" / "$X in credit" line.
-  - [ ] `/billing` from the Home card and profile menu: balance, your prices (plan + PT rates), this month, past months, payments.
-  - [ ] Pay dialog: full balance, the coach's e-Transfer email with copy, instructions, **I've sent it**.
-  - [ ] Migration: `billing_payment_notices` + `report_payment_sent`, with RLS, grants and pgTAP. Coach to-do "Payments clients reported" (Record payment / Dismiss) and an Activity item.
-  - [ ] Unit, HTTP and pgTAP tests as listed in 0055.
+- [x] **Billing: client screens and "I've sent it"** (decision 0055, built 2026-11-21). Manual UI checks are in `docs/status.md`.
+- [x] **Payment notices in Activity / To review** (decision 0055 follow-up, built 2026-11-21).
 - [x] **Coach search and sidebar clients list** (decision 0054, owner request, 2026-11-21). A ⌘K / Ctrl+K command palette for clients, pages and sections; active clients nested under Clients in the sidebar. Manual UI checks are in `docs/status.md`.
 - [ ] **Owner's manual UI checks** for decisions 0043–0054 (checklists are in each decision record and in `docs/status.md`).
 - [ ] **Scheduling phase C** (decision 0050): a client list of all upcoming meetings, each with the reschedule/cancel dialog.

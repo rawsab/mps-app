@@ -37,7 +37,7 @@ Build pages from `src/components/` before writing styles (decision 0049). A call
 - Forms: `TextField`, `TextAreaField`, `SelectField`, `ComboboxField`, `Checkbox`. For a custom control, use `FieldShell` and `controlClass`.
 - Overlays: `Dialog` (`bare` for the command palette), `ConfirmDialog` and `DialogBody`; `ActionsMenu` with `ActionItem`; `PopupMenu` for context menus; `InfoTip`; `ChartTooltip`.
 - Charts: `ColumnTrend` (columns over time slots, with a screen-reader table).
-- Content: `Card`, `SectionHeading`, `PageHeader`, `Badge`, `Alert`, `EmptyState`, `AnimatedDisclosure`, `DisclosureSummary`, `Spinner`, `Skeleton`, `Kbd`.
+- Content: `Card`, `SectionHeading`, `PageHeader`, `Badge`, `Alert`, `EmptyState`, `AllClear`, `AnimatedDisclosure`, `DisclosureSummary`, `Spinner`, `Skeleton`, `Kbd`.
 
 ## Invariants agents are likely to get wrong
 

@@ -23,6 +23,7 @@ import { Avatar } from '@/components/Avatar';
 import { Kbd, Skeleton } from '@/components/ui';
 import { LegalFooter } from '@/components/LegalFooter';
 import { READ_FADE_MS, useUnreadCount } from '@/features/activity/api';
+import { usePaymentNotices } from '@/features/billing/api';
 import { useClients } from '@/features/clients/api';
 import { useMeetingsLeftToday } from '@/features/scheduling/api';
 import { CommandPalette } from '@/features/search/CommandPalette';
@@ -87,11 +88,14 @@ function TopBar({ children, leading, className = '', contentWidth = 'max-w-5xl' 
 /** The picture is also the entry point to settings, including in collapsed navigation. */
 function ProfileLink({ coach = false, collapsed = false, onNavigate }: { coach?: boolean; collapsed?: boolean; onNavigate?: () => void }) {
   const viewer = useViewer().data;
+  // Clients see the coach's meeting link and e-transfer email, so a coach without them is nudged here.
+  const setup = coach && !!viewer && (!viewer.scheduling?.meetingUrl || !viewer.etransferEmail);
+  const label = setup ? 'Profile settings: setup required' : 'Profile settings';
   return (
-    <NavLink to={coach ? '/coach/profile' : '/profile'} onClick={onNavigate} aria-label="Profile settings" title="Profile settings"
+    <NavLink to={coach ? '/coach/profile' : '/profile'} onClick={onNavigate} aria-label={label} title={label}
       className={`btn-motion flex min-h-11 min-w-11 items-center gap-3 rounded-card text-sm text-text ${coach ? 'hover:bg-surface-raised/60' : 'hover:bg-surface-raised'} ${collapsed ? 'justify-center' : 'px-2 py-2'}`}>
       <Avatar url={viewer?.avatarUrl} name={viewer?.displayName ?? ''} />
-      {coach && !collapsed ? <span className="min-w-0"><span className="block truncate font-medium">{viewer?.displayName || 'Your profile'}</span><span className="block text-xs text-muted">Profile settings</span></span> : null}
+      {coach && !collapsed ? <span className="min-w-0"><span className="block truncate font-medium">{viewer?.displayName || 'Your profile'}</span>{setup ? <span className="block text-xs font-medium text-gold-fg">Setup required</span> : <span className="block text-xs text-muted">Profile settings</span>}</span> : null}
     </NavLink>
   );
 }
@@ -228,7 +232,7 @@ function useShownCount(count: number) {
   return last.current;
 }
 
-/** A count on a nav item (Reviews: unread; Meetings: left today): inline when expanded, a gold circle on the icon when collapsed. */
+/** A count on a nav item (Reviews: unread; Meetings: left today; Billing: payments to review): inline when expanded, a gold circle on the icon when collapsed. */
 function UnreadBadge({ count, collapsed, label = 'unread' }: { count: number; collapsed: boolean; label?: string }) {
   const shown = useShownCount(count);
   if (shown === 0) return null;
@@ -314,9 +318,12 @@ function CoachNavLinks({ collapsed = false, onNavigate, clientsOpen = false, onT
   const expandable = !collapsed && !!onToggleClients;
   const unread = useUnreadCount().data ?? 0;
   const meetingsLeft = useMeetingsLeftToday();
+  const paymentsToReview = usePaymentNotices().data?.length ?? 0;
   const badges: Record<string, { count: number; label: string } | undefined> = {
     [REVIEWS_PATH]: { count: unread, label: 'unread' },
     [MEETINGS_PATH]: { count: meetingsLeft, label: 'left today' },
+    // Payments clients reported that still need recording (decision 0055).
+    '/coach/billing': { count: paymentsToReview, label: 'to review' },
   };
   return (
     <ul className="flex flex-col gap-1">

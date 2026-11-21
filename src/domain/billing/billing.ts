@@ -168,5 +168,13 @@ export function statements(charges: Charge[]): Statement[] {
     });
 }
 
+/** A past month with anything left to pay. Its badge reads "Overdue" instead of Unpaid or Part paid. */
+export const isOverdue = (statement: Statement, currentPeriod: string) =>
+  statement.period < currentPeriod && statement.outstandingCents > 0;
+
+/** The panel lists this month (and later ones) and past months with something left to pay; settled past months move to the full history. */
+export const statementShown = (statement: Statement, currentPeriod: string) =>
+  statement.period >= currentPeriod || statement.outstandingCents > 0;
+
 /** Unpaid and part-paid charges in a statement: what "Mark month paid" covers. */
 export const unpaidCharges = (statement: Statement) => statement.charges.filter((c) => c.paidCents < c.amountCents);

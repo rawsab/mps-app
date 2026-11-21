@@ -57,6 +57,7 @@ export const KIND_LABELS: Record<ActivityKind, string> = {
   nutrition: 'Nutrition logs',
   request: 'Meeting requests',
   service_request: 'Service requests',
+  payment_notice: 'Payments sent',
 };
 
 export type TrendRow = { key: string; label: string; count: number };

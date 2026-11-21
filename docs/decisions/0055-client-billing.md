@@ -1,6 +1,6 @@
-# 0055 — Client billing screens (plan)
+# 0055 — Client billing screens
 
-Date: 2026-11-21 · Status: **accepted plan, not built** (owner answers below) · Builds on 0053 (phases C and D)
+Date: 2026-11-21 · Status: **built 2026-11-21** (owner answers below; manual UI checks pending) · Builds on 0053 (phases C and D)
 
 Phase C of 0053 plus its "I've sent it" notice from phase D, which the owner moved forward. Billing stays outside the PRD's MVP scope, as recorded in 0053.
 
@@ -44,3 +44,21 @@ Phase C of 0053 plus its "I've sent it" notice from phase D, which the owner mov
 - Unit tests for new domain logic (Home card wording, price list).
 - HTTP: a client reads only their own billing and payment details, can't call staff billing functions, and can report a notice only for themselves.
 - pgTAP: notice isolation, idempotency, one pending notice per client, confirm and dismiss.
+
+## As built (2026-11-21)
+
+- Migration `20261121000054_billing_payment_notices.sql`: the table, `report_payment_sent`, `list_payment_notices`, `record_reported_payment` (records the payment and confirms the notice in one call), `dismiss_payment_notice`, and `billing_payment_details` gains `pendingNotice`. pgTAP: `041_billing_payment_notices.test.sql`. HTTP: `tests/policies/billing.test.ts`.
+- Migration `20261121000053_restore_payment.sql` (same day, coach side): `restore_payment` undoes "Mark unpaid".
+- Screens: `src/features/billing/ClientBillingScreens.tsx`, wording in `src/domain/billing/client.ts`.
+- **Differences from the plan, recorded rather than resolved silently:**
+  - The client app has no profile menu, only the avatar link to Profile settings. Billing is reached from the Home card and a **Billing** card on Profile settings.
+  - The Home card is hidden for a client with no charges or payments at all, so new clients don't see "Paid up" before any billing exists.
+  - Reporting again with a pending notice updates that notice's amount, date and message, and keeps its id.
+
+## Owner follow-ups (2026-11-21, same day)
+
+- **Statements reuse the coach's layout.** `/billing` uses the coach panel's statement rows (`ClientStatements` in `ClientBilling.tsx`). Clients get no staff actions. Each unpaid charge's ⋯ menu has one item, **I've paid this**, and a month's button reads **I've paid <month>**. They report a payment (possibly partial) for those charges.
+- **Notices can name charges** (`charge_ids`; empty = the whole balance). This replaces "one pending notice per client": a client can have several, one per set of charges, and reporting the same set again updates it. Recording one applies the payment to its charges first (`insert_payment` with those ids).
+- **Notices settle by themselves.** `private.settle_payment_notices` runs at the end of `apply_credit`, so after every payment, credit or void. A pending notice becomes `settled` once all its charges are paid (or void), and every pending notice settles once nothing is owed. Settled notices leave the Billing to-do. Activity shows them as "Paid".
+- **Activity and Clients > To review.** Migration `20261121000055_payment_notice_activity.sql` adds a `payment_notice` feed kind: unread while pending and not opened (`staff_payment_notice_seen`, `mark_payment_notice_read`, and "mark all read"), listed under Focused, counted in the unread badge and the trends. Opening one goes to the Billing page with that client selected.
+- **Home** puts a "Billing" section heading above the owing card.

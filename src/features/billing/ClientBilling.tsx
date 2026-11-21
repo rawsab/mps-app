@@ -1,14 +1,15 @@
 import { useState, type ReactNode } from 'react';
+import { Link } from 'react-router';
 import { ActionItem, ActionsMenu } from '@/components/ActionsMenu';
 import { ChevronIcon, PlusIcon } from '@/components/icons';
 import { Alert, Badge, Button, Skeleton, type BadgeTone } from '@/components/ui';
 import {
-  chargeStatusLabel, paymentMethodLabel, periodLabel, statements, unpaidCharges,
+  chargeStatusLabel, isOverdue, paymentMethodLabel, periodLabel, statementShown, statements, unpaidCharges,
   type Charge, type ChargeLine, type ChargeStatus, type ClientBilling, type Payment, type Statement,
 } from '@/domain/billing/billing';
 import { formatCents } from '@/domain/billing/money';
 import { formatDate } from '@/lib/format';
-import { billingError, useClientBilling } from './api';
+import { billingError, useClientBilling, useRestorePayment, type ClientNotice } from './api';
 import { AddChargeDialog, EditLineDialog, MarkUnpaidDialog, PaymentDialog, PricingDialog, VoidDialog, type PaymentMode, type VoidTarget } from './BillingDialogs';
 
 // The coach's view of one client's billing (decision 0053): balance, prices, monthly statements and
@@ -33,7 +34,10 @@ export function balanceText(balanceCents: number) {
   return 'Paid up';
 }
 
-export function ClientBillingPanel({ clientId, clientName, heading }: { clientId: string; clientName: string; heading: ReactNode }) {
+/** `allStatements` lists every month (the billing history page); otherwise settled past months are left out. */
+export function ClientBillingPanel({ clientId, clientName, heading, allStatements = false }: {
+  clientId: string; clientName: string; heading: ReactNode; allStatements?: boolean;
+}) {
   const billing = useClientBilling(clientId);
   const [open, setOpen] = useState<Open | null>(null);
   const [notice, setNotice] = useState<ReactNode>('');
@@ -61,7 +65,7 @@ export function ClientBillingPanel({ clientId, clientName, heading }: { clientId
       <Alert visible={!!notice} tone="success" onDismiss={() => setNotice('')} className="mb-3">{notice}</Alert>
       {billing.isPending ? <BillingSkeleton /> : null}
       <Alert visible={!!billing.error} title="Could not load billing">{billingError(billing.error)}</Alert>
-      {billing.data ? <BillingBody billing={billing.data} onOpen={setOpen} /> : null}
+      {billing.data ? <BillingBody billing={billing.data} allStatements={allStatements} onOpen={setOpen} onNotice={setNotice} /> : null}
 
       {open?.kind === 'payment' ? <PaymentDialog clientId={clientId} clientName={clientName} mode={open.mode} onClose={close} onDone={done} /> : null}
       {open?.kind === 'charge' && billing.data ? <AddChargeDialog clientId={clientId} currentPeriod={billing.data.currentPeriod} onClose={close} onDone={done} /> : null}
@@ -93,9 +97,14 @@ function BillingSkeleton() {
   );
 }
 
-function BillingBody({ billing, onOpen }: { billing: ClientBilling; onOpen: (open: Open) => void }) {
+function BillingBody({ billing, allStatements, onOpen, onNotice }: {
+  billing: ClientBilling; allStatements: boolean; onOpen: (open: Open) => void; onNotice: (message: ReactNode) => void;
+}) {
   const { summary } = billing;
   const months = statements(billing.charges);
+  const shown = (statement: Statement) => allStatements || statementShown(statement, billing.currentPeriod);
+  const firstShown = months.find(shown)?.period;
+  const hiddenCount = months.filter((statement) => !shown(statement)).length;
   return (
     <div className="grid gap-5">
       <dl className="grid gap-3 rounded-card border border-line p-4 sm:grid-cols-3">
@@ -116,20 +125,74 @@ function BillingBody({ billing, onOpen }: { billing: ClientBilling; onOpen: (ope
       <section aria-labelledby="billing-statements" className="grid gap-2">
         <h3 id="billing-statements" className="text-base font-semibold">Statements</h3>
         {months.length ? (
-          <div className="divide-y divide-line rounded-card border border-line">
-            {months.map((statement, index) => (
-              <StatementRow key={statement.period} statement={statement} current={statement.period === billing.currentPeriod} defaultOpen={index === 0} onOpen={onOpen} />
+          // Rows stay mounted and collapse, so a past month that's just been paid animates out.
+          <div className={firstShown ? 'rounded-card border border-line' : ''}>
+            {months.map((statement) => (
+              <CollapsingRow key={statement.period} visible={shown(statement)} divided={statement.period !== firstShown}>
+                <StatementRow statement={statement} current={statement.period === billing.currentPeriod}
+                  overdue={isOverdue(statement, billing.currentPeriod)} defaultOpen={statement.period === firstShown} onOpen={onOpen} />
+              </CollapsingRow>
             ))}
           </div>
-        ) : <p className="text-sm text-muted">No charges yet. Monthly services are charged on the 1st, and sessions once attendance is recorded.</p>}
+        ) : null}
+        {!firstShown ? (
+          <p className="text-sm text-muted">
+            {months.length ? 'Nothing to pay. Earlier months are all settled.' : 'No charges yet. Monthly services are charged on the 1st, and sessions once attendance is recorded.'}
+          </p>
+        ) : null}
+        {!allStatements && hiddenCount > 0 ? (
+          <Link to={`/coach/clients/${billing.clientId}/billing`} className="-my-2 inline-flex min-h-11 items-center text-sm text-gold-fg">
+            <span className="link">See statements for previous months</span>
+          </Link>
+        ) : null}
       </section>
 
-      <Payments payments={billing.payments} onOpen={onOpen} />
+      <Payments payments={billing.payments} historyTo={allStatements ? null : `/coach/clients/${billing.clientId}/billing#payments`} onOpen={onOpen} onRestored={onNotice} />
     </div>
   );
 }
 
-function StatementRow({ statement, current, defaultOpen, onOpen }: { statement: Statement; current: boolean; defaultOpen: boolean; onOpen: (open: Open) => void }) {
+// With reduced motion the disclosure doesn't transition, so no transitionend arrives to unclip it.
+const reducedMotion = () => window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+/** Collapses when hidden; clipped only while it moves, so an open month's ⋯ menus aren't cut off. */
+function CollapsingRow({ visible, divided, children }: { visible: boolean; divided: boolean; children: ReactNode }) {
+  const [settled, setSettled] = useState(true);
+  const [was, setWas] = useState(visible);
+  if (was !== visible) { setWas(visible); setSettled(reducedMotion()); }
+  return (
+    <div data-open={visible} aria-hidden={!visible} inert={!visible} className="animated-disclosure-content"
+      onTransitionEnd={(event) => { if (event.target === event.currentTarget && event.propertyName === 'grid-template-rows') setSettled(true); }}>
+      <div className={`min-h-0 ${visible && settled ? 'overflow-visible' : 'overflow-hidden'} ${divided ? 'border-t border-line' : ''}`}>{children}</div>
+    </div>
+  );
+}
+
+/** What a client can do on their own statements (decision 0055): say they've paid, never mark paid. */
+export type ClientStatementActions = {
+  onReport: (target: ReportTarget) => void;
+  /** Pending "I've paid this" notices naming the charge. */
+  noticesFor: (chargeId: string) => ClientNotice[];
+};
+export type ReportTarget = { chargeIds: string[]; amountCents: number; label: string };
+
+/** The client's statements: every month, newest open, with the coach's layout and "I've paid this". */
+export function ClientStatements({ billing, client }: { billing: ClientBilling; client: ClientStatementActions }) {
+  const months = statements(billing.charges).filter((s) => s.status !== 'empty');
+  if (!months.length) return <p className="text-sm text-muted">No charges yet. Monthly programming is charged on the 1st, and sessions once they happen.</p>;
+  return (
+    <div className="divide-y divide-line rounded-card border border-line">
+      {months.map((statement, index) => (
+        <StatementRow key={statement.period} statement={statement} current={statement.period === billing.currentPeriod}
+          overdue={isOverdue(statement, billing.currentPeriod)} defaultOpen={index === 0} onOpen={() => {}} client={client} />
+      ))}
+    </div>
+  );
+}
+
+function StatementRow({ statement, current, overdue, defaultOpen, onOpen, client }: {
+  statement: Statement; current: boolean; overdue: boolean; defaultOpen: boolean; onOpen: (open: Open) => void; client?: ClientStatementActions;
+}) {
   const unpaid = unpaidCharges(statement);
   const label = periodLabel(statement.period);
   const [open, setOpen] = useState(defaultOpen);
@@ -138,20 +201,22 @@ function StatementRow({ statement, current, defaultOpen, onOpen }: { statement: 
   const id = `statement-${statement.period}`;
   return (
     <div className="px-4 py-1">
-      <button type="button" aria-expanded={open} aria-controls={id} onClick={() => { setSettled(false); setOpen((value) => !value); }}
+      <button type="button" aria-expanded={open} aria-controls={id} onClick={() => { setSettled(reducedMotion()); setOpen((value) => !value); }}
         className="flex min-h-12 w-full items-center gap-2 text-left">
         <span className="inline-flex text-muted"><ChevronIcon open={open} /></span>
         <span className="min-w-0 flex-1 font-medium">{label}{current ? <span className="ml-2 text-xs font-normal text-muted">This month</span> : null}</span>
         <span className="text-base font-semibold tabular-nums">{formatCents(statement.totalCents)}</span>
-        <Badge size="sm" tone={STATUS_TONE[statement.status]}>{statement.status === 'empty' ? 'Nothing due' : chargeStatusLabel[statement.status]}</Badge>
+        {overdue
+          ? <Badge size="sm" tone="danger">Overdue</Badge>
+          : <Badge size="sm" tone={STATUS_TONE[statement.status]}>{statement.status === 'empty' ? 'Nothing due' : chargeStatusLabel[statement.status]}</Badge>}
       </button>
       <div id={id} role="region" aria-label={label} aria-hidden={!open} inert={!open} data-open={open} className="animated-disclosure-content"
         onTransitionEnd={(event) => { if (event.target === event.currentTarget && event.propertyName === 'grid-template-rows') setSettled(open); }}>
         <div className={`min-h-0 ${open && settled ? 'overflow-visible' : 'overflow-hidden'}`}>
           <div className="grid gap-2 pb-3">
             <ul className="divide-y divide-line">
-              {statement.charges.map((charge) => <ChargeRow key={charge.id} charge={charge} monthStatus={statement.status} onOpen={onOpen} />)}
-              {statement.voided.map((charge) => <ChargeRow key={charge.id} charge={charge} monthStatus={statement.status} onOpen={onOpen} />)}
+              {statement.charges.map((charge) => <ChargeRow key={charge.id} charge={charge} monthStatus={statement.status} onOpen={onOpen} client={client} />)}
+              {statement.voided.map((charge) => <ChargeRow key={charge.id} charge={charge} monthStatus={statement.status} onOpen={onOpen} client={client} />)}
             </ul>
             {unpaid.length ? (
               <div className="flex flex-wrap items-center justify-between gap-2 pt-1">
@@ -159,10 +224,16 @@ function StatementRow({ statement, current, defaultOpen, onOpen }: { statement: 
                   <span className="text-xl font-semibold tabular-nums text-text">{formatCents(statement.outstandingCents)}</span>
                   <span className="text-sm text-muted/70">left to pay</span>
                 </span>
-                <Button variant="secondary" onClick={() => onOpen({
-                  kind: 'payment',
-                  mode: { kind: 'mark', chargeIds: unpaid.map((c) => c.id), amountCents: statement.outstandingCents, label },
-                })}>Mark {label} paid</Button>
+                {client ? (
+                  <Button variant="secondary" onClick={() => client.onReport({ chargeIds: unpaid.map((c) => c.id), amountCents: statement.outstandingCents, label })}>
+                    I’ve paid {label}
+                  </Button>
+                ) : (
+                  <Button variant="secondary" onClick={() => onOpen({
+                    kind: 'payment',
+                    mode: { kind: 'mark', chargeIds: unpaid.map((c) => c.id), amountCents: statement.outstandingCents, label },
+                  })}>Mark {label} paid</Button>
+                )}
               </div>
             ) : null}
           </div>
@@ -173,7 +244,9 @@ function StatementRow({ statement, current, defaultOpen, onOpen }: { statement: 
 }
 
 /** A charge's own status shows only when it differs from the month's, which sits on the month's row. */
-function ChargeRow({ charge, monthStatus, onOpen }: { charge: Charge; monthStatus: Statement['status']; onOpen: (open: Open) => void }) {
+function ChargeRow({ charge, monthStatus, onOpen, client }: {
+  charge: Charge; monthStatus: Statement['status']; onOpen: (open: Open) => void; client?: ClientStatementActions;
+}) {
   const voided = charge.status === 'void';
   const left = charge.amountCents - charge.paidCents;
   // A programming charge always lists its services, even one: its label ("November 2026 programming") doesn't name them.
@@ -187,10 +260,19 @@ function ChargeRow({ charge, monthStatus, onOpen }: { charge: Charge; monthStatu
           <p className={`text-sm ${voided ? 'line-through' : ''}`}>{charge.label}</p>
           {voided && charge.voidReason ? <p className="text-xs">Void: {charge.voidReason}</p> : null}
           {charge.status === 'part_paid' ? <p className="text-xs text-muted">{formatCents(charge.paidCents)} paid · {formatCents(left)} left</p> : null}
+          {client?.noticesFor(charge.id).map((notice) => (
+            <p key={notice.id} className="text-xs text-muted">You said you paid {formatCents(notice.amountCents)} on {formatDate(notice.sentOn)} · waiting for your coach</p>
+          ))}
         </div>
         <span className={`text-sm tabular-nums ${voided ? 'line-through' : ''}`}>{formatCents(charge.amountCents)}</span>
         {charge.status !== monthStatus ? <Badge size="sm" tone={STATUS_TONE[charge.status]}>{chargeStatusLabel[charge.status]}</Badge> : null}
-        {!voided ? (
+        {client ? (
+          left > 0 ? (
+            <ActionsMenu size="sm" label={`Actions for ${charge.label}`}>
+              <ActionItem onClick={() => client.onReport({ chargeIds: [charge.id], amountCents: left, label: charge.label })}>I’ve paid this</ActionItem>
+            </ActionsMenu>
+          ) : <span className="size-9 shrink-0" />
+        ) : !voided ? (
           <ActionsMenu size="sm" label={`Actions for ${charge.label}`}>
             {left > 0 ? (
               <ActionItem onClick={() => onOpen({ kind: 'payment', mode: { kind: 'mark', chargeIds: [charge.id], amountCents: left, label: charge.label } })}>Mark paid</ActionItem>
@@ -207,7 +289,7 @@ function ChargeRow({ charge, monthStatus, onOpen }: { charge: Charge; monthStatu
             <li key={line.id} className="flex items-center gap-2 text-xs text-muted">
               <span className="min-w-0 flex-1">{line.label}</span>
               <span className="tabular-nums">{formatCents(line.amountCents)}</span>
-              {!voided ? (
+              {!voided && !client ? (
                 <button type="button" className="min-h-8 px-1 text-gold-fg underline underline-offset-2" aria-label={`Edit ${line.label}`}
                   onClick={() => onOpen({ kind: 'edit', line, paidCents: charge.paidCents })}>Edit</button>
               ) : null}
@@ -219,9 +301,21 @@ function ChargeRow({ charge, monthStatus, onOpen }: { charge: Charge; monthStatu
   );
 }
 
-function Payments({ payments, onOpen }: { payments: Payment[]; onOpen: (open: Open) => void }) {
+const RECENT_PAYMENTS = 5;
+
+/**
+ * The latest payments. In the panel, "See all payments" opens the client's All statements page at this
+ * section (`historyTo`); there, "Show all" lists the rest in place.
+ */
+function Payments({ payments: all, historyTo, onOpen, onRestored }: {
+  payments: Payment[]; historyTo: string | null; onOpen: (open: Open) => void; onRestored: (message: ReactNode) => void;
+}) {
+  const restore = useRestorePayment();
+  const [expanded, setExpanded] = useState(false);
+  const payments = expanded ? all : all.slice(0, RECENT_PAYMENTS);
+  const more = all.length - payments.length;
   return (
-    <section aria-labelledby="billing-payments" className="grid gap-2">
+    <section id="payments" aria-labelledby="billing-payments" className="grid gap-2">
       <h3 id="billing-payments" className="text-base font-semibold">Payments</h3>
       {payments.length ? (
         <ul className="divide-y divide-line">
@@ -244,12 +338,26 @@ function Payments({ payments, onOpen }: { payments: Payment[]; onOpen: (open: Op
                       {payment.method === 'credit' ? 'Void' : 'Mark unpaid'}
                     </ActionItem>
                   </ActionsMenu>
-                ) : <span className="size-9 shrink-0" />}
+                ) : (
+                  // Undo "Mark unpaid": the payment counts again and pays the oldest open charges.
+                  <ActionsMenu size="sm" label={`Actions for ${label}`}>
+                    <ActionItem onClick={() => restore.mutate(payment.id, { onSuccess: () => onRestored(`${label} restored.`) })}>
+                      {payment.method === 'credit' ? 'Restore' : 'Mark paid'}
+                    </ActionItem>
+                  </ActionsMenu>
+                )}
               </li>
             );
           })}
         </ul>
       ) : <p className="text-sm text-muted">No payments recorded yet.</p>}
+      {more > 0 && historyTo ? (
+        <Link to={historyTo} className="-my-2 inline-flex min-h-11 items-center text-sm text-gold-fg"><span className="link">See all payments</span></Link>
+      ) : null}
+      {more > 0 && !historyTo ? (
+        <div><Button variant="secondary" onClick={() => setExpanded(true)}>Show all payments</Button></div>
+      ) : null}
+      <Alert visible={!!restore.error} title="Not restored">{billingError(restore.error)}</Alert>
     </section>
   );
 }

@@ -10,9 +10,10 @@ import { centsToInput, formatCents, parseDollars } from '@/domain/billing/money'
 import { sessionMoment } from '@/features/scheduling/time';
 import { formatDate } from '@/lib/format';
 import {
-  billingError, useBillingOverview, useBillingSettings, useSaveBillingSettings, useSessionsNeedingPrice,
-  type BillingSettings, type OverviewClient, type SessionNeedingPrice,
+  billingError, useBillingOverview, useBillingSettings, usePaymentNotices, useSaveBillingSettings, useSessionsNeedingPrice,
+  type BillingSettings, type OverviewClient, type PaymentNotice, type SessionNeedingPrice,
 } from './api';
+import { DismissNoticeDialog, PaymentDialog } from './BillingDialogs';
 import { balanceText, ClientBillingPanel } from './ClientBilling';
 
 // Billing across every client the coach can see (decision 0053). Choosing a client opens their billing
@@ -28,8 +29,14 @@ export function BillingPage() {
   const viewer = useViewer();
   const overview = useBillingOverview();
   const needsPrice = useSessionsNeedingPrice();
+  const notices = usePaymentNotices();
+  const [reportedDone, setReportedDone] = useState<ReactNode>('');
   const [params, setParams] = useSearchParams();
   const selected = params.get('client');
+  // From an Activity notification: Record payment for that notice opens over the client's billing.
+  // A notice that's already been handled just leaves the client selected.
+  const openNotice = notices.data?.find((n) => n.id === params.get('notice'));
+  const closeNotice = () => setParams((p) => { p.delete('notice'); return p; }, { replace: true });
   const [filter, setFilter] = useState<Filter>('owing');
   const [settingsOpen, setSettingsOpen] = useState(false);
   const isAdmin = viewer.data?.staffRole === 'admin';
@@ -40,9 +47,14 @@ export function BillingPage() {
   }, { replace: true });
 
   const clients = overview.data?.clients ?? [];
-  const shown = clients.filter((c) => matches(c, filter) || c.clientId === selected);
-  // Without a choice, wide screens open the top of the list. Phones keep the list until one is tapped.
-  const current = selected ?? shown[0]?.clientId ?? null;
+  // Without a choice, wide screens open the top of the list (phones keep the list until one is tapped).
+  // That client stays open after it stops matching the filter, e.g. once it's paid up.
+  const [shownFirst, setShownFirst] = useState<string | null>(null);
+  const sticky = shownFirst && clients.some((c) => c.clientId === shownFirst) ? shownFirst : null;
+  const top = clients.find((c) => matches(c, filter))?.clientId ?? null;
+  const current = selected ?? sticky ?? top;
+  if (!selected && !sticky && top && top !== shownFirst) setShownFirst(top);
+  const shown = clients.filter((c) => matches(c, filter) || c.clientId === current);
   const chosen = clients.find((c) => c.clientId === current);
   const owing = clients.filter((c) => c.summary.balanceCents > 0);
 
@@ -63,6 +75,12 @@ export function BillingPage() {
             <Tile label={`Received in ${periodLabel(overview.data.currentPeriod).split(' ')[0]}`} value={formatCents(overview.data.receivedThisMonthCents)} detail="Payments recorded, not credits" />
           </dl>
 
+          <Alert visible={!!reportedDone} tone="success" onDismiss={() => setReportedDone('')}>{reportedDone}</Alert>
+          {openNotice ? (
+            <PaymentDialog key={openNotice.id} clientId={openNotice.clientId} clientName={openNotice.clientName} mode={{ kind: 'reported', notice: openNotice }}
+              onClose={closeNotice} onDone={(message) => { closeNotice(); setReportedDone(message); }} />
+          ) : null}
+          {notices.data?.length ? <ReportedPayments notices={notices.data} onDone={setReportedDone} /> : null}
           {needsPrice.data?.length ? <NeedsPrice sessions={needsPrice.data} /> : null}
 
           <div className="grid min-w-0 items-start gap-8 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
@@ -70,7 +88,7 @@ export function BillingPage() {
               <div className="mb-2 flex flex-wrap items-center justify-between gap-2">
                 <h2 id="billing-clients" className="text-lg font-semibold">Clients</h2>
                 <div role="group" aria-label="Show clients" className="flex gap-1.5">
-                  {FILTERS.map((f) => <Chip key={f.value} pressed={filter === f.value} onClick={() => setFilter(f.value)}>{f.label}</Chip>)}
+                  {FILTERS.map((f) => <Chip key={f.value} pressed={filter === f.value} onClick={() => { setFilter(f.value); setShownFirst(null); }}>{f.label}</Chip>)}
                 </div>
               </div>
               {shown.length ? (
@@ -108,6 +126,40 @@ export function BillingPage() {
       ) : null}
       {settingsOpen ? <BillingSettingsDialog onClose={() => setSettingsOpen(false)} /> : null}
     </div>
+  );
+}
+
+/** Clients' "I've sent it" (decision 0055): record the payment once it arrives, or dismiss the notice. */
+function ReportedPayments({ notices, onDone }: { notices: PaymentNotice[]; onDone: (message: ReactNode) => void }) {
+  const [open, setOpen] = useState<{ kind: 'record' | 'dismiss'; notice: PaymentNotice } | null>(null);
+  const done = (message: ReactNode) => { setOpen(null); onDone(message); };
+  return (
+    <section aria-labelledby="reported-payments" className="rounded-card border border-gold/40 bg-gold/5 px-4 py-3">
+      <h2 id="reported-payments" className="flex items-center gap-2 font-semibold">
+        <SectionTitle icon={<BillingIcon />}>Payments clients reported ({notices.length})</SectionTitle>
+      </h2>
+      <p className="mt-1 text-sm text-muted">Check that each e-Transfer arrived, then record it. Balances don’t change until you do.</p>
+      <ul className="mt-2 divide-y divide-line">
+        {notices.map((n) => (
+          <li key={n.id} className="flex flex-wrap items-center gap-x-3 gap-y-2 py-2 text-sm">
+            <span className="min-w-0 flex-1">
+              <Link to={`/coach/billing?client=${n.clientId}`} className="font-medium text-gold-fg"><span className="link">{n.clientName}</span></Link>
+              <span className="text-muted"> · {formatCents(n.amountCents)} sent {formatDate(n.sentOn)}{n.chargeLabels.length ? ` for ${n.chargeLabels.join(', ')}` : ''}</span>
+              {n.message ? <span className="block text-xs text-muted">“{n.message}”</span> : null}
+            </span>
+            <span className="flex items-center gap-2">
+              <Button variant="secondary" onClick={() => setOpen({ kind: 'dismiss', notice: n })}>Dismiss</Button>
+              <Button onClick={() => setOpen({ kind: 'record', notice: n })}>Record payment</Button>
+            </span>
+          </li>
+        ))}
+      </ul>
+      {open?.kind === 'record' ? (
+        <PaymentDialog clientId={open.notice.clientId} clientName={open.notice.clientName} mode={{ kind: 'reported', notice: open.notice }}
+          onClose={() => setOpen(null)} onDone={done} />
+      ) : null}
+      {open?.kind === 'dismiss' ? <DismissNoticeDialog notice={open.notice} onClose={() => setOpen(null)} onDone={done} /> : null}
+    </section>
   );
 }
 
@@ -176,7 +228,7 @@ function ClientRow({ client, selected, onSelect }: { client: OverviewClient; sel
             title={balanceText(summary.balanceCents)}>
             {formatCents(summary.balanceCents)}<span className="sr-only"> ({balanceText(summary.balanceCents)})</span>
           </span>
-          {summary.carriedOverCents > 0 ? <Badge size="sm" tone="danger">{formatCents(summary.carriedOverCents)} overdue</Badge> : null}
+          {summary.carriedOverCents > 0 ? <Badge size="sm" tone="danger">Overdue</Badge> : null}
         </span>
       </button>
     </li>

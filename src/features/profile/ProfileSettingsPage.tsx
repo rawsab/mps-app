@@ -1,3 +1,4 @@
+import { Link } from 'react-router';
 import { useRef, useState, type FormEvent } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useViewer, type Viewer } from '@/app/auth';
@@ -28,6 +29,14 @@ function ProfileForm({ viewer }: { viewer: Viewer }) {
   const [meetingUrl, setMeetingUrl] = useState(viewer.scheduling?.meetingUrl ?? '');
   const [lateCancelHours, setLateCancelHours] = useState(String(viewer.scheduling?.lateCancelHours ?? 24));
   const [etransferEmail, setEtransferEmail] = useState(viewer.etransferEmail ?? '');
+  const [timeZoneChoice, setTimeZoneChoice] = useState(viewer.timezone);
+  // Each section's Save stays disabled until something in it differs from what's saved.
+  const changed = {
+    profile: displayName.trim() !== viewer.displayName || dateOfBirth !== (viewer.dateOfBirth ?? '') || phoneNumber.trim() !== (viewer.phoneNumber ?? ''),
+    timezone: timeZoneChoice !== viewer.timezone,
+    sessions: meetingUrl.trim() !== (viewer.scheduling?.meetingUrl ?? '') || lateCancelHours.trim() !== String(viewer.scheduling?.lateCancelHours ?? 24),
+    payments: etransferEmail.trim() !== (viewer.etransferEmail ?? ''),
+  };
   const device = deviceTimeZone();
   const input = useRef<HTMLInputElement>(null);
   const refresh = () => queryClient.invalidateQueries({ queryKey: ['viewer', viewer.userId] });
@@ -59,6 +68,7 @@ function ProfileForm({ viewer }: { viewer: Viewer }) {
     try {
       await saveTimeZone(timeZone);
       await refresh();
+      setTimeZoneChoice(timeZone);
       setMessage({ error: false, text: `Time zone set to ${timeZone.replaceAll('_', ' ')}.` });
     } catch (error) {
       setMessage({ error: true, text: error instanceof Error ? error.message : 'Could not save your time zone. Please try again.' });
@@ -149,7 +159,7 @@ function ProfileForm({ viewer }: { viewer: Viewer }) {
                 <TextField label="Date of birth" type="date" value={dateOfBirth} onChange={(event) => setDateOfBirth(event.target.value)} min="1900-01-01" max={localDate()} autoComplete="bday" error={errors.dateOfBirth} />
                 <TextField label="Phone number" type="tel" value={phoneNumber} onChange={(event) => setPhoneNumber(event.target.value)} maxLength={40} autoComplete="tel" error={errors.phoneNumber} />
               </div>
-              <Button type="submit" busy={busy === 'profile'}>Save profile</Button>
+              <Button type="submit" busy={busy === 'profile'} disabled={!changed.profile}>Save profile</Button>
             </fieldset>
           </form>
         </Card>
@@ -158,7 +168,7 @@ function ProfileForm({ viewer }: { viewer: Viewer }) {
           <form onSubmit={(event) => { event.preventDefault(); void updateTimeZone(String(new FormData(event.currentTarget).get('timezone'))); }} className="space-y-5" noValidate>
             <fieldset disabled={!!busy} className="min-w-0 space-y-5">
               {/* Remounts after a save so the field shows the stored zone. */}
-              <ComboboxField key={viewer.timezone} label="Time zone" name="timezone" options={timeZoneOptions()} defaultValue={viewer.timezone}
+              <ComboboxField key={viewer.timezone} label="Time zone" name="timezone" options={timeZoneOptions()} defaultValue={viewer.timezone} onValueChange={setTimeZoneChoice}
                 hint={viewer.staffRole ? 'Sessions you schedule use this time zone. Clients see them in their own.' : 'Session times and your daily logs use this time zone.'} />
               {device !== viewer.timezone ? (
                 <p className="text-sm text-muted">
@@ -166,7 +176,7 @@ function ProfileForm({ viewer }: { viewer: Viewer }) {
                   <button type="button" className="font-medium text-gold-fg underline underline-offset-2" onClick={() => void updateTimeZone(device)}>Use it</button>
                 </p>
               ) : null}
-              <Button type="submit" busy={busy === 'timezone'}>Save time zone</Button>
+              <Button type="submit" busy={busy === 'timezone'} disabled={!changed.timezone}>Save time zone</Button>
             </fieldset>
           </form>
         </Card>
@@ -179,12 +189,19 @@ function ProfileForm({ viewer }: { viewer: Viewer }) {
                   placeholder="https://meet.google.com/abc-defg-hij" error={errors.meetingUrl} hint="Shown to your clients on every session. Leave blank if you don’t have one yet." />
                 <TextField label="Late cancellation window (hours)" type="text" inputMode="numeric" value={lateCancelHours} onChange={(event) => setLateCancelHours(event.target.value)} maxLength={3}
                   className="sm:max-w-xs" error={errors.lateCancelHours} hint="Client cancellations sent with less notice than this are marked late." />
-                <Button type="submit" busy={busy === 'sessions'}>Save session settings</Button>
+                <Button type="submit" busy={busy === 'sessions'} disabled={!changed.sessions}>Save session settings</Button>
               </fieldset>
             </form>
           </Card>
         ) : null}
         {viewer.scheduling ? <AvailabilityCard /> : null}
+        {viewer.client ? (
+          <Card>
+            <h2 id="profile-billing" className="mb-2 text-base font-semibold text-text">Billing</h2>
+            <p className="mb-3 text-sm text-muted">Your balance, charges, prices and payments.</p>
+            <Link to="/billing" className="-my-2 inline-flex min-h-11 items-center text-sm text-gold-fg"><span className="link">View billing</span></Link>
+          </Card>
+        ) : null}
         {viewer.staffRole ? (
           <Card>
             <h2 id="profile-payments" className="mb-4 text-base font-semibold text-text">Payments</h2>
@@ -193,7 +210,7 @@ function ProfileForm({ viewer }: { viewer: Viewer }) {
                 <TextField label="E-transfer email" type="email" inputMode="email" autoComplete="off" value={etransferEmail} onChange={(event) => setEtransferEmail(event.target.value)}
                   maxLength={254} placeholder={viewer.email} error={errors.etransferEmail}
                   hint="Clients you’re the primary coach for see this when they pay. It can differ from your sign-in email. Leave blank if you don’t take e-transfers." />
-                <Button type="submit" busy={busy === 'payments'}>Save e-transfer email</Button>
+                <Button type="submit" busy={busy === 'payments'} disabled={!changed.payments}>Save e-transfer email</Button>
               </fieldset>
             </form>
           </Card>

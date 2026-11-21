@@ -1,9 +1,9 @@
-/** Decision 0053: billing documents over HTTP, parsed with the schemas the screens use. Read-only. */
+/** Decisions 0053 and 0055: billing documents over HTTP, parsed with the schemas the screens use. Read-only. */
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { execSync } from 'node:child_process';
 import { beforeAll, describe, expect, it } from 'vitest';
 import {
-  ClientBillingSchema, MeetingBillingSchema, NeedsPriceSchema, OverviewSchema, PaymentDetailsSchema, SettingsSchema,
+  ClientBillingSchema, MeetingBillingSchema, NeedsPriceSchema, OverviewSchema, PaymentDetailsSchema, PaymentNoticesSchema, SettingsSchema,
 } from '@/features/billing/schemas';
 
 function localConfig() {
@@ -49,6 +49,7 @@ describe('billing over HTTP', () => {
     expect(overview.clients.map((c) => c.clientId)).toContain(MAYA);
     ClientBillingSchema.parse(await call(coach, 'get_client_billing', { p_client_id: MAYA }));
     NeedsPriceSchema.parse(await call(coach, 'list_sessions_needing_price'));
+    PaymentNoticesSchema.parse(await call(coach, 'list_payment_notices'));
     expect(Object.keys(SettingsSchema.parse(await call(coach, 'get_billing_settings')).rates)).toHaveLength(7);
 
     const meeting = await admin.from('meetings').select('id').eq('billable', true).limit(1).maybeSingle();
@@ -58,6 +59,7 @@ describe('billing over HTTP', () => {
 
   it('shows an unassigned coach nobody', async () => {
     expect(OverviewSchema.parse(await call(unassigned, 'billing_overview')).clients).toEqual([]);
+    expect(PaymentNoticesSchema.parse(await call(unassigned, 'list_payment_notices'))).toEqual([]);
     await expect(call(unassigned, 'get_client_billing', { p_client_id: MAYA })).rejects.toMatchObject({ code: '42501' });
   });
 
@@ -70,5 +72,20 @@ describe('billing over HTTP', () => {
     await expect(call(maya, 'billing_overview')).rejects.toMatchObject({ code: '42501' });
     const notes = await maya.from('billing_payments').select('note');
     expect(notes.error?.code).toBe('42501');
+  });
+
+  it('keeps staff billing actions and notice reasons away from clients', async () => {
+    const id = crypto.randomUUID();
+    await expect(call(maya, 'list_payment_notices')).rejects.toMatchObject({ code: '42501' });
+    await expect(call(maya, 'restore_payment', { p_payment_id: id })).rejects.toMatchObject({ code: '42501' });
+    await expect(call(maya, 'dismiss_payment_notice', { p_notice_id: id, p_reason: 'No' })).rejects.toMatchObject({ code: '42501' });
+    await expect(call(maya, 'record_reported_payment', {
+      p_notice_id: id, p_payment_id: id, p_amount_cents: 100, p_received_on: '2026-11-01', p_method: 'e_transfer', p_note: '',
+    })).rejects.toMatchObject({ code: '42501' });
+    const reasons = await maya.from('billing_payment_notices').select('dismiss_reason');
+    expect(reasons.error?.code).toBe('42501');
+    const own = await maya.from('billing_payment_notices').select('client_id');
+    expect(own.error).toBeNull();
+    expect((own.data ?? []).every((n) => n.client_id === MAYA)).toBe(true);
   });
 });

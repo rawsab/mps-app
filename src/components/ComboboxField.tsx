@@ -9,6 +9,8 @@ type Props = {
   name: string;
   options: Option[];
   defaultValue?: string;
+  /** Called with each option picked, e.g. to tell whether the form has changes. */
+  onValueChange?: (value: string) => void;
   hint?: string;
   error?: string | undefined;
 };
@@ -20,7 +22,7 @@ const normalize = (s: string) => s.toLowerCase().replace(/[_/]+/g, ' ');
  * arrows move, Enter picks, Escape restores the current value. Free text is never submitted:
  * leaving the field without picking keeps the previous value.
  */
-export function ComboboxField({ label, name, options, defaultValue = '', hint, error }: Props) {
+export function ComboboxField({ label, name, options, defaultValue = '', onValueChange, hint, error }: Props) {
   const id = useId();
   const listId = `${id}-list`;
   const [value, setValue] = useState(defaultValue);
@@ -57,6 +59,7 @@ export function ComboboxField({ label, name, options, defaultValue = '', hint, e
 
   function pick(option: Option) {
     setValue(option.value);
+    onValueChange?.(option.value);
     setOpen(false);
   }
 

@@ -41,6 +41,11 @@ function AvailabilityForm({ availability }: { availability: Availability }) {
   const saveRules = useSaveBookingRules();
   const busy = saveHours.isPending || saveRules.isPending;
   const summary = describeHours(availability.hours);
+  // Save stays disabled until the hours or rules differ from what's saved.
+  const changed = JSON.stringify(week) !== JSON.stringify(weekFromHours(availability.hours))
+    || rules.bookingNoticeHours.trim() !== String(availability.bookingNoticeHours)
+    || rules.bookingHorizonDays.trim() !== String(availability.bookingHorizonDays)
+    || rules.bookingBufferMinutes.trim() !== String(availability.bookingBufferMinutes);
 
   const setDay = (weekday: number, ranges: DayRange[]) => setWeek((current) => ({ ...current, [weekday]: ranges }));
 
@@ -121,7 +126,7 @@ function AvailabilityForm({ availability }: { availability: Availability }) {
         <TextField label="Gap (minutes)" type="text" inputMode="numeric" maxLength={3} value={rules.bookingBufferMinutes} error={errors.bookingBufferMinutes}
           onChange={(event) => setRules({ ...rules, bookingBufferMinutes: event.target.value })} hint="Kept free before and after meetings." />
       </fieldset>
-      <Button type="submit" busy={busy}>Save availability</Button>
+      <Button type="submit" busy={busy} disabled={!changed}>Save availability</Button>
     </form>
   );
 }

@@ -7,9 +7,10 @@ import {
 } from '@/domain/billing/billing';
 import { centsToInput, formatCents, parseDollars } from '@/domain/billing/money';
 import { todayIn } from '@/features/scheduling/time';
+import { formatDate } from '@/lib/format';
 import {
-  billingError, useAddAdjustment, useEditChargeLine, useMarkChargesPaid, useRecordPayment, useSetClientServiceRate, useSetClientSessionRate,
-  useVoidCharge, useVoidPayment,
+  billingError, useAddAdjustment, useDismissPaymentNotice, useEditChargeLine, useMarkChargesPaid, useRecordPayment, useRecordReportedPayment,
+  useSetClientServiceRate, useSetClientSessionRate, useVoidCharge, useVoidPayment, type PaymentNotice,
 } from './api';
 
 // Dialogs for the coach's billing panel (decision 0053). Each reports success through `onDone`.
@@ -33,7 +34,9 @@ export type PaymentMode =
   | { kind: 'record' }
   | { kind: 'credit' }
   /** Pays exactly what's left on these charges. */
-  | { kind: 'mark'; chargeIds: string[]; amountCents: number; label: string };
+  | { kind: 'mark'; chargeIds: string[]; amountCents: number; label: string }
+  /** Records what a client reported with "I've sent it" (decision 0055), prefilled, and confirms the notice. */
+  | { kind: 'reported'; notice: PaymentNotice };
 
 /** Record a payment received, a credit, or mark charges paid. Nothing is paid until a coach saves here. */
 export function PaymentDialog({ clientId, clientName, mode, onClose, onDone }: {
@@ -42,15 +45,16 @@ export function PaymentDialog({ clientId, clientName, mode, onClose, onDone }: {
   const today = useToday();
   const record = useRecordPayment();
   const mark = useMarkChargesPaid();
+  const reported = useRecordReportedPayment();
   // One id per dialog, so a retried save is recorded once.
   const [id] = useState(() => crypto.randomUUID());
-  const [amount, setAmount] = useState('');
-  const [receivedOn, setReceivedOn] = useState(today);
+  const [amount, setAmount] = useState(mode.kind === 'reported' ? centsToInput(mode.notice.amountCents) : '');
+  const [receivedOn, setReceivedOn] = useState(mode.kind === 'reported' ? mode.notice.sentOn : today);
   const [method, setMethod] = useState<PaymentMethod>('e_transfer');
   const [note, setNote] = useState('');
   const [problem, setProblem] = useState('');
-  const busy = record.isPending || mark.isPending;
-  const error = record.error ?? mark.error;
+  const busy = record.isPending || mark.isPending || reported.isPending;
+  const error = record.error ?? mark.error ?? reported.error;
 
   function save() {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(receivedOn)) return setProblem('Choose the date it was received.');
@@ -63,6 +67,11 @@ export function PaymentDialog({ clientId, clientName, mode, onClose, onDone }: {
     const cents = parseDollars(amount);
     if (cents === null || cents === 0) return setProblem('Enter an amount more than $0.');
     setProblem('');
+    if (mode.kind === 'reported') {
+      reported.mutate({ noticeId: mode.notice.id, id, amountCents: cents, receivedOn, method, note },
+        { onSuccess: () => onDone(`Payment of ${formatCents(cents)} recorded for ${clientName}.`) });
+      return;
+    }
     record.mutate({ id, clientId, amountCents: cents, receivedOn, method: mode.kind === 'credit' ? 'credit' : method, note }, {
       onSuccess: () => onDone(mode.kind === 'credit' ? `Credit of ${formatCents(cents)} added for ${clientName}.` : `Payment of ${formatCents(cents)} recorded for ${clientName}.`),
     });
@@ -71,6 +80,9 @@ export function PaymentDialog({ clientId, clientName, mode, onClose, onDone }: {
   const title = mode.kind === 'credit' ? 'Add a credit' : mode.kind === 'mark' ? 'Mark paid' : 'Record a payment';
   const description = mode.kind === 'credit' ? 'Lowers the balance without counting as money received, for goodwill or a discount after the fact.'
     : mode.kind === 'mark' ? `${mode.label}: ${formatCents(mode.amountCents)} left to pay.`
+    : mode.kind === 'reported' ? (mode.notice.chargeLabels.length
+      ? `${clientName} said they sent ${formatCents(mode.notice.amountCents)} for ${mode.notice.chargeLabels.join(', ')}. It’s applied to those first. Record it once it has arrived, with the amount you received.`
+      : `${clientName} said they sent ${formatCents(mode.notice.amountCents)}. Record it once it has arrived, with the amount you received.`)
     : 'Applied to the oldest unpaid charges first. Anything left over is credit for the next charges.';
 
   return (
@@ -202,6 +214,24 @@ export function VoidDialog({ target, onClose, onDone }: { target: VoidTarget; on
         <TextAreaField label="Reason" rows={2} maxLength={1000} value={reason} onChange={(event) => setReason(event.target.value)}
           hint="Kept with the change. The client doesn’t see it." />
         <Alert visible={!!mutation.error} title={unpay ? 'Not marked unpaid' : 'Not voided'}>{billingError(mutation.error)}</Alert>
+      </DialogBody>
+    </ConfirmDialog>
+  );
+}
+
+/** Dismiss an "I've sent it" that didn't turn into a payment. The reason stays with staff. */
+export function DismissNoticeDialog({ notice, onClose, onDone }: { notice: PaymentNotice; onClose: () => void; onDone: (message: ReactNode) => void }) {
+  const dismiss = useDismissPaymentNotice();
+  const [reason, setReason] = useState('');
+  return (
+    <ConfirmDialog tone="danger" title="Dismiss this payment notice?"
+      description={`${notice.clientName} said they sent ${formatCents(notice.amountCents)} on ${formatDate(notice.sentOn)}. Their balance doesn’t change.`}
+      confirmLabel="Dismiss" pending={dismiss.isPending} disabled={!reason.trim()} onClose={onClose}
+      onConfirm={() => dismiss.mutate({ id: notice.id, reason }, { onSuccess: () => onDone(`${notice.clientName}’s payment notice dismissed.`) })}>
+      <DialogBody className="grid gap-4">
+        <TextAreaField label="Reason" rows={2} maxLength={1000} value={reason} onChange={(event) => setReason(event.target.value)}
+          hint="For example, not received. The client doesn’t see it." />
+        <Alert visible={!!dismiss.error} title="Not dismissed">{billingError(dismiss.error)}</Alert>
       </DialogBody>
     </ConfirmDialog>
   );

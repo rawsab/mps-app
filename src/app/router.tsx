@@ -1,5 +1,7 @@
 import { createBrowserRouter, Navigate } from 'react-router';
+import { BillingHistoryPage } from '@/features/billing/BillingHistoryPage';
 import { BillingPage } from '@/features/billing/BillingPage';
+import { ClientBillingPage } from '@/features/billing/ClientBillingScreens';
 import { PersonalTrainingPage } from '@/features/personalTraining/PersonalTrainingPage';
 import { ProfileSettingsPage } from '@/features/profile/ProfileSettingsPage';
 import { MeetingsPage } from '@/features/scheduling/MeetingsPage';
@@ -35,6 +37,7 @@ export const router = createBrowserRouter([
             children: [
               { path: '/home', element: <ClientHomePage /> },
               { path: '/profile', element: <ProfileSettingsPage /> },
+              { path: '/billing', element: <ClientBillingPage /> },
               {
                 element: <RequireClient section="mesocycle" />,
                 children: [
@@ -75,6 +78,7 @@ export const router = createBrowserRouter([
               { path: '/coach/clients/:clientId', element: <ClientDetailPage /> },
               { path: '/coach/clients/:clientId/activity', element: <ClientActivityPage /> },
               { path: '/coach/clients/:clientId/meetings', element: <MeetingHistoryPage /> },
+              { path: '/coach/clients/:clientId/billing', element: <BillingHistoryPage /> },
               { path: '/coach/clients/:clientId/nutrition', element: <NutritionPage coach /> },
               { path: '/coach/clients/:clientId/nutrition/:programId', element: <NutritionProgramPage coach /> },
               { path: '/coach/clients/:clientId/nutrition/:programId/log', element: <NutritionProgramPage coach published /> },
