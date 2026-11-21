@@ -9,7 +9,7 @@ import {
 import { formatCents } from '@/domain/billing/money';
 import { formatDate } from '@/lib/format';
 import { billingError, useClientBilling } from './api';
-import { AddChargeDialog, EditLineDialog, PaymentDialog, PricingDialog, VoidDialog, type PaymentMode } from './BillingDialogs';
+import { AddChargeDialog, EditLineDialog, MarkUnpaidDialog, PaymentDialog, PricingDialog, VoidDialog, type PaymentMode, type VoidTarget } from './BillingDialogs';
 
 // The coach's view of one client's billing (decision 0053): balance, prices, monthly statements and
 // payments. Shared by the client page and the Billing page.
@@ -23,7 +23,8 @@ type Open =
   | { kind: 'charge' }
   | { kind: 'pricing' }
   | { kind: 'edit'; line: ChargeLine; paidCents: number }
-  | { kind: 'void'; target: { kind: 'charge' | 'payment'; id: string; label: string; paidCents?: number } };
+  | { kind: 'unpaid'; charge: Charge }
+  | { kind: 'void'; target: VoidTarget };
 
 /** `$320 owing`, `$40 in credit` or `Paid up`. */
 export function balanceText(balanceCents: number) {
@@ -66,6 +67,9 @@ export function ClientBillingPanel({ clientId, clientName, heading }: { clientId
       {open?.kind === 'charge' && billing.data ? <AddChargeDialog clientId={clientId} currentPeriod={billing.data.currentPeriod} onClose={close} onDone={done} /> : null}
       {open?.kind === 'pricing' && billing.data ? <PricingDialog clientId={clientId} clientName={clientName} rates={billing.data.rates} onClose={close} onDone={done} /> : null}
       {open?.kind === 'edit' ? <EditLineDialog line={open.line} paidCents={open.paidCents} onClose={close} onDone={done} /> : null}
+      {open?.kind === 'unpaid' && billing.data ? (
+        <MarkUnpaidDialog charge={open.charge} charges={billing.data.charges} payments={billing.data.payments} onClose={close} onDone={done} />
+      ) : null}
       {open?.kind === 'void' ? <VoidDialog target={open.target} onClose={close} onDone={done} /> : null}
     </section>
   );
@@ -138,7 +142,7 @@ function StatementRow({ statement, current, defaultOpen, onOpen }: { statement: 
         className="flex min-h-12 w-full items-center gap-2 text-left">
         <span className="inline-flex text-muted"><ChevronIcon open={open} /></span>
         <span className="min-w-0 flex-1 font-medium">{label}{current ? <span className="ml-2 text-xs font-normal text-muted">This month</span> : null}</span>
-        <span className="text-sm tabular-nums">{formatCents(statement.totalCents)}</span>
+        <span className="text-base font-semibold tabular-nums">{formatCents(statement.totalCents)}</span>
         <Badge size="sm" tone={STATUS_TONE[statement.status]}>{statement.status === 'empty' ? 'Nothing due' : chargeStatusLabel[statement.status]}</Badge>
       </button>
       <div id={id} role="region" aria-label={label} aria-hidden={!open} inert={!open} data-open={open} className="animated-disclosure-content"
@@ -172,7 +176,9 @@ function StatementRow({ statement, current, defaultOpen, onOpen }: { statement: 
 function ChargeRow({ charge, monthStatus, onOpen }: { charge: Charge; monthStatus: Statement['status']; onOpen: (open: Open) => void }) {
   const voided = charge.status === 'void';
   const left = charge.amountCents - charge.paidCents;
-  const single = charge.lines.length === 1 ? charge.lines[0] : undefined;
+  // A programming charge always lists its services, even one: its label ("November 2026 programming") doesn't name them.
+  const showLines = charge.lines.length > 1 || (charge.kind === 'programming' && charge.lines.length > 0);
+  const single = !showLines && charge.lines.length === 1 ? charge.lines[0] : undefined;
   return (
     <li className={`py-2 ${voided ? 'text-muted' : ''}`}>
       <div className="flex items-center gap-3">
@@ -189,12 +195,13 @@ function ChargeRow({ charge, monthStatus, onOpen }: { charge: Charge; monthStatu
             {left > 0 ? (
               <ActionItem onClick={() => onOpen({ kind: 'payment', mode: { kind: 'mark', chargeIds: [charge.id], amountCents: left, label: charge.label } })}>Mark paid</ActionItem>
             ) : null}
+            {charge.paidCents > 0 ? <ActionItem onClick={() => onOpen({ kind: 'unpaid', charge })}>Mark unpaid</ActionItem> : null}
             {single ? <ActionItem onClick={() => onOpen({ kind: 'edit', line: single, paidCents: charge.paidCents })}>Edit</ActionItem> : null}
             <ActionItem danger onClick={() => onOpen({ kind: 'void', target: { kind: 'charge', id: charge.id, label: charge.label, paidCents: charge.paidCents } })}>Void</ActionItem>
           </ActionsMenu>
         ) : <span className="size-9 shrink-0" />}
       </div>
-      {charge.lines.length > 1 ? (
+      {showLines ? (
         <ul className="grid gap-0.5 pl-17 pr-12">
           {charge.lines.map((line) => (
             <li key={line.id} className="flex items-center gap-2 text-xs text-muted">
@@ -227,13 +234,15 @@ function Payments({ payments, onOpen }: { payments: Payment[]; onOpen: (open: Op
                 <span className="w-14 shrink-0 text-xs text-muted">{formatDate(payment.receivedOn).replace(/,? \d{4}$/, '')}</span>
                 <div className="min-w-0 flex-1 text-sm">
                   <p className={voided ? 'line-through' : ''}>{paymentMethodLabel[payment.method]}{payment.note ? <span className="text-muted"> · {payment.note}</span> : null}</p>
-                  {voided && payment.voidReason ? <p className="text-xs">Void: {payment.voidReason}</p> : null}
+                  {voided && payment.voidReason ? <p className="text-xs">{payment.method === 'credit' ? 'Void' : 'Marked unpaid'}: {payment.voidReason}</p> : null}
                   {unapplied > 0 ? <p className="text-xs text-muted">{formatCents(unapplied)} not yet applied (credit)</p> : null}
                 </div>
                 <span className={`text-sm tabular-nums ${voided ? 'line-through' : ''}`}>{formatCents(payment.amountCents)}</span>
                 {!voided ? (
                   <ActionsMenu size="sm" label={`Actions for ${label}`}>
-                    <ActionItem danger onClick={() => onOpen({ kind: 'void', target: { kind: 'payment', id: payment.id, label } })}>Void</ActionItem>
+                    <ActionItem danger onClick={() => onOpen({ kind: 'void', target: { kind: 'payment', id: payment.id, label, credit: payment.method === 'credit' } })}>
+                      {payment.method === 'credit' ? 'Void' : 'Mark unpaid'}
+                    </ActionItem>
                   </ActionsMenu>
                 ) : <span className="size-9 shrink-0" />}
               </li>

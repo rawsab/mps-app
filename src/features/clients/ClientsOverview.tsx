@@ -3,11 +3,14 @@ import { Link } from 'react-router';
 import { Dialog } from '@/components/Dialog';
 import { ScrollStripButtons, useScrollStrip } from '@/components/ScrollStrip';
 import { CheckIcon, CopyIcon, InboxIcon, SendIcon } from '@/components/icons';
-import { Alert, Badge, Button, Spinner } from '@/components/ui';
+import { Alert, Button, Spinner } from '@/components/ui';
 import { ActivityRow } from '@/features/activity/ActivityViews';
 import { useLatestUnread, useUnreadCount } from '@/features/activity/api';
 import { schedulingError, useMeetingsToday } from '@/features/scheduling/api';
 import { topicLabel } from '@/features/scheduling/MeetingTopic';
+import { RequestBadge } from '@/features/scheduling/RequestBadge';
+import { MeetingDialogHost } from '@/features/scheduling/MeetingDialogHost';
+import { useMeetingToast } from '@/features/scheduling/useMeetingToast';
 import { upcomingByDay } from '@/domain/scheduling/upcoming';
 import { formatDate } from '@/lib/format';
 import { SERVICE_SHORT_LABELS, SERVICES } from '@/lib/services';
@@ -102,9 +105,11 @@ function AllClear({ title, detail }: { title: string; detail: string }) {
   );
 }
 
-/** Today's next few meetings across the coach's clients (decisions 0026, 0039). Rows open the meeting. */
+/** Today's next few meetings across the coach's clients (decisions 0026, 0039). Rows open the meeting here, without leaving the page. */
 function UpcomingSessionsPanel() {
   const meetings = useMeetingsToday();
+  const [openMeeting, setOpenMeeting] = useState<string | null>(null);
+  const toast = useMeetingToast();
   // Still to finish, never cancelled; the list refetches every minute so finished meetings drop off.
   const today = upcomingByDay((meetings.data ?? []).filter((m) => m.status === 'scheduled'), new Date(), (d) => d.toDateString(), 1)[0]?.sessions ?? [];
   const visible = today.slice(0, UPCOMING_LIMIT);
@@ -122,7 +127,7 @@ function UpcomingSessionsPanel() {
         <ul>
           {visible.map((meeting) => (
             <li key={meeting.id}>
-              <Link to={`/coach/clients/${meeting.clientId}?${new URLSearchParams({ session: meeting.id })}`} className="row-link group flex min-h-11 min-w-0 items-center gap-3 rounded-card py-2 pl-2 pr-2 hover:bg-surface-raised">
+              <button type="button" onClick={() => setOpenMeeting(meeting.id)} className="row-link group flex min-h-11 w-full min-w-0 items-center gap-3 rounded-card py-2 pl-2 pr-2 text-left hover:bg-surface-raised">
                 <span aria-hidden className="w-1 shrink-0 self-stretch rounded-full bg-gold" />
                 <time dateTime={meeting.startsAt} className="w-16 shrink-0 text-sm tabular-nums text-text">{SESSION_TIME.format(new Date(meeting.startsAt))}</time>
                 <span className="min-w-0 flex-1">
@@ -131,14 +136,19 @@ function UpcomingSessionsPanel() {
                     {[`${meeting.durationMinutes} min`, topicLabel(meeting.services), meeting.scheduleId ? '↻ Repeating' : 'One-off'].join(' · ')}
                   </span>
                 </span>
-                {meeting.request?.status === 'pending' ? <Badge tone="gold">Request</Badge> : null}
+                <RequestBadge request={meeting.request} />
                 <span aria-hidden className="text-xs text-muted group-hover:text-text">→</span>
-              </Link>
+              </button>
             </li>
           ))}
         </ul>
       ) : null}
       {today.length > visible.length ? <p className="mb-2 mt-2 text-xs text-muted">+{today.length - visible.length} more today</p> : null}
+      {openMeeting ? (
+        <MeetingDialogHost key={openMeeting} meetingId={openMeeting} onClose={() => setOpenMeeting(null)}
+          onSaved={(message, options) => { setOpenMeeting(null); toast.show(message, options); }} />
+      ) : null}
+      {toast.element}
     </section>
   );
 }

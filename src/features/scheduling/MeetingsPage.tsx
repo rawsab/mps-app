@@ -21,6 +21,7 @@ import { AvailabilityExceptions } from './AvailabilityExceptions';
 import { MeetingDialogHost } from './MeetingDialogHost';
 import { RecordAttendance } from './RecordAttendance';
 import { topicLabel } from './MeetingTopic';
+import { RequestBadge } from './RequestBadge';
 import { sessionDay, sessionMoment, sessionRange, sessionTime, todayIn, zoneLabel } from './time';
 import { isCancelled, useHideCancelled } from './useHideCancelled';
 import { useMeetingToast } from './useMeetingToast';
@@ -239,7 +240,7 @@ function AtAGlance({ timeZone }: { timeZone: string }) {
                   <span className="block truncate text-sm font-medium">{meeting.clientName}</span>
                   <span className="block truncate text-xs text-muted">{meeting.durationMinutes} min · {topicLabel(meeting.services)}</span>
                 </span>
-                {meeting.request?.status === 'pending' ? <Badge tone="gold">Request</Badge> : null}
+                <RequestBadge request={meeting.request} />
                 <span aria-hidden className="text-xs text-muted group-hover:text-text">→</span>
               </Link>
             </li>

@@ -160,4 +160,11 @@ where m.status = 'completed' and (workout.id is not null or nutrition.id is not 
   ]))
 on conflict (meeting_id, service) do nothing;
 
+-- Past sessions are inserted already attended, and session charges come from the status-change trigger,
+-- so bill them the way recording attendance would.
+select private.create_session_charge(m) from public.meetings m
+where private.session_chargeable(m)
+  and not exists (select 1 from public.billing_charges c where c.meeting_id = m.id and c.voided_at is null)
+order by m.starts_at;
+
 commit;

@@ -484,3 +484,41 @@ Decision 0054 (owner request; not covered by the PRD). Manual UI checks pending.
   - [ ] Reschedule requests or Service requests with nothing waiting open the page at the top, with no error.
   - [ ] Collapsed sidebar: a search icon only, no chevron. Drawer (narrow window): the search field, and the chevron works.
   - [ ] Chevron: smooth open and close, the line lines up under the Clients icon, Show more / Show less, the open client's name highlighted, clicking a name opens that client.
+
+## Upcoming today opens meetings in place (2026-11-21)
+
+- Clicking a meeting under Clients > Upcoming today now opens the meeting dialog over the Clients page (`MeetingDialogHost`, as on the Meetings page) instead of navigating to the client's page with `?session=`. Saves close the dialog and show the usual toast (with Undo for attendance).
+- **Verification.** `pnpm verify` passes (397 unit tests). No browser checks.
+- **Manual checks for the owner:**
+  - [ ] Clicking an Upcoming today row opens the meeting dialog and the page stays on Clients.
+  - [ ] Closing the dialog leaves you on Clients. Saving a change shows the toast, and the row updates.
+  - [ ] "Change the repeating pattern" opens the pattern editor in the same place.
+
+## Programming charges list their services (2026-11-21)
+
+- A monthly programming charge now always shows its service lines under it (e.g. "Mesocycle programming $200"), even when there's only one. Before, the breakdown appeared only with two or more lines, so a single-service client saw just "November 2026 programming". With one line, Edit moves from the ⋯ menu to the line's own Edit link. Session and adjustment charges are unchanged.
+- **Verification.** `pnpm verify` passes (397 unit tests). No browser checks.
+- **Manual checks for the owner:**
+  - [ ] Daniel Okafor's November statement shows the service name and $200 under "November 2026 programming", with an Edit link that opens the price editor.
+  - [ ] A client with both services still shows both lines and the bundle discount.
+  - [ ] PT session charges still show as a single row with Edit in the ⋯ menu.
+
+## Seeded PT sessions are billed; request badges name their kind (2026-11-21)
+
+- **Seed billing.** Past demo sessions were inserted already attended, but session charges come from the status-change trigger, so none were billed. `supabase/seed/meetings.sql` now bills them through `private.create_session_charge` (12 charges after `pnpm db:reset`). Recording attendance in the app was always fine.
+- **Request badges.** Meeting rows on the Meetings page and Clients > Upcoming today show "Cancellation request" (red) or "Reschedule request" (gold) instead of "Request" (`RequestBadge`).
+- **Verification.** `pnpm verify` (397), `pnpm test:db` and `pnpm test:api` (26) pass after a reset. No browser checks.
+- **Manual checks for the owner:**
+  - [ ] Daniel's October and November statements list each attended session as "Personal training · 60 min" at $100.
+  - [ ] Grace's Nov 25 meeting shows a gold "Reschedule request". A pending cancellation shows a red "Cancellation request".
+
+## Mark a charge unpaid (2026-11-21)
+
+- A charge with money on it (paid or part paid) has **Mark unpaid** in its ⋯ menu. It voids the payment(s) applied to that charge through the existing `void_payment`, so the audit keeps the reason (prefilled "Marked paid by mistake"). If one of those payments also paid other charges (e.g. "Mark November paid"), the dialog names them, since they become unpaid too. No migration. Monthly totals on statements are also bigger (`text-base font-semibold`).
+- **Verification.** `pnpm verify` passes (397 unit tests). No browser checks.
+- **Manual checks for the owner:**
+  - [ ] Mark one PT session paid, then Mark unpaid: it goes back to Unpaid, the payment shows as void under Payments, and the balance goes back up.
+  - [ ] Mark a whole month paid, then Mark unpaid on one charge: the dialog warns that the month's other charges are unpaid too.
+  - [ ] Unpaid charges don't show Mark unpaid.
+- **Follow-up.** Under Payments, a payment's ⋯ menu says **Mark unpaid** instead of Void (same `void_payment`; reason prefilled; a voided payment reads "Marked unpaid: reason"). Credits keep **Void**, since there's nothing to un-pay.
+  - [ ] A payment's ⋯ shows Mark unpaid. Confirming makes its charges owed again and the row reads "Marked unpaid: …". A credit still shows Void.

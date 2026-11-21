@@ -3,7 +3,7 @@ import { useViewer } from '@/app/auth';
 import { ConfirmDialog, Dialog, DialogBody } from '@/components/Dialog';
 import { Alert, Button, SelectField, TextAreaField, TextField } from '@/components/ui';
 import {
-  paymentMethodLabel, periodLabel, serviceRateLabel, sessionTypeLabel, type ChargeLine, type ClientBilling, type PaymentMethod, type Rate,
+  paymentMethodLabel, periodLabel, serviceRateLabel, sessionTypeLabel, type Charge, type ChargeLine, type ClientBilling, type Payment, type PaymentMethod, type Rate,
 } from '@/domain/billing/billing';
 import { centsToInput, formatCents, parseDollars } from '@/domain/billing/money';
 import { todayIn } from '@/features/scheduling/time';
@@ -177,27 +177,69 @@ export function EditLineDialog({ line, paidCents, onClose, onDone }: {
   );
 }
 
-/** Void a charge or a payment, with the reason kept in the audit. */
-export function VoidDialog({ target, onClose, onDone }: {
-  target: { kind: 'charge' | 'payment'; id: string; label: string; paidCents?: number }; onClose: () => void; onDone: (message: ReactNode) => void;
-}) {
+export type VoidTarget = { kind: 'charge' | 'payment'; id: string; label: string; paidCents?: number; credit?: boolean };
+
+/**
+ * Void a charge (no longer owed) or a payment, with the reason kept in the audit. A payment other than
+ * a credit is framed as "Mark unpaid": the charges it paid are owed again.
+ */
+export function VoidDialog({ target, onClose, onDone }: { target: VoidTarget; onClose: () => void; onDone: (message: ReactNode) => void }) {
   const voidCharge = useVoidCharge();
   const voidPayment = useVoidPayment();
   const mutation = target.kind === 'charge' ? voidCharge : voidPayment;
-  const [reason, setReason] = useState('');
+  const unpay = target.kind === 'payment' && !target.credit;
+  const [reason, setReason] = useState(unpay ? 'Marked paid by mistake' : '');
 
   return (
-    <ConfirmDialog tone="danger" title={target.kind === 'charge' ? 'Void this charge?' : 'Void this payment?'}
+    <ConfirmDialog tone="danger" title={target.kind === 'charge' ? 'Void this charge?' : unpay ? 'Mark this payment unpaid?' : 'Void this credit?'}
       description={target.kind === 'charge'
         ? `${target.label}. ${target.paidCents ? `The ${formatCents(target.paidCents)} paid on it becomes credit for other charges.` : 'It no longer counts towards the balance.'}`
-        : `${target.label}. The charges it paid become unpaid again.`}
-      confirmLabel={target.kind === 'charge' ? 'Void charge' : 'Void payment'} pending={mutation.isPending} disabled={!reason.trim()}
+        : `${target.label}. The charges it paid are owed again and the balance goes back up.`}
+      confirmLabel={target.kind === 'charge' ? 'Void charge' : unpay ? 'Mark unpaid' : 'Void credit'} pending={mutation.isPending} disabled={!reason.trim()}
       onClose={onClose}
-      onConfirm={() => mutation.mutate({ id: target.id, reason }, { onSuccess: () => onDone(`${target.label} voided.`) })}>
+      onConfirm={() => mutation.mutate({ id: target.id, reason }, { onSuccess: () => onDone(unpay ? `${target.label} marked unpaid.` : `${target.label} voided.`) })}>
       <DialogBody className="grid gap-4">
         <TextAreaField label="Reason" rows={2} maxLength={1000} value={reason} onChange={(event) => setReason(event.target.value)}
           hint="Kept with the change. The client doesn’t see it." />
-        <Alert visible={!!mutation.error} title="Not voided">{billingError(mutation.error)}</Alert>
+        <Alert visible={!!mutation.error} title={unpay ? 'Not marked unpaid' : 'Not voided'}>{billingError(mutation.error)}</Alert>
+      </DialogBody>
+    </ConfirmDialog>
+  );
+}
+
+/**
+ * Undo a mistaken "Mark paid": voids the payments applied to one charge. A payment that also paid other
+ * charges unpays those too, so the dialog names them first.
+ */
+export function MarkUnpaidDialog({ charge, charges, payments, onClose, onDone }: {
+  charge: Charge; charges: Charge[]; payments: Payment[]; onClose: () => void; onDone: (message: ReactNode) => void;
+}) {
+  const voidPayment = useVoidPayment();
+  const [reason, setReason] = useState('Marked paid by mistake');
+  const paying = payments.filter((p) => !p.voidedAt && p.allocations.some((a) => a.chargeId === charge.id));
+  const others = charges.filter((c) => c.id !== charge.id && paying.some((p) => p.allocations.some((a) => a.chargeId === c.id)));
+  const total = paying.reduce((sum, p) => sum + p.amountCents, 0);
+
+  const confirm = async () => {
+    for (const payment of paying) await voidPayment.mutateAsync({ id: payment.id, reason });
+    onDone(`${charge.label} marked unpaid.`);
+  };
+
+  return (
+    <ConfirmDialog tone="danger" title="Mark this charge unpaid?"
+      description={`${charge.label}. This voids the ${paying.length === 1 ? 'payment' : `${paying.length} payments`} of ${formatCents(total)} recorded against it.`}
+      confirmLabel="Mark unpaid" pending={voidPayment.isPending} disabled={!reason.trim() || paying.length === 0}
+      onClose={onClose} onConfirm={() => void confirm().catch(() => undefined)}>
+      <DialogBody className="grid gap-4">
+        {others.length ? (
+          <Alert tone="note" title={`This also unpays ${others.length === 1 ? 'another charge' : `${others.length} other charges`}`}>
+            {others.map((c) => c.label).join(', ')}. Record the payment again for anything that was really paid.
+          </Alert>
+        ) : null}
+        {paying.length === 0 ? <p className="text-sm text-muted">This charge was paid from credit or a payment that’s already void.</p> : null}
+        <TextAreaField label="Reason" rows={2} maxLength={1000} value={reason} onChange={(event) => setReason(event.target.value)}
+          hint="Kept with the change. The client doesn’t see it." />
+        <Alert visible={!!voidPayment.error} title="Not marked unpaid">{billingError(voidPayment.error)}</Alert>
       </DialogBody>
     </ConfirmDialog>
   );
