@@ -30,13 +30,15 @@ export function Button({ variant = 'primary', busy, className = '', children, di
 }
 
 /**
- * A bordered surface. `sm` padding for a compact card inside a list or sidebar. `fill="page"` leaves
+ * A bordered surface. `sm` padding for a compact card inside a list or sidebar; `none` for content
+ * that runs to the edges, such as a thumbnail (it clips to the rounded corners). `fill="page"` leaves
  * the page background showing, for outlined cards that sit directly on the page.
  */
 export function Card({ children, className = '', padding = 'md', fill = 'surface', as: Tag = 'section' }: {
-  children: ReactNode; className?: string; padding?: 'sm' | 'md'; fill?: 'surface' | 'page'; as?: 'section' | 'div' | 'dl';
+  children: ReactNode; className?: string; padding?: 'none' | 'sm' | 'md'; fill?: 'surface' | 'page'; as?: 'section' | 'div' | 'dl';
 }) {
-  return <Tag className={`rounded-card border border-line ${fill === 'surface' ? 'bg-surface' : ''} ${padding === 'sm' ? 'p-4' : 'p-4 sm:p-5'} ${className}`}>{children}</Tag>;
+  const space = { none: 'overflow-hidden', sm: 'p-4', md: 'p-4 sm:p-5' }[padding];
+  return <Tag className={`rounded-card border border-line ${fill === 'surface' ? 'bg-surface' : ''} ${space} ${className}`}>{children}</Tag>;
 }
 
 /** The look shared by every text control: ink fill, gold border and ring on focus. Add height, padding and a border colour. */
@@ -226,7 +228,7 @@ export type BadgeTone = keyof typeof BADGE_STYLES;
 
 /** A key hint ("⌘K", "esc"); hidden from screen readers, so pair it with `aria-keyshortcuts`. */
 export function Kbd({ children }: { children: ReactNode }) {
-  return <kbd aria-hidden className="rounded-[4px] border border-line px-1.5 font-sans text-[11px] leading-5 text-muted">{children}</kbd>;
+  return <kbd aria-hidden className="rounded-[4px] bg-surface-raised px-1.5 py-0.5 font-sans text-[11px] leading-5 text-muted">{children}</kbd>;
 }
 
 /** `sm` is the compact label beside a heading. */

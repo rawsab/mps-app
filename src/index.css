@@ -39,6 +39,10 @@
   --color-sidebar-gold: color-mix(in oklab, var(--color-gold) 65%, #7a4f10);
   --color-sidebar-glow: color-mix(in oklab, var(--color-sidebar-gold) 8%, transparent);
   --sidebar-grain: 0.06;
+  /* Help examples (.help-example): grain strength over the gradient. */
+  --help-grain: 0.14;
+  /* Help topic thumbnails (.help-thumb): the base the gold rises from. */
+  --color-help-thumb: #0a0a0a;
   --radius-card: 7px;
   /* Options inside a bordered group (segmented controls, dropdown rows) sit 2px inside the card radius. */
   --radius-inner: 5px;
@@ -75,6 +79,8 @@ html[data-theme='light'] {
   --color-on-table-head: #171717;
   --color-sidebar-glow: color-mix(in oklab, var(--color-sidebar-gold) 11%, transparent);
   --sidebar-grain: 0.08;
+  --help-grain: 0.16;
+  --color-help-thumb: #f6f5f1;
 }
 
 html {
@@ -505,6 +511,59 @@ html[data-theme='light'] .sidebar-glow {
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 1.6 -0.3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
   opacity: var(--sidebar-grain);
   mask-image: linear-gradient(20deg, #000, transparent 80%);
+}
+
+/*
+ * Help examples (decision 0057): a live component on a gold gradient with grain, so the backdrop shows
+ * around it. Built from theme tokens, so it follows light and dark mode. Same grain as the sidebar.
+ */
+.help-example {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background-color: var(--color-ink);
+  background-image:
+    radial-gradient(110% 90% at 0% 100%, color-mix(in oklab, var(--color-gold) 34%, transparent), transparent 62%),
+    radial-gradient(90% 80% at 100% 0%, color-mix(in oklab, var(--color-sidebar-gold) 26%, transparent), transparent 66%),
+    linear-gradient(140deg, var(--color-surface-raised), var(--color-ink));
+}
+.help-example::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 1.6 -0.3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: var(--help-grain);
+}
+
+/* Help topic thumbnails: black rising into gold, with the same grain. */
+.help-thumb {
+  position: relative;
+  isolation: isolate;
+  background-color: var(--color-help-thumb);
+  background-image:
+    radial-gradient(120% 140% at 100% 100%, color-mix(in oklab, var(--color-gold) 70%, transparent), transparent 60%),
+    linear-gradient(160deg, var(--color-help-thumb) 35%, color-mix(in oklab, var(--color-sidebar-gold) 55%, var(--color-help-thumb)));
+}
+.help-thumb::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 0 0.5 0 0 0 1.6 -0.3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  opacity: 0.14;
+}
+
+/* Help topic thumbnails: a small browser window with part of an app page in it (decision 0057). */
+.help-window {
+  color: var(--color-text);
+  background: var(--color-ink);
+  box-shadow: 0 18px 40px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px color-mix(in oklab, var(--color-gold) 30%, transparent);
+}
+html[data-theme='light'] .help-window {
+  box-shadow: 0 18px 40px -14px rgba(60, 45, 15, 0.35), 0 0 0 1px color-mix(in oklab, var(--color-gold) 35%, transparent);
 }
 
 /*

@@ -1,0 +1,74 @@
+import { Callout, Example } from '../blocks';
+import { Button } from '@/components/ui';
+import { statusBadge } from '@/features/clients/ClientsTable';
+
+The Clients page lists everyone you coach. You see the clients assigned to you. Administrators see every client.
+
+## The Clients page
+
+The top of the page shows what needs attention:
+
+- **To review**: the latest unread workouts and logs. Select **View all** to open Activity.
+- **Upcoming today**: your remaining meetings today. Select one to open it.
+- **Follow up**: clients who haven't been invited or haven't accepted their invitation yet.
+- **Service requests**: clients asking to add or change a service.
+
+Below that is the table of clients. Search by name or email, filter by service or status, and select a column heading to sort.
+
+## Client statuses
+
+<Example caption="Each client has one status.">
+  {statusBadge('pending')}
+  {statusBadge('invited')}
+  {statusBadge('active')}
+  {statusBadge('disabled')}
+</Example>
+
+| Status | What it means |
+| --- | --- |
+| {statusBadge('pending')} | The client has a record but no account. You can still build their programs. |
+| {statusBadge('invited')} | An invitation was sent. The client becomes active after they first sign in. |
+| {statusBadge('active')} | The client has signed in and can see their published programs. |
+| {statusBadge('disabled')} | The client can't see any data, even if they are signed in. Their records are kept. |
+
+## Adding a client
+
+Administrators add clients with **New client**. Enter the full name, email and time zone. Notes are optional and private to staff.
+
+Adding a client doesn't send an email. You can prepare their programs first and invite them when you are ready.
+
+## Inviting a client
+
+Send the invitation from **Follow up** on the Clients page, or from **Client settings** on the client's page. If a client hasn't signed in yet, **Resend invite** sends them a fresh link.
+
+<Callout tone="note">
+Only administrators can send invitations, add clients and change services.
+</Callout>
+
+## The client page
+
+Select a client to open their page. It has:
+
+- **Programs**: their mesocycle, personal training and nutritional programs. Each has its own page in Help.
+- **Services**: what they are signed up for. Administrators can add a service, pause, resume or end it, and archive an ended one.
+- **Notes**: private notes about the client. The client never sees these.
+- **Recent updates**: their latest workouts, logs and requests.
+- **Meetings**: their upcoming and past sessions.
+- **Billing**: their balance, charges and payments.
+
+## Service requests
+
+When a client asks for a new service, it appears under **Service requests**. Select **Accept** to add the service, or **Reject** to turn it down. You can add a reply, which the client sees.
+
+<Example caption="The two choices for a service request." interactive>
+  <Button variant="secondary">Reject</Button>
+  <Button>Accept</Button>
+</Example>
+
+## Row actions
+
+The menu at the end of each row in the table lets you view the client, see their recent updates, transfer them to another coach, or disable and reactivate their access.
+
+Disabling a client blocks their access straight away. Reactivating restores access to their published programs and history.
+
+Disabled clients move to **Disabled accounts** below the table. Open it to see them.

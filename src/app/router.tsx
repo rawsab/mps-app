@@ -18,7 +18,7 @@ import { CoachTrainingLogPage, LegacyTrainingRedirect, ProgramListPage, Training
 import { UseNoticePage } from '@/components/LegalFooter';
 import { USE_NOTICE_PATH } from '@/lib/legal';
 import { HomeRedirect, RequireClient, RequireSignedIn, RequireStaff } from './guards';
-import { ClientLayout, CoachLayout, wideRoute } from './layouts';
+import { ClientLayout, CoachLayout, sectionRoute, wideRoute } from './layouts';
 
 export const router = createBrowserRouter([
   { path: '/sign-in', element: <SignInPage /> },
@@ -88,6 +88,17 @@ export const router = createBrowserRouter([
               { path: '/coach/reviews', element: <ReviewsPage />, handle: wideRoute },
               { path: '/coach/meetings', element: <MeetingsPage />, handle: wideRoute },
               { path: '/coach/billing', element: <BillingPage />, handle: wideRoute },
+              // Help loads on first visit, with its pages split further (decision 0057). One section, so
+              // the topic list stays in place while pages change.
+              {
+                path: '/coach/help',
+                handle: sectionRoute('help'),
+                lazy: async () => ({ Component: (await import('@/features/help/HelpPages')).HelpLayout }),
+                children: [
+                  { index: true, lazy: async () => ({ Component: (await import('@/features/help/HelpPages')).HelpIndexPage }) },
+                  { path: ':slug', lazy: async () => ({ Component: (await import('@/features/help/HelpPages')).HelpArticlePage }) },
+                ],
+              },
             ],
           },
         ],

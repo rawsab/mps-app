@@ -1,0 +1,76 @@
+import { Callout, Example } from '../../blocks';
+import { SegmentedControl } from '@/components/controls';
+import { Badge } from '@/components/ui';
+
+{/* The program editor, shared by the Mesocycle and Personal training pages. Headings here are part of both pages. */}
+
+## Drafts and publishing
+
+Every program starts as a draft. Drafts are visible to staff only.
+
+<Example caption="Labels you'll see on programs.">
+  <Badge tone="gold">Live</Badge>
+  <Badge>Not published</Badge>
+  <Badge tone="gold">Current</Badge>
+  <Badge>Archived</Badge>
+</Example>
+
+1. Build the program. Changes save on their own about a second after you stop.
+2. Open **Publish readiness** beside the Publish button. It lists anything you need to fix, such as an exercise with no name. Select an item to jump to it.
+3. Select **Publish**. The draft becomes the client's current program for this service.
+
+Publishing again later replaces what the client sees with your new version. Anything the client has already logged is kept.
+
+<Callout tone="note">
+If Publish is refused, you may not have permission to publish for this client. Ask an administrator.
+</Callout>
+
+## Two views
+
+<Example caption="Switch between the two views at the top of the editor." interactive width="sm">
+  <SegmentedControl label="Editor view example" value="grid" onChange={() => {}} options={[{ value: 'grid', label: 'Spreadsheet' }, { value: 'program', label: 'List View' }]} />
+</Example>
+
+Both views edit the same draft, so you can switch at any time.
+
+### Spreadsheet
+
+The Spreadsheet shows each week as a table, one row per exercise. It opens by default.
+
+- Type in a cell to change it. Paste a block of cells from another spreadsheet, and you'll be asked to review the change first.
+- Drag a day, section or exercise to reorder it. Shift-click or Shift-drag to select several cells.
+- Right-click a cell to duplicate or remove its day or week.
+- Use **Add** to create weeks, days and sections.
+- The **+** bar under the table adds an exercise to the last section.
+
+### List View
+
+List View shows one workout at a time, with an outline of weeks and days on the side. Use it for things the spreadsheet doesn't show: program details, every-workout prep, resources, exercise alternatives, demo links and the muscles each exercise works.
+
+## Writing targets
+
+| You type | It means |
+| --- | --- |
+| `10` | 10 reps on every set |
+| `10 / 8 / 6` | A different target for each set |
+| `8-10` | A range of 8 to 10 reps |
+| `45s` or `2 min` | A time instead of reps |
+| `1-2` in RIR | A range of 1 to 2 reps in reserve |
+
+A load with no unit stays without one. The app never guesses kilograms or pounds. A blank cell means no value. It is different from 0.
+
+## Undo and redo
+
+Use the undo and redo buttons, or press **Ctrl+Z** (**⌘Z** on a Mac) to undo and **Ctrl+Shift+Z** (**⌘⇧Z**) to redo. Undo covers your last 100 changes while the editor is open.
+
+## When something goes wrong
+
+- **A save fails**: your edits stay in the editor. Select **Retry**, or keep editing and it tries again.
+- **Someone else changed the draft**: nothing is overwritten. You choose whether to add your changes on top of theirs, replace theirs or discard yours.
+- **You close the page with unsaved edits**: a copy stays on this device. You'll be offered it the next time you open the program.
+
+## Current and archived programs
+
+A client can have several programs. **Current** marks the one they see now. Use **Make current** to show a different program instead.
+
+Archived programs keep their history, and they can't be edited or published.

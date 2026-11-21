@@ -1,0 +1,76 @@
+import { Callout, Example } from '../blocks';
+import { Badge, Button, Card } from '@/components/ui';
+
+Billing tracks what each client owes and what they have paid. Amounts are in Canadian dollars, before tax. Clients pay you by e-Transfer outside the app, and you record each payment here.
+
+## How charges are made
+
+- **Monthly services** (Mesocycle and Nutrition) are charged on the 1st of each month.
+- **Personal training sessions** are charged when you record attendance.
+- **No-shows and late cancellations** are charged the full session price. You can void the charge if you choose not to bill it.
+- Meetings that aren't personal training, such as check-ins, are never charged. The monthly price covers them.
+
+## Session prices
+
+A session's price comes from the first of these that is set:
+
+1. A price set on that meeting.
+2. The client's own price for that kind of session.
+3. The default price.
+
+Setting a price on a meeting also makes it that client's price for that kind of session from then on.
+
+A price of $0 is complimentary. A missing price is different: the session isn't charged until you set one. Sessions like this are listed on the Billing page.
+
+<Callout tone="note">
+Administrators set the default prices with **Default prices** on the Billing page. Changes apply to new charges only.
+</Callout>
+
+## The Billing page
+
+The Billing page lists your clients with their balances:
+
+- **Outstanding**: what is owed now.
+- **From previous months**: unpaid amounts from earlier months.
+- **Overdue** and **In credit** help you find clients who are behind or paid ahead.
+
+## When a client says they've paid
+
+When a client sends an e-Transfer, they can tell you in their app. A notice appears on the Billing page and in Activity.
+
+1. Check that the e-Transfer arrived.
+2. Select **Record payment** and enter the amount and date received.
+
+<Callout tone="warning" title="Balances only change when you record a payment">
+A client's notice doesn't change their balance. Record the payment once the money arrives.
+</Callout>
+
+## A client's billing
+
+Open a client's page and find **Billing**.
+
+<Example caption="A client's billing, with fictional amounts." width="md">
+  <Card className="w-full">
+    <div className="flex items-baseline justify-between gap-3">
+      <span className="text-sm text-muted">Balance</span>
+      <span className="text-2xl font-medium text-text">$300.00</span>
+    </div>
+    <div className="mt-3 flex flex-wrap items-center gap-2">
+      <Badge tone="danger">Overdue</Badge>
+      <span className="flex-1" />
+      <Button variant="secondary">Add a charge</Button>
+      <Button>Record payment</Button>
+    </div>
+  </Card>
+</Example>
+
+- **Record payment**: money received. It pays the oldest unpaid charges first. Anything left over becomes credit for later charges.
+- **Add a charge**: a one-off amount, such as an opening balance.
+- **Add a credit**: lowers the balance without counting as money received, for goodwill or a discount after the fact.
+- **Mark paid** and **Mark unpaid**: settle a month, or undo one marked paid by mistake.
+- **Void**: cancels a charge or credit. It no longer counts toward the balance, but stays on record.
+- **Edit client's prices**: this client's own prices for monthly services and sessions.
+
+**Statements** shows each earlier month. **Payments** lists every payment recorded.
+
+Notes on payments and credits are private to staff.

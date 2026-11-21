@@ -2,14 +2,14 @@ import { useEffect, useId, useMemo, useRef, useState, type ReactNode } from 'rea
 import { useNavigate } from 'react-router';
 import { Dialog } from '@/components/Dialog';
 import { IconButton } from '@/components/controls';
+import { Highlighted } from '@/components/Highlighted';
 import { Kbd } from '@/components/ui';
 import {
-  BillingIcon, CalendarIcon, CheckCircleIcon, ClientsIcon, CloseIcon, ExtraHoursIcon, InviteIcon, NutritionIcon, ProgressIcon,
+  BillingIcon, CalendarIcon, CheckCircleIcon, ClientsIcon, CloseIcon, ExtraHoursIcon, HelpIcon, InviteIcon, NutritionIcon, ProgressIcon,
   ReviewsIcon, SearchIcon, ServicesIcon, SettingsIcon, TemplatesIcon, TimeOffIcon, TodoIcon, TrainingIcon, UserIcon,
 } from '@/components/icons';
 import { useViewer } from '@/app/auth';
 import { COACH_DESTINATIONS } from '@/domain/search/destinations';
-import type { Range } from '@/domain/search/match';
 import { clientEntries, programEntries, search, type SearchIconKey, type SearchResult } from '@/domain/search/search';
 import { useClients } from '@/features/clients/api';
 import { statusBadge } from '@/features/clients/ClientsTable';
@@ -35,20 +35,8 @@ const ICONS: Record<SearchIconKey, () => ReactNode> = {
   mesocycle: ProgressIcon,
   personalTraining: TrainingIcon,
   nutrition: NutritionIcon,
+  help: HelpIcon,
 };
-
-function Highlighted({ text, ranges }: { text: string; ranges: Range[] }) {
-  if (!ranges.length) return text;
-  const parts: ReactNode[] = [];
-  let at = 0;
-  for (const [start, end] of ranges) {
-    if (start > at) parts.push(text.slice(at, start));
-    parts.push(<mark key={start} className="bg-transparent font-semibold text-gold-fg">{text.slice(start, end)}</mark>);
-    at = end;
-  }
-  if (at < text.length) parts.push(text.slice(at));
-  return parts;
-}
 
 /**
  * Coach search (decision 0054): clients, pages and sections, ranked as you type. ARIA 1.2 combobox

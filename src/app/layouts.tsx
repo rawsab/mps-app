@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation, useMatches } from 'react-router';
 import {
   ChevronIcon,
   ClientsIcon,
+  HelpIcon,
   HomeIcon,
   MesocycleIcon,
   MenuIcon,
@@ -30,6 +31,7 @@ import { useMeetingsLeftToday } from '@/features/scheduling/api';
 import { CommandPalette } from '@/features/search/CommandPalette';
 import { searchShortcut, useSearchShortcut } from '@/features/search/shortcut';
 import { ThemeToggle } from '@/components/ThemeToggle';
+import { HELP_PATH } from '@/domain/help/pages';
 import { clientSections } from '@/lib/services';
 import { signOut, useViewer } from './auth';
 import { useHashTarget } from './useHashTarget';
@@ -50,12 +52,23 @@ function useWideRoute() {
   return useMatches().some((match) => (match.handle as { wide?: boolean } | undefined)?.wide);
 }
 
-/** Route content settles in once when the route mounts (keyed by path); never on scroll. */
+/**
+ * Route `handle` for a section whose pages share a frame that stays put between them (Help's topic
+ * list). The section animates its own content instead.
+ */
+export const sectionRoute = (section: string) => ({ section });
+
+function useRouteSection() {
+  return useMatches().map((match) => (match.handle as { section?: string } | undefined)?.section).find(Boolean);
+}
+
+/** Route content settles in once when the route mounts (keyed by path, or by section); never on scroll. */
 function RouteContent() {
   const location = useLocation();
+  const section = useRouteSection();
   useHashTarget();
   return (
-    <div key={location.pathname} className="page-enter">
+    <div key={section ?? location.pathname} className="page-enter">
       <Outlet />
     </div>
   );
@@ -309,6 +322,23 @@ function NavClientList({ open, onNavigate }: { open: boolean; onNavigate?: () =>
 }
 
 /** Sidebar and drawer links. Collapsed, the label stays as the accessible name and a hover title. */
+const navRowClass = (collapsed: boolean, isActive: boolean) =>
+  `flex min-h-11 items-center gap-3 rounded-card text-sm transition-colors ${collapsed ? 'justify-center' : 'px-3'} ${isActive ? 'bg-surface-raised font-medium text-text' : 'text-muted hover:bg-surface-raised hover:text-text'}`;
+
+/** Help sits apart from the main items, just above Profile settings (decision 0057). */
+function HelpLink({ collapsed = false, onNavigate }: { collapsed?: boolean; onNavigate?: () => void }) {
+  return (
+    <NavLink to={HELP_PATH} onClick={onNavigate} title={collapsed ? 'Help' : undefined} className={({ isActive }) => navRowClass(collapsed, isActive)}>
+      {({ isActive }) => (
+        <>
+          <span className={isActive ? 'text-gold-fg' : ''}><HelpIcon /></span>
+          <span className={collapsed ? 'sr-only' : 'flex-1'}>Help</span>
+        </>
+      )}
+    </NavLink>
+  );
+}
+
 function CoachNavLinks({ collapsed = false, onNavigate, clientsOpen = false, onToggleClients }: {
   collapsed?: boolean; onNavigate?: () => void; clientsOpen?: boolean; onToggleClients?: () => void;
 }) {
@@ -334,9 +364,7 @@ function CoachNavLinks({ collapsed = false, onNavigate, clientsOpen = false, onT
             to={i.to}
             onClick={onNavigate}
             title={collapsed ? (badges[i.to]?.count ? `${i.label} (${badges[i.to]!.count} ${badges[i.to]!.label})` : i.label) : undefined}
-            className={({ isActive }) =>
-              `flex min-h-11 items-center gap-3 rounded-card text-sm transition-colors ${collapsed ? 'justify-center' : 'px-3'} ${i.to === CLIENTS_PATH && expandable ? 'pr-11' : ''} ${isActive ? 'bg-surface-raised font-medium text-text' : 'text-muted hover:bg-surface-raised hover:text-text'}`
-            }
+            className={({ isActive }) => `${navRowClass(collapsed, isActive)} ${i.to === CLIENTS_PATH && expandable ? 'pr-11' : ''}`}
           >
             {({ isActive }) => (
               <>
@@ -421,6 +449,7 @@ function CoachDrawer({ onClose, onSearch, clientsOpen, onToggleClients }: { onCl
         <nav aria-label="Coach" className="min-h-0 flex-1 overflow-y-auto">
           <CoachNavLinks onNavigate={dismiss} clientsOpen={clientsOpen} onToggleClients={onToggleClients} />
         </nav>
+        <HelpLink onNavigate={dismiss} />
         <div className="border-t border-line pt-3"><ProfileLink coach onNavigate={dismiss} /></div>
       </div>
     </dialog>
@@ -487,7 +516,10 @@ export function CoachLayout() {
         <nav aria-label="Coach" className="min-h-0 flex-1 overflow-y-auto">
           <CoachNavLinks collapsed={collapsed} clientsOpen={clientsOpen} onToggleClients={toggleClients} />
         </nav>
-        <ProfileLink coach collapsed={collapsed} />
+        <div className="flex flex-col gap-1">
+          <HelpLink collapsed={collapsed} />
+          <ProfileLink coach collapsed={collapsed} />
+        </div>
         <div className={`flex gap-1 border-t border-line pt-3 ${collapsed ? 'flex-col items-center' : 'items-center'}`}>
           <ThemeToggle />
           <IconButton label="Sign out" title="Sign out" lift onClick={() => void signOut()}>

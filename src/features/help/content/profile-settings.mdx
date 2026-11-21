@@ -1,0 +1,48 @@
+import { Callout, Example } from '../blocks';
+import { Avatar } from '@/components/Avatar';
+
+Open Profile settings by selecting your name and picture at the bottom of the sidebar. Clients see some of these details, so set them up before you schedule sessions or bill anyone.
+
+<Example caption="Your name in the sidebar shows Setup required until your meeting link and e-transfer email are set." width="sm">
+  <div className="flex items-center gap-3 rounded-card px-2 py-2 text-sm">
+    <Avatar name="Jordan Avery" />
+    <span>
+      <span className="block font-medium text-text">Jordan Avery</span>
+      <span className="block text-xs font-medium text-gold-fg">Setup required</span>
+    </span>
+  </div>
+</Example>
+
+## Personal details
+
+Set your preferred name, phone number and date of birth. Your email is your sign-in email. Ask an administrator if it needs to change.
+
+## Profile picture
+
+Upload a JPEG, PNG or WebP image up to 5 MB. It shows in a circle in the sidebar and to your clients.
+
+## Time zone
+
+Sessions you schedule use this time zone. Clients see each session in their own time zone.
+
+## Personal training sessions
+
+- **Meeting link**: the video call link clients see on every session. Leave it blank if you don't have one yet.
+- **Late cancellation window**: a client cancellation sent with less notice than this many hours is marked late.
+
+## Availability
+
+Availability decides when clients can pick times for sessions.
+
+- **Working hours**: your usual week. Days without hours are unavailable.
+- **Notice**: the soonest a client can pick, in hours.
+- **Look ahead**: how far ahead clients can pick, in days.
+- **Gap**: minutes kept free before and after each meeting.
+
+<Callout tone="note">
+If you add no working hours, clients can't pick new times. For a holiday or a one-off change, use Time off and extra hours on the Meetings page instead of changing your week.
+</Callout>
+
+## Payments
+
+Your **e-transfer email** is shown to clients you are the primary coach for when they pay you. It can be different from your sign-in email. Leave it blank if you don't take e-transfers.

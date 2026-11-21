@@ -1,0 +1,50 @@
+import { Callout, Example } from '../blocks';
+import { Chip } from '@/components/controls';
+import { Badge } from '@/components/ui';
+
+Activity shows what your clients do, newest first: workouts, nutrition logs, meeting requests, service requests and payment notices.
+
+## Filters
+
+<Example caption="Filters at the top of Activity." interactive>
+  <div role="group" aria-label="Filter activity example" className="flex gap-2">
+    <Chip pressed>All</Chip>
+    <Chip pressed={false}>Focused</Chip>
+    <Chip pressed={false}>Unread</Chip>
+  </div>
+</Example>
+
+- **All**: everything.
+- **Focused**: requests that need an answer from you.
+- **Unread**: items you haven't opened yet.
+
+## Unread items
+
+The number beside Activity in the sidebar is how many unread items you have. Opening an item marks it as read. **Mark all as read** clears the whole list at once.
+
+## Labels
+
+Labels on each item tell you what it is and what happened to it.
+
+<Example caption="Some of the labels you'll see.">
+  <Badge tone="info">Reschedule request</Badge>
+  <Badge tone="danger">Cancellation request</Badge>
+  <Badge tone="violet">Service Request</Badge>
+  <Badge tone="gold">Payment</Badge>
+  <Badge tone="gold">Short notice</Badge>
+  <Badge tone="danger">Late cancellation</Badge>
+</Example>
+
+**Short notice** means a reschedule request came in close to the session. **Late cancellation** means a cancellation came in after the late cancellation window you set in Profile settings.
+
+## Trends
+
+**Trends** shows how many updates you received over a period you choose, split by type and by client.
+
+## One client's history
+
+On a client's page, **Recent updates** shows their latest items. Select **View full history** to see everything for that client.
+
+<Callout tone="tip">
+Requests and payment notices also appear on the Meetings and Billing pages, where you can act on them.
+</Callout>

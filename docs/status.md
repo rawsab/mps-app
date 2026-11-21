@@ -1,6 +1,6 @@
 # Status
 
-Started 2026-11-16 · Last updated 2026-11-20 · Open work: `docs/todo.md`
+Started 2026-11-16 · Last updated 2026-11-21 · Open work: `docs/todo.md`
 
 ## Repository assessment (M0)
 
@@ -647,3 +647,26 @@ Decision 0055, "Owner follow-ups".
 - New `src/components/Skeleton.tsx` (`LoadingRegion`, `Skeleton`, `SkeletonText`, `SkeletonHeader`, `SkeletonRows`, `SkeletonCard`, `SkeletonTable`) and `src/features/scheduling/MeetingSkeletons.tsx`. `Skeleton` moved out of `ui.tsx`.
 - `tests/lib/loadingStates.test.ts` fails on any loading spinner outside the allowed list.
 - **Verification.** `pnpm verify` passes (409 tests). No browser checks; the manual checklist is in decision 0056.
+
+## Help pages for coaches (2026-11-21)
+
+- Decision 0057. A new **Help** link with a question-mark icon sits above Profile settings in the coach sidebar and drawer. `/coach/help` lists eight topics: Getting started, Profile settings, Clients, Activity, Training programs, Nutrition, Meetings and Billing.
+- Pages are MDX (`@mdx-js/rollup` 3.1.1, `remark-gfm` 4.0.1, `@types/mdx` 2.0.14) in `src/features/help/content/`, and each loads as its own chunk. `<Example>` renders real components with fictional data on a gold gradient with grain. `<Callout>` is for tips and notes.
+- Help search finds sections by heading and text and opens the page at that heading (`src/domain/help/sections.ts`, reusing the coach search matcher). ⌘K lists the Help pages.
+- `Highlighted` moved from the command palette to `src/components/Highlighted.tsx` so both searches share it.
+- `tests/domain/help.test.ts`: manifest and files match, no dashes, unique section ids, section extraction and ranking.
+- **Verification.** `pnpm verify` passes (420 tests). The dev server serves both compiled pages and `?raw` text. No browser checks; the manual checklist is in decision 0057.
+
+## Help: separate Mesocycle and Personal training pages (2026-11-21)
+
+- Owner request, recorded in decision 0057. Training programs is replaced by **Mesocycle** and **Personal training**, so Programs in Help lists those two pages and Nutrition. Mesocycle covers Program Style and Theme, the RIR goal and Muscles columns, client set logging, set totals, Stimulus & Fatigue, and the coach's Client log. Personal training covers the Title, how sessions follow the current program, and the client's attendance figures.
+- The editor sections both pages share are in `src/features/help/content/shared/program-editor.mdx`. `inlineShared` (`src/domain/help/sections.ts`) puts that text into both pages for search and the topic list.
+- The Clients help page's statuses table shows the status pills instead of plain words.
+- Phase 2 plan in decision 0057 updated to 13 pages.
+- **Verification.** `pnpm verify` passes (423 tests). The dev server passes components through to the shared editor. No browser checks.
+
+## Help polish (2026-11-21)
+
+- Help index: topic cards with browser-window thumbnails of the matching app page (rebuilt from components, light and dark), the topic list beside the index too, an Overview link at its top, lighter group labels, and wider gaps between groups. The topic list scrolls on its own with a fade while there's more below.
+- `Kbd` now has a fill instead of a border, and more vertical padding, everywhere it's used.
+- **Verification.** `pnpm verify` passes (423 tests). No browser checks; manual checks are in decision 0057.

@@ -1,10 +1,10 @@
 import { matchEntry, type Range } from './match';
 import { SYNONYMS, type Concept } from './synonyms';
 
-export type SearchGroup = 'clients' | 'programs' | 'pages' | 'meetings' | 'clientsPage' | 'settings';
+export type SearchGroup = 'clients' | 'programs' | 'pages' | 'meetings' | 'clientsPage' | 'settings' | 'help';
 
 /** Keys for the result icons; the palette maps them to components in `@/components/icons`. */
-export type SearchIconKey = 'user' | 'clients' | 'calendar' | 'activity' | 'templates' | 'billing' | 'settings' | 'todo' | 'attendance' | 'timeOff' | 'extraHours' | 'invite' | 'services' | 'mesocycle' | 'personalTraining' | 'nutrition';
+export type SearchIconKey = 'user' | 'clients' | 'calendar' | 'activity' | 'templates' | 'billing' | 'settings' | 'todo' | 'attendance' | 'timeOff' | 'extraHours' | 'invite' | 'services' | 'mesocycle' | 'personalTraining' | 'nutrition' | 'help';
 
 /** What the viewer can reach beyond the coach routes every staff member has. */
 export type SearchAccess = { admin: boolean; scheduling: boolean };
@@ -41,10 +41,11 @@ export const GROUP_LABELS: Record<SearchGroup, string> = {
   meetings: 'Meetings',
   clientsPage: 'Clients page',
   settings: 'Settings',
+  help: 'Help',
 };
 
-const GROUP_ORDER: SearchGroup[] = ['clients', 'programs', 'pages', 'meetings', 'clientsPage', 'settings'];
-const GROUP_LIMIT: Record<SearchGroup, number> = { clients: 6, programs: 6, pages: 5, meetings: 5, clientsPage: 5, settings: 5 };
+const GROUP_ORDER: SearchGroup[] = ['clients', 'programs', 'pages', 'meetings', 'clientsPage', 'settings', 'help'];
+const GROUP_LIMIT: Record<SearchGroup, number> = { clients: 6, programs: 6, pages: 5, meetings: 5, clientsPage: 5, settings: 5, help: 5 };
 
 export function searchTerms(entry: SearchEntry): string[] {
   return [...(entry.concepts ?? []).flatMap((c) => SYNONYMS[c]), ...(entry.terms ?? []), ...(entry.trail ? [entry.trail] : [])];

@@ -20,6 +20,7 @@ export const SYNONYMS = {
   timeZone: ['timezone', 'tz', 'region', 'local time', 'clock', 'change my time zone'],
   availability: ['working hours', 'business hours', 'open hours', 'weekly hours', 'bookable times', 'when clients can book', 'booking notice', 'buffer', 'schedule'],
   sessionSettings: ['meeting link', 'video link', 'zoom', 'google meet', 'call link', 'late cancellation', 'cancellation window'],
+  help: ['docs', 'documentation', 'how to', 'guide', 'instructions', 'manual', 'faq', 'support', 'explain'],
   paymentSettings: ['e-transfer', 'etransfer', 'interac', 'e-transfer email', 'payment email'],
 } as const satisfies Record<string, readonly string[]>;
 

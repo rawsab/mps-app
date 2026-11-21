@@ -1,0 +1,71 @@
+import { Callout, Example } from '../blocks';
+import { Badge } from '@/components/ui';
+import ProgramEditor from './shared/program-editor.mdx';
+
+A mesocycle is a training block that runs over several weeks. You write the program, and the client logs every set they do. You then see their results set by set.
+
+## Creating a mesocycle program
+
+On the client's page, find **Programs** and choose **New Mesocycle Program**. The client needs the Mesocycle service first. If they don't have it, an administrator can add it under Services.
+
+## Program Style and Theme
+
+- **Program Style** is the program's main heading, such as "Hypertrophy". A program needs a style before you can publish it.
+- **Program Theme** is an optional line under the style, up to 240 characters.
+
+Both are in **Program details**, and the client sees them on their program.
+
+## Mesocycle columns
+
+Mesocycle programs have two columns that personal training programs don't:
+
+- **RIR goal**, right after the exercise name: the reps in reserve you want the client to leave.
+- **Muscles**: the muscles an exercise works, separated by commas, such as "Quads, Glutes". As you type, it suggests muscles already used in the same week, so spellings stay the same.
+
+Each logged set counts once for every muscle listed. A set of leg press with "Quads, Glutes" adds one set to quads and one to glutes.
+
+<ProgramEditor components={props.components} />
+
+## What the client does
+
+The client opens **Mesocycle** in their app and picks a week and day. They can read it as a workout or as a spreadsheet.
+
+1. They start the day's log.
+2. For each set they enter the weight, with lb or kg, and the reps.
+3. They select **Mark workout complete**. They can reopen it later to fix something.
+
+A workout the client has started keeps the targets it began with, even if you publish a new version during it.
+
+<Callout tone="note">
+Leaving reps blank means the client hasn't entered them. A 0 is a real result.
+</Callout>
+
+## Set totals
+
+Under each workout, **Set totals** shows how many sets the client logged for each muscle, out of how many you planned. A set counts once it has reps. **Change** compares with the last day that trained the same muscle.
+
+Set totals only appear once you add muscles to the exercises.
+
+## Stimulus and Fatigue
+
+After a workout, the client can score each muscle they trained from 0 to 3:
+
+- **Acute muscle stimulus**: challenge, pump and disruption in that session.
+- **Set progression**: soreness after the last session for that muscle, and performance this time.
+
+These scores are optional. You see a **Suggestion (not applied)** based on them. It never changes the program; you decide what to do with it.
+
+## Viewing and correcting a client's log
+
+Once a mesocycle program is published, its editor shows a **Client log** button.
+
+1. Open the program and select **Client log**.
+2. Pick the week and day. You see the program as the client sees it, with their logged sets.
+3. Change a set, or select **Start log for client** to log a day for them.
+
+Your changes save to the client's record straight away and are marked as coach edits.
+
+<Example caption="How your changes are labelled. The client sees the first one, and Activity shows the second.">
+  <Badge>Edited by your coach</Badge>
+  <Badge>Edited by coach</Badge>
+</Example>

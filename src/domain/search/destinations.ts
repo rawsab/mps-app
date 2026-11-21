@@ -1,3 +1,4 @@
+import { HELP_PAGES, HELP_PATH, helpPath } from '@/domain/help/pages';
 import type { SearchEntry } from './search';
 
 /**
@@ -32,4 +33,8 @@ export const COACH_DESTINATIONS: readonly SearchEntry[] = [
   { id: 'availability', title: 'Availability', group: 'settings', icon: 'settings', to: '/coach/profile#profile-availability', trail: 'Profile settings', concepts: ['availability'], requires: ['scheduling'], suggested: true },
   { id: 'session-settings', title: 'Session settings', group: 'settings', icon: 'settings', to: '/coach/profile#profile-sessions', trail: 'Profile settings › Personal training sessions', concepts: ['sessionSettings'], requires: ['scheduling'] },
   { id: 'payment-settings', title: 'E-transfer email', group: 'settings', icon: 'settings', to: '/coach/profile#profile-payments', trail: 'Profile settings › Payments', concepts: ['paymentSettings'] },
+
+  // Help (decision 0057): the pages only. Sections are searched inside Help.
+  { id: 'help', title: 'Help', group: 'pages', icon: 'help', to: HELP_PATH, concepts: ['help'] },
+  ...HELP_PAGES.map((page): SearchEntry => ({ id: `help-${page.slug}`, title: page.title, group: 'help', icon: 'help', to: helpPath(page.slug), trail: 'Help', concepts: ['help'], terms: [page.summary] })),
 ];

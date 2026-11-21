@@ -1,0 +1,51 @@
+import { Callout, Example } from '../blocks';
+import { Badge } from '@/components/ui';
+
+A nutritional program sets a client's calorie targets over a number of weeks. The client logs their weight and calories each day, and you follow along in a spreadsheet.
+
+## Creating a nutritional program
+
+On the client's page, find **Programs** and choose **New Nutritional Program**. The client needs the Nutrition service first.
+
+## Program details
+
+- **Start Date** and **Weeks**: when the program runs. The spreadsheet's dates follow the Start Date.
+- **Weight unit**: kilograms or pounds for this program.
+- **Starting Predicted Maintenance Calories**, **Starting Predicted Daily Caloric Goal** and **Starting Predicted Weight Change Per Week**: your starting targets.
+- **Program notes**: shown to the client.
+
+Program details stay private until you publish. Select **Publish program** to share them with the client. Publishing again later keeps every daily entry saved against its date.
+
+<Callout tone="note">
+Programs can overlap in dates. You'll see a notice, and publishing is still allowed.
+</Callout>
+
+## What clients log
+
+Each day the client enters three values:
+
+- Today's weight.
+- Calories consumed yesterday.
+- Caloric output yesterday.
+
+The calories always belong to the day before, so a log made on Tuesday fills in Monday's calories. A value of 0 is a real zero. A blank means the client hasn't answered.
+
+## The client spreadsheet
+
+The spreadsheet shows each week with the client's entries and the calculated columns, such as weekly caloric balance and average weight change. Calculated cells and future dates can't be edited.
+
+Highlighted cells are missing a weight or calorie entry.
+
+## Correcting an entry
+
+You can type over a client's entry in the spreadsheet. Your change saves straight to the client's records and is marked as a coach correction. Corrected cells have a light gold tint.
+
+<Example caption="In Activity, entries you corrected carry this label.">
+  <Badge>Edited by coach</Badge>
+</Example>
+
+Open **Correction history** to see the latest 100 changes, with the value before and after each one.
+
+## Archived programs
+
+An archived nutritional program is read-only. Its spreadsheet and history are kept.

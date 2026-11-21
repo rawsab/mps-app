@@ -1,0 +1,45 @@
+import { Callout } from '../blocks';
+import ProgramEditor from './shared/program-editor.mdx';
+
+A personal training program holds the workouts for your sessions with the client. Clients read the program, but they don't log sets for it. Progress is tracked by the sessions they attend.
+
+## Creating a personal training program
+
+On the client's page, find **Programs** and choose **New Personal Training Program**. The client needs the Personal Training service first. If they don't have it, an administrator can add it under Services.
+
+## Title
+
+A personal training program has a **Title**, shown to the client. A program needs a title before you can publish it. It has no Program Theme.
+
+## Personal training columns
+
+The columns are the same as a mesocycle program's, without **Muscles**. Personal training programs have no set totals.
+
+<ProgramEditor components={props.components} />
+
+## Programs and sessions
+
+Each meeting tagged **Personal training** follows the client's current personal training program. You can pick a different program inside the meeting.
+
+Once the meeting starts, the program it followed is recorded. Changing the current program later doesn't change past meetings. See Meetings in Help for scheduling.
+
+## What the client sees
+
+The client opens **Personal training** in their app. It shows:
+
+- **Your program**: their current program, then any other published ones. They can read each as a workout or as a spreadsheet.
+- **Next session** and **Upcoming**: their sessions for the next four weeks.
+- **Progress**: sessions completed, sessions this month, their weekly streak and their attendance rate, plus a chart of sessions per week.
+- **History**: their past sessions.
+
+## How progress is counted
+
+| Figure | How it's counted |
+| --- | --- |
+| Sessions completed | Sessions marked **Attended**. |
+| Weekly streak | Weeks in a row with at least one attended session. The current week can add to the streak but never breaks it. |
+| Attendance rate | Attended sessions out of attended, no-shows and late cancellations. Cancelled sessions don't count. |
+
+<Callout tone="tip" title="Record attendance to keep these right">
+A past session with no attendance shows as Past and counts nowhere. Record attendance from the Meetings page after each session.
+</Callout>

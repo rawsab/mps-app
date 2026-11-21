@@ -38,6 +38,7 @@ Build pages from `src/components/` before writing styles (decision 0049). A call
 - Overlays: `Dialog` (`bare` for the command palette), `ConfirmDialog` and `DialogBody`; `ActionsMenu` with `ActionItem`; `PopupMenu` for context menus; `InfoTip`; `ChartTooltip`.
 - Charts: `ColumnTrend` (columns over time slots, with a screen-reader table).
 - Content: `Card`, `SectionHeading`, `PageHeader`, `Badge`, `Alert`, `EmptyState`, `AllClear`, `AnimatedDisclosure`, `DisclosureSummary`, `Spinner`, `Kbd`.
+- Help (decision 0057): coach Help pages are MDX in `src/features/help/content/`, listed in `src/domain/help/pages.ts`. When a feature's behaviour or labels change, update its Help page too. Write plainly: short sentences, no litotes, no irony, no em dashes. Show UI with `<Example>` and fictional data.
 - Loading (decision 0056): content shows a skeleton inside `LoadingRegion`, built from `SkeletonText`, `SkeletonHeader`, `SkeletonRows`, `SkeletonCard`, `SkeletonTable` and `Skeleton` (`src/components/Skeleton.tsx`). Spinners are only for actions in progress.
 
 ## Invariants agents are likely to get wrong
