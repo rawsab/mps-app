@@ -13,7 +13,7 @@ import { ChangeMeetingDialog, type ChangeKind } from '@/features/scheduling/Chan
 import { useMeetingToast } from '@/features/scheduling/useMeetingToast';
 import { topicLabel } from '@/features/scheduling/MeetingTopic';
 import { sessionDay, sessionMoment, sessionRange } from '@/features/scheduling/time';
-import { SERVICE_SHORT_LABELS } from '@/lib/services';
+import { clientProgramPath, SERVICE_SHORT_LABELS } from '@/lib/services';
 import { useNextMeeting } from './api';
 
 /** "Join call" is the primary action from this long before the start until the meeting ends. */
@@ -76,14 +76,16 @@ function MeetingCard({ meeting, timeZone, now, onSent }: { meeting: Meeting; tim
           </p>
           {pending.preferredStartsAt ? <p className="mt-1.5">Asked for {sessionMoment(pending.preferredStartsAt, timeZone)}</p> : null}
           {pending.message ? <p className="mt-1.5 line-clamp-3 whitespace-pre-wrap break-words text-muted">“{pending.message}”</p> : null}
-          <Button variant="ghost" className="-ml-3 mt-1" onClick={() => setWithdrawing(true)}>Withdraw request</Button>
+          <div className="mt-2 flex justify-end">
+            <Button variant="ghost-gold" onClick={() => setWithdrawing(true)}>Withdraw request</Button>
+          </div>
         </div>
       ) : null}
       {programs.length ? (
         <ul className="mt-3 grid gap-1.5">
           {programs.map((p) => (
             <li key={p.service}>
-              <Link to={`/${p.service === 'nutrition' ? 'nutrition' : 'training'}/${p.programId}`} title={p.title ?? undefined}
+              <Link to={clientProgramPath(p.service, p.programId)} title={p.title ?? undefined}
                 className="group flex min-h-10 min-w-0 items-center gap-2 rounded-card border border-line px-3 text-sm transition-colors hover:border-muted/70 hover:bg-surface-raised">
                 <span className="shrink-0 text-xs text-muted">{SERVICE_SHORT_LABELS[p.service]}</span>
                 <span className="min-w-0 flex-1 truncate">{p.title?.trim() || 'Untitled program'}</span>

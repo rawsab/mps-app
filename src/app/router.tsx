@@ -10,7 +10,7 @@ import { ClientDetailPage } from '@/features/clients/ClientDetailPage';
 import { ClientsPage } from '@/features/clients/ClientsPage';
 import { ProgramEditorPage } from '@/features/programs/ProgramEditorPage';
 import { ClientHomePage, CoachPlaceholderPage } from '@/features/home/ClientPages';
-import { CoachTrainingLogPage, TrainingPage, TrainingProgramPage } from '@/features/training/TrainingPages';
+import { CoachTrainingLogPage, LegacyTrainingRedirect, ProgramListPage, TrainingProgramPage } from '@/features/training/TrainingPages';
 import { UseNoticePage } from '@/components/LegalFooter';
 import { USE_NOTICE_PATH } from '@/lib/legal';
 import { HomeRedirect, RequireClient, RequireSignedIn, RequireStaff } from './guards';
@@ -34,12 +34,21 @@ export const router = createBrowserRouter([
               { path: '/home', element: <ClientHomePage /> },
               { path: '/profile', element: <ProfileSettingsPage /> },
               {
-                element: <RequireClient section="training" />,
+                element: <RequireClient section="mesocycle" />,
                 children: [
-                  { path: '/training', element: <TrainingPage /> },
-                  { path: '/training/:programId', element: <TrainingProgramPage /> },
+                  { path: '/mesocycle', element: <ProgramListPage service="mesocycle" /> },
+                  { path: '/mesocycle/:programId', element: <TrainingProgramPage service="mesocycle" /> },
                 ],
               },
+              {
+                element: <RequireClient section="personalTraining" />,
+                children: [
+                  { path: '/personal-training', element: <ProgramListPage service="personal_training" /> },
+                  { path: '/personal-training/:programId', element: <TrainingProgramPage service="personal_training" /> },
+                ],
+              },
+              { path: '/training', element: <LegacyTrainingRedirect /> },
+              { path: '/training/:programId', element: <LegacyTrainingRedirect /> },
               {
                 element: <RequireClient section="nutrition" />,
                 children: [{ path: '/nutrition', element: <NutritionPage /> }, { path: '/nutrition/:programId', element: <NutritionProgramPage /> }],

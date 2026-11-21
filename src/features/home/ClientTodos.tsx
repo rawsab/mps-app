@@ -5,6 +5,7 @@ import { activeNutritionProgram, dailyNutritionStatus, nextWorkout } from '@/dom
 import { nutritionError, useNutrition } from '@/features/nutrition/api';
 import { useNutritionPrograms } from '@/features/nutrition/programApi';
 import { trainingErrorMessage } from '@/features/training/api';
+import { clientProgramPath } from '@/lib/services';
 import { useCurrentMesocycle } from './api';
 
 /** Daily tasks for the client's services (FR-03, decision 0042): nutrition and the next mesocycle workout. */
@@ -65,8 +66,8 @@ function WorkoutTodo({ today }: { today: string }) {
   if (!meso.id || !meso.program || !meso.sessions) return null;
   const next = nextWorkout(meso.program, meso.sessions, today);
   if (!next) return null;
-  if (next.state === 'complete') return <TodoRow done title="Next workout" detail="Program complete. Every workout is logged." to={`/training/${meso.id}`} />;
-  const to = `/training/${meso.id}?${new URLSearchParams({ week: next.weekId, day: next.dayId })}`;
+  if (next.state === 'complete') return <TodoRow done title="Next workout" detail="Program complete. Every workout is logged." to={clientProgramPath('mesocycle', meso.id)} />;
+  const to = `${clientProgramPath('mesocycle', meso.id)}?${new URLSearchParams({ week: next.weekId, day: next.dayId })}`;
   const progress = next.state === 'done_today' ? 'Completed today'
     : next.state === 'not_started' && next.logged === 0 ? `${plural(next.exercises, 'exercise')} · Not started`
     : `${next.logged} of ${plural(next.exercises, 'exercise')} logged`;

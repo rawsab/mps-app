@@ -3,6 +3,7 @@ import { NavLink, Outlet, useLocation, useMatches } from 'react-router';
 import {
   ClientsIcon,
   HomeIcon,
+  MesocycleIcon,
   MenuIcon,
   NutritionIcon,
   ProgressIcon,
@@ -86,13 +87,20 @@ function ProfileLink({ coach = false, collapsed = false, onNavigate }: { coach?:
   );
 }
 
-/** Client app: Home, Training, Nutrition, Progress — filtered by assigned services (PRD §6). */
+/** A label shortened where space is tight, with the full name kept for screen readers. */
+function NavLabel({ label, short }: { label: string; short?: string }) {
+  if (!short) return label;
+  return <><span aria-hidden>{short}</span><span className="sr-only">{label}</span></>;
+}
+
+/** Client app: Home, Mesocycle, Personal training, Nutrition, Progress — filtered by assigned services (PRD §6, decision 0051). */
 export function ClientLayout() {
   const viewer = useViewer();
   const sections = clientSections(viewer.data?.services ?? []);
-  const items = [
+  const items: (NavItem & { short?: string; show: boolean })[] = [
     { to: '/home', label: 'Home', icon: <HomeIcon />, show: true },
-    { to: '/training', label: 'Training', icon: <TrainingIcon />, show: sections.training },
+    { to: '/mesocycle', label: 'Mesocycle', icon: <MesocycleIcon />, show: sections.mesocycle },
+    { to: '/personal-training', label: 'Personal training', short: 'PT', icon: <TrainingIcon />, show: sections.personalTraining },
     { to: '/nutrition', label: 'Nutrition', icon: <NutritionIcon />, show: sections.nutrition },
     { to: '/progress', label: 'Progress', icon: <ProgressIcon />, show: sections.progress },
   ].filter((i) => i.show);
@@ -104,7 +112,8 @@ export function ClientLayout() {
         <nav aria-label="Main" className="mr-2 hidden items-stretch sm:flex">
           {items.map((i) => (
             <NavLink key={i.to} to={i.to} className={navWord}>
-              {i.label}
+              <span className="lg:hidden"><NavLabel label={i.label} short={i.short} /></span>
+              <span className="hidden lg:inline">{i.label}</span>
             </NavLink>
           ))}
         </nav>
@@ -128,7 +137,7 @@ export function ClientLayout() {
                 }
               >
                 {i.icon}
-                {i.label}
+                <NavLabel label={i.label} short={i.short} />
               </NavLink>
             </li>
           ))}

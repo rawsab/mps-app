@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react';
 import { Navigate, Outlet, useLocation } from 'react-router';
 import { Alert, Button, Card, Spinner } from '@/components/ui';
-import { clientSections } from '@/lib/services';
+import { clientSections, type ClientSection } from '@/lib/services';
 import { signOut, useAuth, useViewer } from './auth';
 
 /*
@@ -73,7 +73,7 @@ export function RequireStaff() {
   return viewer.data?.staffRole ? <Outlet /> : <Navigate to="/" replace />;
 }
 
-export function RequireClient({ section }: { section?: 'training' | 'nutrition' | 'progress' }) {
+export function RequireClient({ section }: { section?: ClientSection }) {
   const viewer = useViewer();
   if (!viewer.data?.client) return <Navigate to="/" replace />;
   if (section && !clientSections(viewer.data.services)[section]) return <Navigate to="/home" replace />;

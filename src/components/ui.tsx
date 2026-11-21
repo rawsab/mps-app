@@ -3,7 +3,7 @@ import { useId } from 'react';
 import { CloseIcon, InfoIcon } from './icons';
 import { NoticePresence } from './NoticePresence';
 
-type ButtonProps = ComponentPropsWithRef<'button'> & { variant?: 'primary' | 'secondary' | 'ghost' | 'ghost-danger' | 'danger'; busy?: boolean };
+type ButtonProps = ComponentPropsWithRef<'button'> & { variant?: 'primary' | 'secondary' | 'ghost' | 'ghost-danger' | 'ghost-gold' | 'danger'; busy?: boolean };
 
 export function Button({ variant = 'primary', busy, className = '', children, disabled, ...rest }: ButtonProps) {
   const styles = {
@@ -12,6 +12,8 @@ export function Button({ variant = 'primary', busy, className = '', children, di
     ghost: 'text-muted hover:bg-surface-raised hover:text-text',
     // Text only, for a destructive action beside ghost buttons.
     'ghost-danger': 'text-danger hover:bg-danger/10',
+    // Text only, for an action inside a gold-tinted panel.
+    'ghost-gold': 'text-gold-fg hover:bg-gold/10',
     danger: 'border border-danger/50 bg-surface-raised text-danger hover:border-danger',
   }[variant];
   return (

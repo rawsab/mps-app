@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { isPrivilegedKey, parseEnv } from '@/lib/env';
-import { clientSections } from '@/lib/services';
+import { clientProgramPath, clientSections } from '@/lib/services';
 
 const b64 = (o: object) => btoa(JSON.stringify(o)).replace(/=+$/, '');
 const jwt = (role: string) => `${b64({ alg: 'HS256' })}.${b64({ role, iss: 'supabase' })}.signature`;
@@ -26,9 +26,16 @@ describe('browser environment', () => {
 
 describe('client navigation by service', () => {
   it('shows only sections for enrolled services', () => {
-    expect(clientSections(['nutrition'])).toEqual({ training: false, nutrition: true, progress: true });
-    expect(clientSections(['personal_training'])).toEqual({ training: true, nutrition: false, progress: true });
-    expect(clientSections([])).toEqual({ training: false, nutrition: false, progress: false });
+    expect(clientSections(['nutrition'])).toEqual({ mesocycle: false, personalTraining: false, nutrition: true, progress: true });
+    expect(clientSections(['personal_training'])).toEqual({ mesocycle: false, personalTraining: true, nutrition: false, progress: true });
+    expect(clientSections(['mesocycle', 'nutrition'])).toEqual({ mesocycle: true, personalTraining: false, nutrition: true, progress: true });
+    expect(clientSections([])).toEqual({ mesocycle: false, personalTraining: false, nutrition: false, progress: false });
+  });
+
+  it('opens each service at its own section', () => {
+    expect(clientProgramPath('mesocycle')).toBe('/mesocycle');
+    expect(clientProgramPath('personal_training', 'p1')).toBe('/personal-training/p1');
+    expect(clientProgramPath('nutrition', 'n1')).toBe('/nutrition/n1');
   });
 });
 

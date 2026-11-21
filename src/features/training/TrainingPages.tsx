@@ -1,4 +1,4 @@
-import { Link, useLocation, useParams, useSearchParams } from 'react-router';
+import { Link, Navigate, useLocation, useParams, useSearchParams } from 'react-router';
 import { useViewer } from '@/app/auth';
 import { DisclosureSummary } from '@/components/DisclosureSummary';
 import { UseNotice } from '@/components/LegalFooter';
@@ -6,11 +6,11 @@ import { CheckCircleIcon, SectionIcon, SpreadsheetIcon } from '@/components/icon
 import { Chip, Tabs } from '@/components/controls';
 import { Alert, Badge, Button, EmptyState, PageHeader, Spinner } from '@/components/ui';
 import { dayView, locateDay, prescriptionView, weekSummaries, type DayBlock, type DayView } from '@/domain/programs/clientView';
-import type { Exercise, ProgramDraft } from '@/domain/programs/contract';
+import type { Exercise, ProgramDraft, ServiceKind } from '@/domain/programs/contract';
 import { programServiceIcon, programServiceIconStyle } from '@/features/programs/ProgramsCard';
 import { todayIn } from '@/features/scheduling/time';
 import { formatDate } from '@/lib/format';
-import { SERVICE_LABELS } from '@/lib/services';
+import { clientProgramPath, clientSections, SERVICE_LABELS, SERVICE_SHORT_LABELS } from '@/lib/services';
 import { isExerciseLogged, type TrainingSession } from '@/domain/training/volume';
 import { logErrorMessage, trainingErrorMessage, usePublishedProgram, usePublishedPrograms, useStartSession, useTrainingLog } from './api';
 import { ProgramSpreadsheet } from './ProgramSpreadsheet';
@@ -21,28 +21,31 @@ import { StimulusFatigue } from './StimulusFatigue';
 
 const programName = (title: string) => title.trim() || 'Your program';
 
-/** The client's current published programs (M3 step 5). Drafts and archived programs never appear. */
-export function TrainingPage() {
+type TrainingService = Exclude<ServiceKind, 'nutrition'>;
+
+/** The client's current published programs for one service (M3 step 5). Drafts and archived programs never appear. */
+export function ProgramListPage({ service }: { service: TrainingService }) {
   const programs = usePublishedPrograms();
+  const listed = programs.data?.filter((p) => p.service === service);
   return (
     <div>
-      <PageHeader title="Training" />
+      <PageHeader title={SERVICE_SHORT_LABELS[service]} />
       {programs.isPending ? <Spinner label="Loading programs" /> : null}
       <Alert visible={!!programs.error} title="Could not load your programs">{trainingErrorMessage(programs.error)}</Alert>
-      {programs.data?.length === 0 ? (
+      {listed?.length === 0 ? (
         <EmptyState title="No program yet">Your coach hasn’t published a program for you. It will appear here once they do.</EmptyState>
       ) : null}
-      {programs.data?.length ? (
+      {listed?.length ? (
         <ul className="divide-y divide-line">
-          {programs.data.map((p) => (
+          {listed.map((p) => (
             <li key={p.programId}>
-              <Link to={`/training/${p.programId}`} className="row-link group flex min-h-16 items-center gap-3 rounded-card px-2 py-3 hover:bg-surface-raised">
+              <Link to={clientProgramPath(p.service, p.programId)} className="row-link group flex min-h-16 items-center gap-3 rounded-card px-2 py-3 hover:bg-surface-raised">
                 <span aria-hidden className={`grid size-9 shrink-0 place-items-center rounded-full [&>svg]:size-4 ${programServiceIconStyle(p.service)}`}>{programServiceIcon(p.service)}</span>
                 <div className="min-w-0 flex-1">
                   <p className="break-words font-medium">{programName(p.title)}</p>
                   {p.service === 'mesocycle' && p.programTheme.trim() ? <p className="mt-0.5 break-words text-sm text-muted">{p.programTheme}</p> : null}
                   <p className="text-xs text-muted">
-                    {SERVICE_LABELS[p.service]} · {p.weekCount} {p.weekCount === 1 ? 'week' : 'weeks'} · updated {formatDate(p.publishedAt)}
+                    {p.weekCount} {p.weekCount === 1 ? 'week' : 'weeks'} · updated {formatDate(p.publishedAt)}
                   </p>
                 </div>
                 {p.isCurrent ? <Badge tone="gold">Current</Badge> : null}
@@ -56,10 +59,32 @@ export function TrainingPage() {
   );
 }
 
-/** The client's route. Coaches open the same view from the editor (see TrainingProgramView). */
-export function TrainingProgramPage() {
+/**
+ * The client's route. Coaches open the same view from the editor (see TrainingProgramView).
+ * A program opened under the other service's section moves to its own, keeping the week and day.
+ */
+export function TrainingProgramPage({ service }: { service: TrainingService }) {
   const { programId } = useParams();
-  return <TrainingProgramView programId={programId!} backTo="/training" backLabel="Training" />;
+  const { search } = useLocation();
+  const program = usePublishedProgram(programId);
+  const actual = program.data?.service;
+  if (actual && actual !== service) return <Navigate to={`${clientProgramPath(actual, programId)}${search}`} replace />;
+  return <TrainingProgramView programId={programId!} backTo={clientProgramPath(service)} backLabel={SERVICE_SHORT_LABELS[service]} />;
+}
+
+/** Old `/training` links (before decision 0051) open the program's own section. */
+export function LegacyTrainingRedirect() {
+  const { programId } = useParams();
+  const { search } = useLocation();
+  const viewer = useViewer();
+  const program = usePublishedProgram(programId);
+  if (!programId) {
+    const fallback = clientSections(viewer.data?.services ?? []).mesocycle ? 'mesocycle' : 'personal_training';
+    return <Navigate to={clientProgramPath(fallback)} replace />;
+  }
+  if (program.isPending) return <Spinner label="Opening program" />;
+  // An unreadable program shows its error on the mesocycle route, as it did before.
+  return <Navigate to={`${clientProgramPath(program.data?.service ?? 'mesocycle', programId)}${search}`} replace />;
 }
 
 /** Coach route: the client's published program and log, editable by staff with access (FR-07). */

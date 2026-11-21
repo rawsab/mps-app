@@ -41,12 +41,12 @@ export function ServiceLinks({ services, className = '' }: { services: ServiceKi
           </li>
         ))}
         {pendingRequests.map((request) => (
-          <li key={request.service} className="flex min-h-12 min-w-0 items-center gap-3 rounded-card border border-dashed border-line py-1 pl-4 pr-1 text-sm text-muted">
+          <li key={request.service} className="flex min-h-12 min-w-0 items-center gap-3 rounded-card border border-dashed border-line py-2 pl-4 pr-1 text-sm text-muted">
             <span className="min-w-0 flex-1">
               <span className="block truncate">{SERVICE_LABELS[request.service]}</span>
-              {request.message ? <span className="block truncate text-xs">“{request.message}”</span> : null}
+              {request.message ? <span className="mt-1 block truncate text-xs">“{request.message}”</span> : null}
             </span>
-            <span className="shrink-0 text-xs">Requested</span>
+            <span className="shrink-0 text-xs opacity-70">Requested</span>
             <Button variant="ghost" className="min-h-10 px-3 text-xs" aria-label={`${request.message ? 'Edit note on' : 'Add a note to'} your ${SERVICE_LABELS[request.service]} request`}
               onClick={() => setEditing(request)}>{request.message ? 'Edit' : 'Add note'}</Button>
           </li>

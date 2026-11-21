@@ -6,6 +6,7 @@ import type { ServiceKind } from '@/domain/programs/contract';
 import { useNutritionPrograms } from '@/features/nutrition/programApi';
 import { MeetingSchema } from '@/features/scheduling/api';
 import { usePublishedProgram, usePublishedPrograms, useTrainingLog } from '@/features/training/api';
+import { clientProgramPath } from '@/lib/services';
 import { requireSupabase } from '@/lib/supabase';
 
 // Client Home (FR-03, decision 0042).
@@ -51,10 +52,10 @@ export function useServiceLinks() {
   return services.map((service): { service: ServiceKind; to: string } => {
     if (service === 'nutrition') {
       const current = nutrition.data?.find((p) => p.is_current && !p.archived_at);
-      return { service, to: current ? `/nutrition/${current.id}` : '/nutrition' };
+      return { service, to: clientProgramPath(service, current?.id) };
     }
     const current = training.data?.find((p) => p.service === service && p.isCurrent);
-    return { service, to: current ? `/training/${current.programId}` : '/training' };
+    return { service, to: clientProgramPath(service, current?.programId) };
   });
 }
 
