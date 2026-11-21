@@ -17,7 +17,7 @@ Development is moving from Claude Code to Codex. Agent instructions now live in 
 
 ### Things to know
 
-- The repo is being made public as a portfolio project (the owner switches visibility on GitHub). Don't commit anything from `samples/`; it's MPS intellectual property and gitignored. Keep local seed people fictional on `@example.test`.
+- The repo is public on GitHub as a portfolio project. Don't commit anything from `samples/`; it's MPS intellectual property and gitignored. Keep local seed people fictional on `@example.test`.
 - Never run browser automation or screenshots without the owner's explicit OK for that round.
 - The local stack may still have an unrelated Supabase project running (`mps-demo-verification`). Stop it with `pnpm exec supabase stop --project-id mps-demo-verification` if ports clash.
 
