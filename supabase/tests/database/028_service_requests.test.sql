@@ -25,9 +25,9 @@ grant execute on all functions in schema pg_temp to authenticated;
 \set req2        '''e0000000-0000-4000-a000-000000000002'''
 \set req3        '''e0000000-0000-4000-a000-000000000003'''
 
--- Requests made while using the app locally would trip the one-pending-request rule; this
--- transaction rolls back, so they come back afterwards.
-delete from public.service_requests where client_id = :client_a;
+-- Seeded requests (and ones made while using the app locally) would show to the other client or trip the
+-- one-pending-request rule; this transaction rolls back, so they come back afterwards.
+delete from public.service_requests where client_id in (:client_a, '10000000-0000-4000-b000-000000000002');
 
 -- ---------------------------------------------------------------------------
 -- Access
@@ -61,8 +61,8 @@ select throws_ok(format('select public.request_service(%L, ''nutrition'')', :req
 -- ---------------------------------------------------------------------------
 select is((select e->>'kind' from jsonb_array_elements(public.get_staff_activity(p_focused => true)) e where e->>'id' = :req1), 'service_request',
   'the assigned coach sees the request under Focused');
-select ok(not exists (select 1 from jsonb_array_elements(public.get_staff_activity(p_focused => true)) e where e->>'kind' not in ('request', 'service_request')),
-  'Focused holds only service and meeting requests');
+select ok(not exists (select 1 from jsonb_array_elements(public.get_staff_activity(p_focused => true)) e where e->>'kind' not in ('request', 'service_request', 'payment_notice')),
+  'Focused holds only requests and payment notices');
 select is((select (e->>'unread')::boolean from jsonb_array_elements(public.get_staff_activity()) e where e->>'id' = :req1), true, 'it starts unread');
 select public.mark_service_request_read(:req1);
 select is((select (e->>'unread')::boolean from jsonb_array_elements(public.get_staff_activity()) e where e->>'id' = :req1), false, 'opening it marks it read');

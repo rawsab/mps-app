@@ -615,3 +615,28 @@ Decision 0055, "Owner follow-ups".
   - [ ] Same for Save profile, Save time zone (pick a different zone), Save session settings and Save availability (tick a day, change a time or a rule).
   - [ ] As a client: Save profile and Save time zone behave the same.
   - [ ] "Use it" (device time zone) still saves directly.
+
+## Demo seed: more requests and payment history (2026-11-21)
+
+- New `supabase/seed/activity.sql`, loaded last (after availability, because a reschedule's picked time has to be an open slot). Everything goes through the app's own functions, acting as the client or coach, and is then backdated:
+  - **Service requests:** Daniel asks for Mesocycle, Maya asks for Personal Training. Grace's existing Nutrition request is unchanged.
+  - **Meeting requests:** Daniel asks to reschedule his PT in 8 days (with the first open slot 1–4 days later, if there is one). Maya asks to cancel her check-in in 6 days. Grace asks to cancel her PT in 11 days. Grace's existing reschedule is unchanged.
+  - **Payments:** Daniel's and Grace's past-month sessions are paid. Daniel reported his and Matt confirmed it. Grace reported hers and Priya marked the month paid, so it shows as Paid (settled). Grace also paid this month's first sessions in cash a week ago.
+  - **Payment notices:** Maya's first report ($30, a typo) was dismissed. Her corrected report for the full balance is waiting for review, and so is Daniel's for this month's sessions. Both show unread in Activity and under Payments clients reported.
+- The feed tests (014, 019 and 028) now clear payment notices along with the other request types before they run. 028 also clears Daniel's seeded request and counts payment notices as Focused items, which they have been since migration 00055.
+- **Verification.** After `pnpm db:reset`, `pnpm test:db`, `pnpm test:api` (27) and `pnpm verify` all pass. No browser checks.
+
+## Meetings To-dos as a card strip (2026-11-21)
+
+- Meetings > To-dos now uses the same sideways card strip as Clients > Service requests (`ScrollStripList`, ‹ › buttons, fixed-width cards), replacing the vertical list with "Show all". It still pairs with Record attendance on large screens. Recorded in decision 0048.
+- **Verification.** `pnpm verify` passes. No browser checks.
+- **Manual checks for the owner:**
+  - [ ] Meetings with the demo seed (4 pending requests): To-dos shows a row of separate cards that scrolls sideways. The ‹ › buttons appear when the cards overflow and move by most of a view.
+  - [ ] A card opens the meeting dialog in place, as before.
+  - [ ] With meetings waiting in Record attendance, To-dos takes the left half and its strip scrolls within that half. With none, the strip spans the full width.
+  - [ ] Narrow screen: cards are at most 85% of the width, and the page doesn't scroll sideways.
+
+## Demo seed: meetings waiting for attendance (2026-11-21)
+
+- `supabase/seed/meetings.sql` leaves the last week's PT sessions for Daniel and Grace unrecorded (still `scheduled`), and adds a 15-minute one-off call with Maya four days ago, also unrecorded. With a fresh reset, Meetings > Record attendance lists all three. Unrecorded sessions aren't billed, so Daniel's and Grace's November totals are one session lower.
+- **Verification.** After `pnpm db:reset`, `pnpm test:db`, `pnpm test:api` (27) and `pnpm verify` pass. One full `test:api` run had a single failure in `billing.test.ts`, which passed on its own and on the next full run. No browser checks.

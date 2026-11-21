@@ -16,6 +16,7 @@ declare
   occurrence record;
   meeting_id uuid;
   moved_at timestamptz;
+  recorded boolean;
   cancelled_at timestamptz := (demo_on - 1 + time '19:10') at time zone coach_tz;
   maya uuid := '10000000-0000-4000-b000-000000000001';
   daniel uuid := '10000000-0000-4000-b000-000000000002';
@@ -60,15 +61,18 @@ begin
       -- Maya's earlier check-in moved by one day, retaining its original recurring slot.
       moved_at := case when pattern.key = 'maya-check-in' and occurrence.occurrence_on = demo_on - 8
         then (occurrence.occurrence_on + 1 + time '18:30') at time zone coach_tz end;
+      -- Past meetings are attended, except the last week's PT sessions, which still wait in Record attendance.
+      recorded := occurrence.occurrence_on < demo_on
+        and not (pattern.key in ('daniel-pt', 'grace-pt') and occurrence.occurrence_on >= demo_on - 7);
       meeting_id := md5('mps-demo/meeting/' || pattern.key || '/' || (occurrence.occurrence_on - demo_on))::uuid;
       insert into public.meetings (id, client_id, coach_id, schedule_id, slot_id, occurrence_on, starts_at,
         duration_minutes, timezone, services, status, modified, created_by, updated_by, created_at, updated_at)
       values (meeting_id, client.id, client.primary_coach_id, schedule_id, slot_id, occurrence.occurrence_on,
         coalesce(moved_at, occurrence.starts_at), pattern.duration, coach_tz, pattern.services,
-        case when occurrence.occurrence_on < demo_on then 'completed' else 'scheduled' end::public.meeting_status,
+        case when recorded then 'completed' else 'scheduled' end::public.meeting_status,
         moved_at is not null, client.primary_coach_id, client.primary_coach_id,
         (starts_on - 1 + time '15:30') at time zone coach_tz,
-        case when occurrence.occurrence_on < demo_on then coalesce(moved_at, occurrence.starts_at) + make_interval(mins => pattern.duration)
+        case when recorded then coalesce(moved_at, occurrence.starts_at) + make_interval(mins => pattern.duration)
           else least(now(), (occurrence.occurrence_on - 1 + time '09:00') at time zone coach_tz) end)
       on conflict do nothing;
 
@@ -124,6 +128,20 @@ begin
   values (md5('mps-demo/meeting/maya-form-review')::uuid, maya,
     'Review the cable row video and check grip and elbow position before the next pull day.', coach,
     (demo_on - 2 + time '14:05') at time zone coach_tz)
+  on conflict do nothing;
+
+  -- A one-off call four days ago that nobody marked as attended.
+  select primary_coach_id into coach from public.clients where id = maya;
+  starts_at := (demo_on - 4 + time '19:00') at time zone coach_tz;
+  insert into public.meetings (id, client_id, coach_id, starts_at, duration_minutes, timezone, services,
+    status, created_by, updated_by, created_at, updated_at)
+  values (md5('mps-demo/meeting/maya-deload-call')::uuid, maya, coach, starts_at, 15, coach_tz, '{mesocycle}',
+    'scheduled', coach, coach, (demo_on - 6 + time '10:30') at time zone coach_tz, (demo_on - 6 + time '10:30') at time zone coach_tz)
+  on conflict (id) do nothing;
+  insert into public.meeting_notes (meeting_id, client_id, body, updated_by, updated_at)
+  values (md5('mps-demo/meeting/maya-deload-call')::uuid, maya,
+    'Quick call to plan the deload week: drop a set per exercise and keep the same loads.', coach,
+    (demo_on - 6 + time '10:35') at time zone coach_tz)
   on conflict do nothing;
 
   -- Service requests use the real client write path so existing enrollments govern eligibility.

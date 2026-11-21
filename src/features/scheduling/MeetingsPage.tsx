@@ -3,6 +3,7 @@ import { Link, useSearchParams } from 'react-router';
 import { useViewer } from '@/app/auth';
 import { Avatar } from '@/components/Avatar';
 import { Dialog } from '@/components/Dialog';
+import { STRIP_ITEM, ScrollStripButtons, ScrollStripList, useScrollStrip } from '@/components/ScrollStrip';
 import { ArrowUpRightIcon, PencilIcon, StepIcon } from '@/components/icons';
 import { useClient, useClientPhoto } from '@/features/clients/api';
 import { programPath } from '@/features/programs/CurrentProgram';
@@ -100,9 +101,6 @@ function MeetingsPageBody({ timeZone }: { timeZone: string }) {
 
 type PendingRequest = NonNullable<ReturnType<typeof usePendingMeetingRequests>['data']>[number];
 
-/** Requests shown before "Show all". */
-const REQUESTS_SHOWN = 4;
-
 /**
  * To-dos (pending reschedule and cancellation requests) beside Record attendance (decision 0048),
  * paired like Next meeting and Upcoming. A side with nothing in it gives the other the full width;
@@ -148,23 +146,28 @@ function MeetingTodos({ timeZone }: { timeZone: string }) {
   );
 }
 
-/** Pending reschedule and cancellation requests, soonest meeting first. Rows open the meeting. */
+/**
+ * Pending reschedule and cancellation requests, soonest meeting first: one sideways strip of cards
+ * with ‹ ›, like the Clients page's service requests. Cards open the meeting.
+ */
 function MeetingRequests({ requests, timeZone }: { requests: PendingRequest[]; timeZone: string }) {
-  const [showAll, setShowAll] = useState(false);
   const meetingHref = useMeetingHref();
-  const shown = showAll ? requests : requests.slice(0, REQUESTS_SHOWN);
+  const strip = useScrollStrip(requests.length);
   return (
     <section aria-labelledby="meeting-todos" className="min-w-0">
-      <h2 id="meeting-todos" className="mb-2 flex min-h-8 items-center text-xs font-medium text-muted">
-        To-dos<span className="ml-2 text-gold-fg">{requests.length} waiting</span>
-      </h2>
-      {/* Clipped, so a hovered first or last row follows the box's rounded corners. */}
-      <ul className="divide-y divide-line overflow-hidden rounded-card border border-line">
-        {shown.map((meeting) => {
+      <div className="mb-2 flex min-h-8 flex-wrap items-center justify-between gap-2">
+        <h2 id="meeting-todos" className="text-xs font-medium text-muted">
+          To-dos<span className="ml-2 text-gold-fg">{requests.length} waiting</span>
+        </h2>
+        <ScrollStripButtons strip={strip} backLabel="Show earlier requests" forwardLabel="Show more requests" />
+      </div>
+      <ScrollStripList strip={strip}>
+        {requests.map((meeting) => {
           const { request } = meeting;
           return (
-            <li key={request.id}>
-              <Link to={meetingHref(meeting.id)} className="row-link group flex min-w-0 items-start gap-3 px-3 py-3 hover:bg-surface-raised">
+            <li key={request.id} className={STRIP_ITEM}>
+              <Link to={meetingHref(meeting.id)}
+                className="row-link group flex w-full min-w-0 items-start gap-3 rounded-card border border-line px-4 py-3.5 transition-colors hover:bg-surface-raised">
                 <span className="min-w-0 flex-1">
                   <span className="flex flex-wrap items-center gap-x-2 gap-y-1">
                     <span className="min-w-0 truncate text-sm font-medium text-text">{meeting.clientName}</span>
@@ -172,17 +175,14 @@ function MeetingRequests({ requests, timeZone }: { requests: PendingRequest[]; t
                   </span>
                   <span className="mt-1 block text-xs text-muted">{sessionMoment(meeting.startsAt, timeZone)} · {topicLabel(meeting.services)}</span>
                   {request.preferredStartsAt ? <span className="mt-0.5 block text-xs text-muted">Prefers {sessionMoment(request.preferredStartsAt, timeZone)}</span> : null}
-                  {request.message.trim() ? <span className="mt-1.5 line-clamp-2 break-words text-xs leading-relaxed text-muted">“{request.message}”</span> : null}
+                  {request.message.trim() ? <span className="mt-2.5 line-clamp-2 break-words text-xs leading-relaxed text-muted">“{request.message}”</span> : null}
                 </span>
                 <span aria-hidden className="pt-0.5 text-xs text-muted group-hover:text-text">→</span>
               </Link>
             </li>
           );
         })}
-      </ul>
-      {requests.length > REQUESTS_SHOWN ? (
-        <Button variant="ghost" className="mt-1" onClick={() => setShowAll((value) => !value)}>{showAll ? 'Show fewer' : `Show all ${requests.length}`}</Button>
-      ) : null}
+      </ScrollStripList>
     </section>
   );
 }
