@@ -22,8 +22,6 @@
 - **Coaches** manage clients, build and publish programs, review logged activity, schedule sessions and track billing.
 - **Clients** sign in to see what to do next, log workouts and nutrition from their phone, and follow their progress over time.
 
-I'm designing and building the application for MPS, and the business owner has allowed me to share it publicly here.
-
 > **Work in progress.** The application is under active development and this is not the final version. Features are still being built and refined, and the interface, data model and workflows may change before release.
 
 ## Ownership and intellectual property
