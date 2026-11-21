@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="public/logo/mps-full-logo.png" alt="Modern Physique Systems" width="360">
+  <a href="https://www.modernphysiquesystems.com/"><img src="public/logo/mps-full-logo.png" alt="Modern Physique Systems" width="360"></a>
 </p>
 
 <p align="center">
@@ -17,7 +17,7 @@
 
 ## About
 
-[Modern Physique Systems](#ownership-and-intellectual-property) (MPS) is a coaching business run by Matt Lizmore. It offers three services: Mesocycle Programming, Nutritional Programming and Personal Training. Its programs and client results currently live in spreadsheets and documents. This application replaces them with a single branded, mobile-friendly platform:
+[Modern Physique Systems](https://www.modernphysiquesystems.com/) (MPS) is a coaching business run by Matt Lizmore. It offers three services: Mesocycle Programming, Nutritional Programming and Personal Training. Its programs and client results currently live in spreadsheets and documents. This application replaces them with a single branded, mobile-friendly platform:
 
 - **Coaches** manage clients, build and publish programs, review logged activity, schedule sessions and track billing.
 - **Clients** sign in to see what to do next, log workouts and nutrition from their phone, and follow their progress over time.
