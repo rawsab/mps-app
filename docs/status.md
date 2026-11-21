@@ -466,3 +466,21 @@ Open items are tracked in `docs/todo.md`.
 - `samples/` (the three MPS templates) is gitignored and was removed from the whole Git history with `git filter-repo`, then force-pushed. Copies stay on the owner's machine only. `tests/imports/samples.test.ts` skips when the files are absent, and `pnpm spike:import` explains how to pass files instead.
 - Agent instructions moved to `AGENTS.md` for Codex; `CLAUDE.md` imports it. The next steps are listed in priority order at the top of `docs/todo.md`.
 - Typecheck and importer tests pass with and without the samples (34, or 21 plus 3 skipped).
+
+## Coach search and sidebar clients list (2026-11-21)
+
+Decision 0054 (owner request; not covered by the PRD). Manual UI checks pending.
+
+- **Search.** A command palette opened with ⌘K or Ctrl+K (the label follows the platform), from a Search button above Clients, from the drawer, or from the top bar below `lg`. It finds clients (all statuses) and mesocycle, PT and nutrition programs by name, both limited by RLS, plus pages and sections. Opening it lists suggested pages and sections; clients and programs appear only once you type. Matching is fuzzy and the synonyms come from a central dictionary in `src/domain/search/`. Results are grouped, with icons and highlights, and work by keyboard.
+- **Sections.** Links with `#id` now scroll to and outline their section once it renders (`src/app/useHashTarget.ts`). Five new heading ids on Profile settings and Clients.
+- **Sidebar.** A chevron beside Clients lists active clients: 5 at first, then Show more / Show less. It's hidden when the sidebar is collapsed.
+- **Verification.** `pnpm verify` passes (397 unit tests, 20 in `tests/domain/search.test.ts`). The programs query was checked against the local stack as Matt. No browser checks.
+- **Manual checks for the owner:**
+  - [ ] ⌘K (Mac) or Ctrl+K (Windows) opens and closes search. The button shows the right shortcut.
+  - [ ] "Gra" shows Grace Liu with a person icon. "Calendar" shows Calendar first with a calendar icon. "calender", "invites", "vacation" and "change my time zone" each find the right item.
+  - [ ] Opening search lists the suggested pages and sections but no programs. Typing a program name (e.g. "Hypertrophy", "Deficit") shows it under Programs with the client's name, and opens it.
+  - [ ] ↑/↓ wrap, Enter opens, Escape closes, hovering moves the highlight. Long result lists scroll with the highlight.
+  - [ ] Sections (Time zone, Availability, Calendar, Time off, Client invitations) scroll into view below the top bar with a brief gold outline, in light and dark themes.
+  - [ ] Reschedule requests or Service requests with nothing waiting open the page at the top, with no error.
+  - [ ] Collapsed sidebar: a search icon only, no chevron. Drawer (narrow window): the search field, and the chevron works.
+  - [ ] Chevron: smooth open and close, the line lines up under the Clients icon, Show more / Show less, the open client's name highlighted, clicking a name opens that client.

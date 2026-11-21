@@ -159,7 +159,7 @@ export function ClientsOverview({ rows, canInvite }: { rows: ClientRow[]; canInv
       <Panel title="Status">
         <ColumnChart total={overview.total} items={ALL_STATUSES.map((s) => ({ label: STATUS_LABELS[s], count: overview.statuses[s], color: STATUS_BAR_COLORS[s], badge: statusBadge(s) }))} />
       </Panel>
-      <Panel title="Follow up" className="col-span-2 lg:col-span-1">
+      <Panel title="Follow up" id="clients-follow-up" className="col-span-2 lg:col-span-1">
         {overview.notInvited.length === 0 && overview.inviteUnaccepted.length === 0 ? (
           <div role="status" className="flex items-center gap-3 py-1">
             <span className="text-muted opacity-50"><InboxIcon className="size-11 shrink-0" /></span>
@@ -192,10 +192,10 @@ export function ClientsOverview({ rows, canInvite }: { rows: ClientRow[]; canInv
   );
 }
 
-function Panel({ title, className = '', children }: { title: string; className?: string; children: ReactNode }) {
+function Panel({ title, id, className = '', children }: { title: string; id?: string; className?: string; children: ReactNode }) {
   return (
     <section aria-label={title} className={`min-w-0 py-3 ${className}`}>
-      <h2 className="mb-2 text-xs font-medium text-muted">{title}</h2>
+      <h2 id={id} className="mb-2 text-xs font-medium text-muted">{title}</h2>
       {children}
     </section>
   );

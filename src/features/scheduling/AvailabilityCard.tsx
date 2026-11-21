@@ -19,7 +19,7 @@ export function AvailabilityCard() {
   const availability = useMyAvailability();
   return (
     <Card>
-      <h2 className="mb-1 text-base font-semibold text-text">Availability</h2>
+      <h2 id="profile-availability" className="mb-1 text-base font-semibold text-text">Availability</h2>
       {availability.isPending ? <Spinner label="Loading availability" /> : null}
       <Alert visible={!!availability.error} title="Could not load your availability">{schedulingError(availability.error)}</Alert>
       {availability.data ? <AvailabilityForm availability={availability.data} /> : null}

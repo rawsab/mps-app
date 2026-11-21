@@ -49,6 +49,37 @@ export function useClientPrograms(clientId: string) {
   });
 }
 
+/** What `programTitle` needs to name a program. */
+export type TitledProgram = { current_revision_id: string | null; program_revisions: Pick<RevisionSummary, 'id' | 'status' | 'title'>[] };
+export type SearchableProgram = TitledProgram & { id: string; client_id: string; service: ServiceKind };
+
+/**
+ * Every unarchived program the viewer can read, for coach search (decision 0054). RLS limits it to
+ * their clients' programs. Only the revision fields `programTitle` needs.
+ */
+export function useSearchablePrograms() {
+  return useQuery({
+    queryKey: ['programs', 'searchable'],
+    queryFn: async (): Promise<SearchableProgram[]> => {
+      const [training, nutrition] = await Promise.all([
+        requireSupabase().from('programs')
+          .select('id, service, client_id, current_revision_id, program_revisions!program_revisions_program_id_client_id_fkey(id, status, title)')
+          .is('archived_at', null),
+        requireSupabase().from('nutrition_programs')
+          .select('id, client_id, current_revision_id, nutrition_program_revisions!nutrition_program_revisions_program_id_client_id_fkey(id, status, program_style)')
+          .is('archived_at', null),
+      ]);
+      if (training.error) throw training.error;
+      if (nutrition.error) throw nutrition.error;
+      const nutritional: SearchableProgram[] = (nutrition.data ?? []).map((p) => ({
+        id: p.id, client_id: p.client_id, current_revision_id: p.current_revision_id, service: 'nutrition',
+        program_revisions: p.nutrition_program_revisions.map((r) => ({ id: r.id, status: r.status, title: r.program_style })),
+      }));
+      return [...(training.data as SearchableProgram[]), ...nutritional];
+    },
+  });
+}
+
 /** Chooses a service's current program; null clears the choice (decision 0039). */
 export function useSetCurrentProgram() {
   const queryClient = useQueryClient();

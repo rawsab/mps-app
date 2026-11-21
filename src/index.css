@@ -376,6 +376,38 @@ html[data-theme='light'] .brand-logo {
   animation: dialog-out 180ms cubic-bezier(0.4, 0, 1, 1) both;
 }
 
+/*
+ * A section opened from search (useHashTarget): it clears the sticky top bar, and a gold outline
+ * fades out around it. The heading takes focus without the focus ring; the outline marks it instead.
+ */
+#main-content [id] {
+  scroll-margin-top: 5rem;
+}
+@media (min-width: 64rem) {
+  #main-content [id] {
+    scroll-margin-top: 2rem;
+  }
+}
+[data-hash-focus]:focus {
+  outline: none;
+}
+/* The search palette's input is the whole dialog's focus: no ring inside it. */
+.palette-input:focus-visible {
+  outline: none;
+}
+@keyframes hash-target {
+  0%,
+  45% {
+    outline-color: color-mix(in oklab, var(--color-gold) 70%, transparent);
+  }
+}
+.hash-target {
+  border-radius: var(--radius-card);
+  outline: 2px solid transparent;
+  outline-offset: 6px;
+  animation: hash-target 1800ms var(--ease-ui) both;
+}
+
 /* The coach's navigation drawer slides in from the left edge over the same scrim. */
 @keyframes drawer-in {
   from {
@@ -611,6 +643,25 @@ details[open] > .disclosure-summary > .disclosure-chevron {
   opacity: 1;
   visibility: visible;
   transition-delay: 0s;
+}
+/*
+ * Collapsing the coach sidebar: its nav items (Clients to Activity) hide while it narrows (200ms),
+ * then fade and slide in, overlapping, from the top down. The Search icon stays put. Reduced motion skips it (CoachLayout never sets it).
+ */
+@keyframes nav-stagger-in {
+  from {
+    opacity: 0;
+    transform: translateX(-6px);
+  }
+}
+aside[data-stagger] .nav-stagger {
+  animation: nav-stagger-in 140ms var(--ease-enter) both;
+  /* Starts as the narrowing ends; the items overlap, each a beat after the one above. */
+  animation-delay: calc(90ms + var(--stagger-index, 0) * 10ms);
+}
+/* The sidebar's clients list closes quicker than it opens. */
+.nav-clients:not([data-open='true']) {
+  transition: grid-template-rows 160ms var(--ease-ui), opacity 120ms var(--ease-ui), visibility 0s linear 160ms;
 }
 @media (prefers-reduced-motion: reduce) {
   .animated-disclosure-content {

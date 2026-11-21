@@ -229,6 +229,11 @@ const BADGE_STYLES = {
 
 export type BadgeTone = keyof typeof BADGE_STYLES;
 
+/** A key hint ("⌘K", "esc"); hidden from screen readers, so pair it with `aria-keyshortcuts`. */
+export function Kbd({ children }: { children: ReactNode }) {
+  return <kbd aria-hidden className="rounded-[4px] border border-line px-1.5 font-sans text-[11px] leading-5 text-muted">{children}</kbd>;
+}
+
 /** `sm` is the compact label beside a heading. */
 export function Badge({ children, tone = 'neutral', size = 'md', className = '' }: { children: ReactNode; tone?: BadgeTone; size?: 'sm' | 'md'; className?: string }) {
   return <span className={`inline-flex items-center rounded-full border px-2 py-0.5 ${size === 'sm' ? 'text-[11px] font-medium leading-4' : 'text-xs'} ${BADGE_STYLES[tone]} ${className}`}>{children}</span>;

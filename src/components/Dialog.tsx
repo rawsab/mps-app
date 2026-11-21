@@ -15,6 +15,7 @@ export function Dialog({
   children,
   footer,
   wide = false,
+  bare = false,
 }: {
   title: string;
   description?: ReactNode;
@@ -22,6 +23,11 @@ export function Dialog({
   children: ReactNode;
   footer?: ReactNode;
   wide?: boolean;
+  /**
+   * No title bar (`title` is only the accessible name), anchored near the top so it stays put as its
+   * content changes height. For the command palette.
+   */
+  bare?: boolean;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const opener = useRef<Element | null>(null);
@@ -43,7 +49,8 @@ export function Dialog({
   return (
     <dialog
       ref={ref}
-      aria-labelledby={`${id}-title`}
+      aria-label={bare ? title : undefined}
+      aria-labelledby={bare ? undefined : `${id}-title`}
       aria-describedby={description ? `${id}-description` : undefined}
       onCancel={(e) => {
         e.preventDefault();
@@ -55,9 +62,9 @@ export function Dialog({
       onClick={(e) => {
         if (e.target === e.currentTarget) onClose();
       }}
-      className={`dialog m-auto ${wide ? 'w-[min(48rem,calc(100vw-2rem))]' : 'w-[min(34rem,calc(100vw-2rem))]'} max-h-[min(40rem,calc(100dvh-2rem))] overflow-hidden rounded-card border border-line bg-surface p-0 text-text backdrop:bg-ink/75`}
+      className={`dialog ${bare ? 'mx-auto mb-auto mt-[12dvh] max-h-[min(34rem,calc(88dvh-1rem))] w-[min(40rem,calc(100vw-2rem))] shadow-popover' : `m-auto max-h-[min(40rem,calc(100dvh-2rem))] ${wide ? 'w-[min(48rem,calc(100vw-2rem))]' : 'w-[min(34rem,calc(100vw-2rem))]'}`} overflow-hidden rounded-card border border-line bg-surface p-0 text-text backdrop:bg-ink/75`}
     >
-      <div className="flex max-h-[inherit] flex-col">
+      {bare ? <div className="flex max-h-[inherit] flex-col">{children}</div> : <div className="flex max-h-[inherit] flex-col">
         {/* The title sits on the close button's centre line; a description goes underneath. */}
         <header className="flex items-start justify-between gap-3 border-b border-line py-1.5 pl-4 pr-2 sm:pl-5">
           <div className={`min-w-0 ${description ? 'pb-1.5' : ''}`}>
@@ -76,7 +83,7 @@ export function Dialog({
         </header>
         <div className="min-h-0 flex-1 overflow-y-auto">{children}</div>
         {footer ? <footer className="flex flex-wrap items-center justify-end gap-2 border-t border-line px-4 py-3 sm:px-5">{footer}</footer> : null}
-      </div>
+      </div>}
     </dialog>
   );
 }

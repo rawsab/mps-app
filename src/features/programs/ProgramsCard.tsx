@@ -6,7 +6,7 @@ import { Alert, Badge, Button, SectionHeading, Spinner } from '@/components/ui';
 import type { EnrollmentRow } from '@/features/clients/api';
 import { formatDate } from '@/lib/format';
 import { SERVICE_LABELS } from '@/lib/services';
-import { programErrorMessage, useClientPrograms, useCreateProgram, type ProgramRow } from './api';
+import { programErrorMessage, useClientPrograms, useCreateProgram, type ProgramRow, type TitledProgram } from './api';
 
 import { ActionItem, ActionsMenu } from '@/components/ActionsMenu';
 import { DeleteArchivedProgramDialog, RemoveProgramDialog } from './RemoveProgramDialog';
@@ -120,7 +120,7 @@ export function ProgramsCard({ clientId, enrollments }: { clientId: string; enro
   );
 }
 
-export function programTitle(p: ProgramRow): string {
+export function programTitle(p: TitledProgram): string {
   const draft = p.program_revisions.find((r) => r.status === 'draft');
   const current = p.program_revisions.find((r) => r.id === p.current_revision_id);
   return (draft?.title || current?.title || '').trim() || 'Untitled program';

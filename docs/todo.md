@@ -10,7 +10,8 @@ Development is moving from Claude Code to Codex. Agent instructions now live in 
   - [ ] `/billing`, reached from that card and the profile menu (not a new tab): balance with **Pay**, this month's lines, past months in disclosures, payments. Paid vs unpaid by badge and text, not colour alone.
   - [ ] Pay dialog: amount, the coach's e-transfer email with a copy button, the instructions from 0053. It never marks anything paid. If no email is set, say the coach hasn't set up e-Transfer yet.
   - [ ] Unit tests for any new domain logic, and an HTTP test that a client reads only their own billing.
-- [ ] **Owner's manual UI checks** for decisions 0043–0053 (checklists are in each decision record and in `docs/status.md`).
+- [x] **Coach search and sidebar clients list** (decision 0054, owner request, 2026-11-21). A ⌘K / Ctrl+K command palette for clients, pages and sections; active clients nested under Clients in the sidebar. Manual UI checks are in `docs/status.md`.
+- [ ] **Owner's manual UI checks** for decisions 0043–0054 (checklists are in each decision record and in `docs/status.md`).
 - [ ] **Scheduling phase C** (decision 0050): a client list of all upcoming meetings, each with the reschedule/cancel dialog.
 - [ ] Pick the next roadmap milestone. Audit M4–M6 exit criteria first (see "Handoff" in `AGENTS.md`).
 - [ ] Later candidates: Playwright e2e tests (promote the smoke script to `tests/e2e`), ESLint and a formatter, an `audit_events` table. The owner's backlog is at the end of "Next milestone" in `docs/status.md`.

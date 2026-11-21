@@ -154,7 +154,7 @@ function ProfileForm({ viewer }: { viewer: Viewer }) {
           </form>
         </Card>
         <Card>
-          <h2 className="mb-4 text-base font-semibold text-text">Time zone</h2>
+          <h2 id="profile-time-zone" className="mb-4 text-base font-semibold text-text">Time zone</h2>
           <form onSubmit={(event) => { event.preventDefault(); void updateTimeZone(String(new FormData(event.currentTarget).get('timezone'))); }} className="space-y-5" noValidate>
             <fieldset disabled={!!busy} className="min-w-0 space-y-5">
               {/* Remounts after a save so the field shows the stored zone. */}
@@ -172,7 +172,7 @@ function ProfileForm({ viewer }: { viewer: Viewer }) {
         </Card>
         {viewer.scheduling ? (
           <Card>
-            <h2 className="mb-4 text-base font-semibold text-text">Personal training sessions</h2>
+            <h2 id="profile-sessions" className="mb-4 text-base font-semibold text-text">Personal training sessions</h2>
             <form onSubmit={(event) => void submitSessions(event)} className="space-y-5" noValidate>
               <fieldset disabled={!!busy} className="min-w-0 space-y-5">
                 <TextField label="Meeting link" type="url" inputMode="url" value={meetingUrl} onChange={(event) => setMeetingUrl(event.target.value)} maxLength={500}
@@ -187,7 +187,7 @@ function ProfileForm({ viewer }: { viewer: Viewer }) {
         {viewer.scheduling ? <AvailabilityCard /> : null}
         {viewer.staffRole ? (
           <Card>
-            <h2 className="mb-4 text-base font-semibold text-text">Payments</h2>
+            <h2 id="profile-payments" className="mb-4 text-base font-semibold text-text">Payments</h2>
             <form onSubmit={(event) => void submitPayments(event)} className="space-y-5" noValidate>
               <fieldset disabled={!!busy} className="min-w-0 space-y-5">
                 <TextField label="E-transfer email" type="email" inputMode="email" autoComplete="off" value={etransferEmail} onChange={(event) => setEtransferEmail(event.target.value)}
