@@ -23,8 +23,11 @@ export function useNow(intervalMs = 30_000) {
 
 const MEETING_LOOKAHEAD_DAYS = 60;
 
-/** The client's next scheduled meeting that hasn't ended, or null. RLS limits `list_meetings` to their own. */
-export function useNextMeeting(now: number) {
+/**
+ * The client's next scheduled meeting that hasn't ended, or null. RLS limits `list_meetings` to their own.
+ * With `service`, only meetings tagged with it count (the PT dashboard's next session).
+ */
+export function useNextMeeting(now: number, service?: ServiceKind) {
   const [from] = useState(() => new Date());
   const to = useMemo(() => new Date(from.getTime() + MEETING_LOOKAHEAD_DAYS * 86_400_000), [from]);
   const query = useQuery({
@@ -36,8 +39,9 @@ export function useNextMeeting(now: number) {
       return z.array(MeetingSchema).parse(data);
     },
   });
-  const next = query.data?.find((m) => m.status === 'scheduled' && new Date(m.startsAt).getTime() + m.durationMinutes * 60_000 > now) ?? null;
-  return { ...query, next };
+  const data = useMemo(() => (service ? query.data?.filter((m) => m.services.includes(service)) : query.data), [query.data, service]);
+  const next = data?.find((m) => m.status === 'scheduled' && new Date(m.startsAt).getTime() + m.durationMinutes * 60_000 > now) ?? null;
+  return { ...query, data, next };
 }
 
 /**

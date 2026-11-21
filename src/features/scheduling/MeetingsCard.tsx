@@ -225,8 +225,11 @@ function SetupNotices({ context: c, onStop }: { context: MeetingContext; onStop:
   );
 }
 
-/** One meeting in a list. Opens the meeting dialog, or links to it (`to`) from other pages. */
-export function MeetingRow({ meeting, timeZone, onOpen, to }: { meeting: Meeting; timeZone: string; onOpen?: () => void; to?: string }) {
+/**
+ * One meeting in a list. Opens the meeting dialog, or links to it (`to`) from other pages.
+ * Clients (`client`) see an unrecorded past meeting as "Past"; recording it is the coach's job.
+ */
+export function MeetingRow({ meeting, timeZone, onOpen, to, client = false }: { meeting: Meeting; timeZone: string; onOpen?: () => void; to?: string; client?: boolean }) {
   const cancelled = meeting.status === 'cancelled' || meeting.status === 'late_cancelled';
   const pending = meeting.request?.status === 'pending' ? meeting.request : null;
   const programs = meeting.programs.filter((p) => p.programId).map((p) => p.title?.trim() || 'Untitled program');
@@ -256,7 +259,7 @@ export function MeetingRow({ meeting, timeZone, onOpen, to }: { meeting: Meeting
         {meeting.status === 'late_cancelled' ? <Badge tone="danger">Late cancellation</Badge> : null}
         {meeting.status === 'completed' ? <Badge tone="success">Attended</Badge> : null}
         {meeting.status === 'no_show' ? <Badge tone="danger">No-show</Badge> : null}
-        {unrecorded && !pending ? <Badge tone="gold">Record attendance</Badge> : null}
+        {unrecorded && !pending ? (client ? <Badge>Past</Badge> : <Badge tone="gold">Record attendance</Badge>) : null}
       </span>
       <span aria-hidden className="text-xs text-muted group-hover:text-text">→</span>
     </>

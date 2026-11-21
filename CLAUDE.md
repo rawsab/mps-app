@@ -36,6 +36,7 @@ Build pages from `src/components/` before writing styles (decision 0049). A call
 - Buttons: `Button` (text), `IconButton` (icon only; `label` is required), `Chip` (filter pills), `ToggleButton` (gold on/off), `SegmentedControl`, `Tabs` (with a tabpanel).
 - Forms: `TextField`, `TextAreaField`, `SelectField`, `ComboboxField`, `Checkbox`. For a custom control, use `FieldShell` and `controlClass`.
 - Overlays: `Dialog`, `ConfirmDialog` and `DialogBody`; `ActionsMenu` with `ActionItem`; `PopupMenu` for context menus; `InfoTip`; `ChartTooltip`.
+- Charts: `ColumnTrend` (columns over time slots, with a screen-reader table).
 - Content: `Card`, `SectionHeading`, `PageHeader`, `Badge`, `Alert`, `EmptyState`, `AnimatedDisclosure`, `DisclosureSummary`, `Spinner`, `Skeleton`.
 
 ## Invariants Claude is likely to get wrong

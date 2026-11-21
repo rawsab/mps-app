@@ -1,4 +1,5 @@
 import { createBrowserRouter, Navigate } from 'react-router';
+import { PersonalTrainingPage } from '@/features/personalTraining/PersonalTrainingPage';
 import { ProfileSettingsPage } from '@/features/profile/ProfileSettingsPage';
 import { MeetingsPage } from '@/features/scheduling/MeetingsPage';
 import { MeetingHistoryPage } from '@/features/scheduling/MeetingHistoryPage';
@@ -43,7 +44,7 @@ export const router = createBrowserRouter([
               {
                 element: <RequireClient section="personalTraining" />,
                 children: [
-                  { path: '/personal-training', element: <ProgramListPage service="personal_training" /> },
+                  { path: '/personal-training', element: <PersonalTrainingPage /> },
                   { path: '/personal-training/:programId', element: <TrainingProgramPage service="personal_training" /> },
                 ],
               },

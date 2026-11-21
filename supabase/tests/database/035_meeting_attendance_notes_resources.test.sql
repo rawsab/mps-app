@@ -1,7 +1,7 @@
 -- Attendance, shared notes and resources on meetings (decision 0047). Run with: pnpm test:db
 begin;
 create extension if not exists pgtap with schema extensions;
-select plan(51);
+select plan(53);
 
 create function pg_temp.act_as(uid uuid) returns void language plpgsql as $$
 begin
@@ -146,6 +146,12 @@ select is((select jsonb_agg(e->>'id') from jsonb_array_elements(public.list_past
   'past meetings come newest first, without future ones');
 select is((select jsonb_agg(e->>'id') from jsonb_array_elements(public.list_past_meetings(:grace,
   (public.get_meeting(:'past')->>'startsAt')::timestamptz, :'past'::uuid, 1)) e), jsonb_build_array(:'older'), 'and page by the last one shown');
+select pg_temp.act_as(:user_grace);
+select is((select jsonb_agg(e->>'id') from jsonb_array_elements(public.list_past_meetings(:grace)) e), jsonb_build_array(:'past', :'older'),
+  'the client lists their own past meetings (PT dashboard)');
+select pg_temp.act_as(:user_a);
+select is(jsonb_array_length(public.list_past_meetings(:grace)), 0, 'another client lists none of them');
+select pg_temp.act_as(:coach);
 
 -- ---------------------------------------------------------------------------
 -- Ending a pattern keeps meetings with shared notes or resources

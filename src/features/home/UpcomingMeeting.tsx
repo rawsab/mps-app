@@ -5,6 +5,7 @@ import { Avatar } from '@/components/Avatar';
 import { ArrowUpRightIcon, CalendarIcon } from '@/components/icons';
 import { ConfirmDialog, DialogBody } from '@/components/Dialog';
 import { Alert, Badge, Button, Card, SectionHeading, Spinner } from '@/components/ui';
+import type { ServiceKind } from '@/domain/programs/contract';
 import { countdown } from '@/domain/scheduling/calendar';
 import { canRequestChange, recentRequestOutcome } from '@/domain/scheduling/requests';
 import { photoUrl } from '@/features/profile/api';
@@ -19,16 +20,16 @@ import { useNextMeeting } from './api';
 /** "Join call" is the primary action from this long before the start until the meeting ends. */
 const JOIN_EARLY_MS = 15 * 60_000;
 
-/** The client's next meeting (decision 0042), with the coach's call link. */
-export function UpcomingMeeting({ timeZone, now }: { timeZone: string; now: number }) {
-  const meetings = useNextMeeting(now);
+/** The client's next meeting (decision 0042), with the coach's call link. `service` narrows it to that service's meetings. */
+export function UpcomingMeeting({ timeZone, now, service, title = 'Upcoming meeting' }: { timeZone: string; now: number; service?: ServiceKind; title?: string }) {
+  const meetings = useNextMeeting(now, service);
   const meeting = meetings.next;
   const toast = useMeetingToast();
   const outcome = recentRequestOutcome(meetings.data ?? [], now);
   const [dismissed, dismiss] = useDismissedOutcome();
   return (
     <section aria-labelledby="home-meeting" className="min-w-0">
-      <SectionHeading id="home-meeting" icon={<CalendarIcon />} className="mb-3">Upcoming meeting</SectionHeading>
+      <SectionHeading id="home-meeting" icon={<CalendarIcon />} className="mb-3">{title}</SectionHeading>
       {toast.element}
       <Alert visible={!!outcome && outcome.request.id !== dismissed} tone={outcome?.request.status === 'accepted' ? 'success' : 'note'} className="mb-3"
         onDismiss={() => outcome && dismiss(outcome.request.id)}>
@@ -37,7 +38,7 @@ export function UpcomingMeeting({ timeZone, now }: { timeZone: string; now: numb
       {meetings.isPending ? <Spinner label="Loading meetings" /> : null}
       <Alert visible={!!meetings.error} title="Could not load meetings">{schedulingError(meetings.error)}</Alert>
       {meetings.data && !meeting ? (
-        <Card as="div" padding="sm" className="text-sm text-muted">No meetings scheduled. Your coach will add them here.</Card>
+        <Card as="div" padding="sm" className="text-sm text-muted">No {service ? 'sessions' : 'meetings'} scheduled. Your coach will add them here.</Card>
       ) : null}
       {meeting ? <MeetingCard meeting={meeting} timeZone={timeZone} now={now} onSent={(message) => toast.show(message)} /> : null}
     </section>

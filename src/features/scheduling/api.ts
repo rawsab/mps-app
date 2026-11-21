@@ -172,7 +172,30 @@ export function usePastMeetings(clientId: string, pageSize = PAST_PAGE) {
   });
 }
 
-const NeedsAttendanceSchema = MeetingSchema.pick({ id: true, clientId: true, clientName: true, startsAt: true, durationMinutes: true, services: true });
+/**
+ * Every started meeting, newest first, for stats that span the whole history (the client's PT
+ * dashboard). Pages through `list_past_meetings` at its largest page size.
+ */
+export function useAllPastMeetings(clientId: string | undefined) {
+  return useQuery({
+    queryKey: [...meetingsKey, 'past-all', clientId],
+    enabled: !!clientId,
+    refetchInterval: 60_000,
+    queryFn: async () => {
+      const all: Meeting[] = [];
+      for (;;) {
+        const last = all.at(-1);
+        const page = await rpc('list_past_meetings', {
+          p_client_id: clientId, p_before_at: last?.startsAt ?? null, p_before_id: last?.id ?? null, p_limit: 100,
+        }, z.array(MeetingSchema));
+        all.push(...page);
+        if (page.length < 100) return all;
+      }
+    },
+  });
+}
+
+const NeedsAttendanceSchema =MeetingSchema.pick({ id: true, clientId: true, clientName: true, startsAt: true, durationMinutes: true, services: true });
 export type NeedsAttendance = z.infer<typeof NeedsAttendanceSchema>;
 
 /** Ended meetings with no attendance yet, oldest first (Meetings page to-dos). */

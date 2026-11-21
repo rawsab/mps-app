@@ -12,7 +12,7 @@ import { todayIn } from '@/features/scheduling/time';
 import { formatDate } from '@/lib/format';
 import { clientProgramPath, clientSections, SERVICE_LABELS, SERVICE_SHORT_LABELS } from '@/lib/services';
 import { isExerciseLogged, type TrainingSession } from '@/domain/training/volume';
-import { logErrorMessage, trainingErrorMessage, usePublishedProgram, usePublishedPrograms, useStartSession, useTrainingLog } from './api';
+import { logErrorMessage, trainingErrorMessage, usePublishedProgram, usePublishedPrograms, useStartSession, useTrainingLog, type PublishedProgramSummary } from './api';
 import { ProgramSpreadsheet } from './ProgramSpreadsheet';
 import { TrainingProgressBar } from './TrainingProgress';
 import { ResourceBody } from './ResourceBody';
@@ -37,25 +37,30 @@ export function ProgramListPage({ service }: { service: TrainingService }) {
       ) : null}
       {listed?.length ? (
         <ul className="divide-y divide-line">
-          {listed.map((p) => (
-            <li key={p.programId}>
-              <Link to={clientProgramPath(p.service, p.programId)} className="row-link group flex min-h-16 items-center gap-3 rounded-card px-2 py-3 hover:bg-surface-raised">
-                <span aria-hidden className={`grid size-9 shrink-0 place-items-center rounded-full [&>svg]:size-4 ${programServiceIconStyle(p.service)}`}>{programServiceIcon(p.service)}</span>
-                <div className="min-w-0 flex-1">
-                  <p className="break-words font-medium">{programName(p.title)}</p>
-                  {p.service === 'mesocycle' && p.programTheme.trim() ? <p className="mt-0.5 break-words text-sm text-muted">{p.programTheme}</p> : null}
-                  <p className="text-xs text-muted">
-                    {p.weekCount} {p.weekCount === 1 ? 'week' : 'weeks'} · updated {formatDate(p.publishedAt)}
-                  </p>
-                </div>
-                {p.isCurrent ? <Badge tone="gold">Current</Badge> : null}
-                <span aria-hidden className="text-muted group-hover:text-text">→</span>
-              </Link>
-            </li>
-          ))}
+          {listed.map((p) => <PublishedProgramRow key={p.programId} program={p} />)}
         </ul>
       ) : null}
     </div>
+  );
+}
+
+/** One published program in a client list: service icon, title, theme, length and last publish. */
+export function PublishedProgramRow({ program: p }: { program: PublishedProgramSummary }) {
+  return (
+    <li>
+      <Link to={clientProgramPath(p.service, p.programId)} className="row-link group flex min-h-16 items-center gap-3 rounded-card px-2 py-3 hover:bg-surface-raised">
+        <span aria-hidden className={`grid size-9 shrink-0 place-items-center rounded-full [&>svg]:size-4 ${programServiceIconStyle(p.service)}`}>{programServiceIcon(p.service)}</span>
+        <div className="min-w-0 flex-1">
+          <p className="break-words font-medium">{programName(p.title)}</p>
+          {p.service === 'mesocycle' && p.programTheme.trim() ? <p className="mt-0.5 break-words text-sm text-muted">{p.programTheme}</p> : null}
+          <p className="text-xs text-muted">
+            {p.weekCount} {p.weekCount === 1 ? 'week' : 'weeks'} · updated {formatDate(p.publishedAt)}
+          </p>
+        </div>
+        {p.isCurrent ? <Badge tone="gold">Current</Badge> : null}
+        <span aria-hidden className="text-muted group-hover:text-text">→</span>
+      </Link>
+    </li>
   );
 }
 

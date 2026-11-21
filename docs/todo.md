@@ -29,7 +29,7 @@ Done: decision 0047. Manual UI checks pending. One change from the plan: the att
 
 ## Client Personal training page and navigation (plan item 3)
 
-Depends on the PT sessions work above. Navigation done: decision 0051. Manual UI checks pending. `/personal-training` lists PT programs until the dashboard lands.
+Depends on the PT sessions work above. Done: decisions 0051 (navigation) and 0052 (dashboard). Manual UI checks pending. One change from the plan: the weekly chart uses `ColumnTrend` (moved to `components/`), not `ColumnChart`.
 
 - [x] **Navigation:** Home · Mesocycle · Personal training · Nutrition · Progress.
   - [x] `clientSections` splits per service, and the guards follow.
@@ -37,12 +37,12 @@ Depends on the PT sessions work above. Navigation done: decision 0051. Manual UI
   - [x] Mesocycle moves to `/mesocycle` and `/mesocycle/:programId`, and `/training/*` redirects there. The Mesocycle list shows mesocycle programs only.
   - [x] Personal training gets `/personal-training` (the dashboard) and `/personal-training/:programId` (reuses `TrainingProgramView`).
   - [x] Update Home's service links, back links and activity links.
-- [ ] **Dashboard**, laid out like Home:
-  - [ ] Top row: "Next session" (`UpcomingMeeting` filtered to PT-tagged meetings) beside "Your program" (the current PT program, plus other published PT programs).
-  - [ ] Progress: sessions completed, sessions this month, weekly streak, and attendance rate (completed out of completed + no-show + late-cancelled). A 12-week sessions-per-week column chart, moving `ColumnChart` from `ClientsOverview.tsx` into `components/`.
-  - [ ] Upcoming: the next 4 weeks.
-  - [ ] History: past sessions, newest first, with "Show more". Rows show notes and file markers and open the shared notes and resources. Unrecorded past sessions show as "Past" and don't count.
-  - [ ] Stats as pure functions in `src/domain/scheduling/ptStats.ts`, with unit tests.
+- [x] **Dashboard**, laid out like Home:
+  - [x] Top row: "Next session" (`UpcomingMeeting` filtered to PT-tagged meetings) beside "Your program" (the current PT program, plus other published PT programs).
+  - [x] Progress: sessions completed, sessions this month, weekly streak, and attendance rate (completed out of completed + no-show + late-cancelled). A 12-week sessions-per-week column chart, moving `ColumnChart` from `ClientsOverview.tsx` into `components/`.
+  - [x] Upcoming: the next 4 weeks.
+  - [x] History: past sessions, newest first, with "Show more". Rows show notes and file markers and open the shared notes and resources. Unrecorded past sessions show as "Past" and don't count.
+  - [x] Stats as pure functions in `src/domain/scheduling/ptStats.ts`, with unit tests.
 
 ## Small follow-ups offered
 
