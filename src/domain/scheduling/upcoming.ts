@@ -1,3 +1,5 @@
+import { zonedDateTime } from './pattern';
+
 /**
  * What upcoming lists need from a meeting (decisions 0026, 0039): an id, a UTC start instant and a
  * length. Meetings from `list_meetings` fit as they are.
@@ -32,4 +34,29 @@ export function upcomingByDay<T extends UpcomingSession>(sessions: T[], now: Dat
     groups.push({ key, label: offset === 0 ? 'Today' : offset === 1 ? 'Tomorrow' : formatDay(day), sessions: [session] });
   }
   return groups.map(({ label, sessions }) => ({ label, sessions }));
+}
+
+/** Whole days from one `YYYY-MM-DD` date to another. */
+const daysBetween = (from: string, to: string) => Math.round((Date.parse(`${to}T00:00:00Z`) - Date.parse(`${from}T00:00:00Z`)) / DAY_MS);
+
+/**
+ * Like `upcomingByDay`, but days are calendar dates in `timeZone` (the viewer's profile zone)
+ * rather than the browser's. `offset` is 0 for today and 1 for tomorrow, for labels. With `days`,
+ * only dates fewer than that many days from today are kept.
+ */
+export function upcomingByZonedDay<T extends UpcomingSession>(sessions: T[], now: number, timeZone: string, days = Infinity): { date: string; offset: number; sessions: T[] }[] {
+  const today = zonedDateTime(new Date(now), timeZone).date;
+  const groups: { date: string; offset: number; sessions: T[] }[] = [];
+  const upcoming = sessions
+    .filter((s) => Date.parse(s.startsAt) + s.durationMinutes * 60_000 > now)
+    .sort((a, b) => Date.parse(a.startsAt) - Date.parse(b.startsAt) || a.id.localeCompare(b.id));
+  for (const session of upcoming) {
+    const date = zonedDateTime(session.startsAt, timeZone).date;
+    const last = groups.at(-1);
+    if (last?.date === date) { last.sessions.push(session); continue; }
+    const offset = daysBetween(today, date);
+    if (offset >= days) break;
+    groups.push({ date, offset, sessions: [session] });
+  }
+  return groups;
 }

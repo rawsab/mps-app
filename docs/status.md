@@ -292,7 +292,7 @@ Started 2026-11-16 · Last updated 2026-11-21 · Open work: `docs/todo.md`
 
 - **Programs:** program/revision tables, both coach editors, the client Training view and mesocycle session logging are implemented. Programs under an ended (but not archived) service still appear to the client (decision 0020, open question). Nutrition now has its own draft/publish/archive lifecycle, weekly spreadsheets, shared daily records, correction history and program-relative summaries (decision 0029). Import-batch and general audit tables remain pending; Client Home has saved-record nutrition tasks, while training task derivation remains pending.
 - **Activity feeds:** Training updates derive from latest record state, so a coach overwriting a client's only logged row can drop that workout from Reviews; general `audit_events` is still pending. Nutrition notifications use durable client/day activity, survive coach corrections and retain the separate before/after entry history (decision 0030). Feeds and unread counts poll every minute (no realtime).
-- **Meetings:** coach screens and Upcoming today are built (decisions 0037, 0039). Clients can ask to reschedule or cancel their next meeting from Home, picking from the coach's open times (decision 0050). The PT dashboard lists the client's next 4 weeks of PT sessions and their history (decision 0052), but only the next meeting can be changed. A list of all upcoming meetings across services, the client calendar and the UTC time zone prompt are still to do. Nothing emails Matt, and Google Calendar sync is in the backlog.
+- **Meetings:** coach screens and Upcoming today are built (decisions 0037, 0039). Clients can ask to reschedule or cancel any upcoming meeting, from Home or their Meetings page, picking from the coach's open times (decision 0050). The PT dashboard lists the client's next 4 weeks of PT sessions and their history (decision 0052). The client calendar and the UTC time zone prompt are still to do. Nothing emails Matt, and Google Calendar sync is in the backlog.
 - **Invitations:** invite and recovery emails have only been verified against local Mailpit. Real Resend delivery is untested.
 - **Playwright:** not yet a project dependency. The browser smoke script lives outside the repo.
 - **No linting:** no ESLint or formatter is configured yet.
@@ -315,7 +315,6 @@ Work since M3 has followed owner priorities across M4–M6 rather than the roadm
 
 - **First:** the owner's manual UI checks for decisions 0043–0052 (checklists in each decision and in `docs/todo.md`).
 - **Open candidates:**
-  - Phase C of decision 0050: a client list of all upcoming meetings, with the change dialog for each.
   - Playwright as a dev dependency, with the smoke script promoted to `tests/e2e`; ESLint and a formatter.
   - The `audit_events` table for publish and access changes, which also gives Recent updates and Activity before/after history.
 - **Done in M3:** program tables, `save_draft` and `publish_revision`, the draft command model, both editors and the client Training view (decisions 0004–0008, 0020).
@@ -430,7 +429,7 @@ Open items are tracked in `docs/todo.md`.
   - Clients reschedule or cancel their next meeting from Home. They pick from open times the server computes, or send a message when none work. A picked time is held from other clients while it waits.
   - Short-notice requests warn the client and are flagged for the coach, never refused.
   - Migration 00049 is applied locally, and `supabase/seed/availability.sql` is loaded into the running DB (it is in `config.toml` for future resets). 40 new pgTAP assertions; the full suite passes (943). 356 unit tests and the build pass. No browser checks; manual check pending.
-  - Next: a client list of all upcoming meetings with the same dialog (phase C).
+  - Phase C (2026-11-21): a client list of all upcoming meetings with the same dialog.
 - Client navigation per service (decision 0051):
   - Home · Mesocycle · Personal training · Nutrition · Progress, each section with its own guard.
   - `/mesocycle` and `/personal-training` replace `/training`; old links redirect to the program's own section and keep the week and day.
@@ -725,3 +724,11 @@ Decision 0055, "Owner follow-ups".
 - "See … in Help" references on every page are now links.
 - Accuracy fixes: the client row menu is a right-click menu. The starting weight change is worked out, not typed. Correction history includes client corrections. Coaches now see **Missing** highlights too (owner choice). They were shown only to clients before; the flag is removed, and the Nutrition page, its correction demo and a test match.
 - **Verification.** `pnpm verify` passes (444 tests). No browser checks; manual checks are in decision 0057.
+
+## Scheduling phase C: the client's meetings list (2026-11-21)
+
+- Decision 0050. A client `/meetings` page lists every meeting in the next 60 days, across services, grouped by day in the client's profile zone. Home's meeting heading links to it as **All meetings**.
+- Each meeting has Join call and the same Reschedule, Cancel meeting, pending request and Withdraw as Home. The controls moved to `src/features/scheduling/MeetingRequestControls.tsx`, shared by both. Cancelled meetings stay listed, crossed out.
+- `upcomingByZonedDay` in `src/domain/scheduling/upcoming.ts` groups by the profile zone's calendar dates, with unit tests (including a daylight saving change).
+- No server changes. The Help page What clients see is updated.
+- **Verification.** `pnpm verify` passes (446 tests). No browser checks; manual checks are in decision 0050.

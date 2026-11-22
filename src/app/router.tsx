@@ -4,6 +4,7 @@ import { BillingPage } from '@/features/billing/BillingPage';
 import { ClientBillingPage } from '@/features/billing/ClientBillingScreens';
 import { PersonalTrainingPage } from '@/features/personalTraining/PersonalTrainingPage';
 import { ProfileSettingsPage } from '@/features/profile/ProfileSettingsPage';
+import { ClientMeetingsPage } from '@/features/scheduling/ClientMeetingsPage';
 import { MeetingsPage } from '@/features/scheduling/MeetingsPage';
 import { MeetingHistoryPage } from '@/features/scheduling/MeetingHistoryPage';
 import { NutritionPage, NutritionProgressPage } from '@/features/nutrition/NutritionPages';
@@ -38,6 +39,7 @@ export const router = createBrowserRouter([
               { path: '/home', element: <ClientHomePage /> },
               { path: '/profile', element: <ProfileSettingsPage /> },
               { path: '/billing', element: <ClientBillingPage /> },
+              { path: '/meetings', element: <ClientMeetingsPage /> },
               {
                 element: <RequireClient section="mesocycle" />,
                 children: [

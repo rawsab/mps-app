@@ -1,6 +1,6 @@
 # 0050 — Coach availability and client meeting requests
 
-Date: 2026-11-20 · Status: accepted (owner request) · Phases A–B built
+Date: 2026-11-20 · Status: accepted (owner request) · Phases A–C built
 
 - **Scope.** PRD §3 excludes booking. Decisions 0026 and 0037 recorded meeting scheduling as a scope addition, and this extends it so clients pick from the coach's open times when they ask to reschedule. It is still a request: nothing moves until the coach accepts, and only coaches refuse. The PRD has not been edited.
 - **Owner decisions (2026-11-20).**
@@ -42,6 +42,12 @@ Date: 2026-11-20 · Status: accepted (owner request) · Phases A–B built
   - A pending request shows on the card with the asked-for time, the message and **Withdraw request**.
   - The latest answer (moved, cancelled, declined with the reply, or expired) shows above the card for 7 days. Dismissing it is remembered in this browser only.
   - Coaches see "Short notice" on late reschedules in the meeting dialog and in Activity; "Late cancellation" stays for cancellations.
-- **Phase C (next).** A client `/meetings` list of every upcoming meeting, grouped by day (`upcomingByDay`), each with the same dialog, pending state and Withdraw, linked from Home as "All meetings". It needs no server changes.
+- **Client meetings list (phase C, built 2026-11-21).**
+  - `/meetings` lists every meeting in Home's 60-day range, across services, grouped by day in the client's **profile** zone (`upcomingByZonedDay`; `upcomingByDay` groups by the browser's zone, which can differ). Days read Today, Tomorrow, then the full date.
+  - Each meeting shows its time, coach, length, topic, programs and repeat state, Join call, and the same Reschedule, Cancel meeting, pending state and Withdraw as Home (`MeetingRequestControls.tsx`, now shared by both).
+  - Cancelled meetings stay listed, crossed out, as on the PT page.
+  - Home's meeting heading links to it as **All meetings**. The PT page doesn't, since it lists its own sessions. There is no nav item.
+  - The page reuses Home's query, so no server changes. Answers to requests still show only on Home.
+  - Manual checks: open Home as a client and select All meetings. Check the days and times match the profile zone. Reschedule and cancel a later meeting (not the next one), then withdraw. Check a cancelled meeting is crossed out with no buttons. Check the page at phone width.
 
-**Phases.** A (done): migration 00049, 40 pgTAP assertions (`038_coach_availability.test.sql`), the coach screens. B (done): the client dialog and Home card, `src/domain/scheduling/requests.ts` with unit tests. C: the upcoming-meetings list above.
+**Phases.** A (done): migration 00049, 40 pgTAP assertions (`038_coach_availability.test.sql`), the coach screens. B (done): the client dialog and Home card, `src/domain/scheduling/requests.ts` with unit tests. C (done): the upcoming-meetings list above, with `upcomingByZonedDay` unit tests.

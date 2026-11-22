@@ -3,16 +3,15 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router';
 import { Avatar } from '@/components/Avatar';
 import { ArrowUpRightIcon, CalendarIcon } from '@/components/icons';
-import { ConfirmDialog, DialogBody } from '@/components/Dialog';
-import { Alert, Badge, Button, Card, SectionHeading } from '@/components/ui';
+import { Alert, Badge, Card, SectionHeading } from '@/components/ui';
 import { MeetingCardSkeleton } from '@/features/scheduling/MeetingSkeletons';
 import { LoadingRegion } from '@/components/Skeleton';
 import type { ServiceKind } from '@/domain/programs/contract';
 import { countdown } from '@/domain/scheduling/calendar';
-import { canRequestChange, recentRequestOutcome } from '@/domain/scheduling/requests';
+import { recentRequestOutcome } from '@/domain/scheduling/requests';
 import { photoUrl } from '@/features/profile/api';
-import { schedulingError, useWithdrawMeetingRequest, type Meeting } from '@/features/scheduling/api';
-import { ChangeMeetingDialog, type ChangeKind } from '@/features/scheduling/ChangeMeetingDialog';
+import { schedulingError, type Meeting } from '@/features/scheduling/api';
+import { ChangeButtons, PendingRequestNotice, useMeetingChange } from '@/features/scheduling/MeetingRequestControls';
 import { useMeetingToast } from '@/features/scheduling/useMeetingToast';
 import { topicLabel } from '@/features/scheduling/MeetingTopic';
 import { sessionDay, sessionMoment, sessionRange } from '@/features/scheduling/time';
@@ -20,7 +19,7 @@ import { clientProgramPath, SERVICE_SHORT_LABELS } from '@/lib/services';
 import { useNextMeeting } from './api';
 
 /** "Join call" is the primary action from this long before the start until the meeting ends. */
-const JOIN_EARLY_MS = 15 * 60_000;
+export const JOIN_EARLY_MS = 15 * 60_000;
 
 /** The client's next meeting (decision 0042), with the coach's call link. `service` narrows it to that service's meetings. */
 export function UpcomingMeeting({ timeZone, now, service, title = 'Upcoming meeting' }: { timeZone: string; now: number; service?: ServiceKind; title?: string }) {
@@ -31,7 +30,11 @@ export function UpcomingMeeting({ timeZone, now, service, title = 'Upcoming meet
   const [dismissed, dismiss] = useDismissedOutcome();
   return (
     <section aria-labelledby="home-meeting" className="min-w-0">
-      <SectionHeading id="home-meeting" icon={<CalendarIcon />} className="mb-3">{title}</SectionHeading>
+      <div className="mb-3 flex items-center justify-between gap-3">
+        <SectionHeading id="home-meeting" icon={<CalendarIcon />}>{title}</SectionHeading>
+        {/* Every upcoming meeting, across services (decision 0050, phase C). The PT page lists its own. */}
+        {service ? null : <Link to="/meetings" className="-my-3 inline-flex min-h-11 shrink-0 items-center text-sm text-gold-fg"><span className="link">All meetings</span></Link>}
+      </div>
       {toast.element}
       <Alert visible={!!outcome && outcome.request.id !== dismissed} tone={outcome?.request.status === 'accepted' ? 'success' : 'note'} className="mb-3"
         onDismiss={() => outcome && dismiss(outcome.request.id)}>
@@ -48,10 +51,7 @@ export function UpcomingMeeting({ timeZone, now, service, title = 'Upcoming meet
 }
 
 function MeetingCard({ meeting, timeZone, now, onSent }: { meeting: Meeting; timeZone: string; now: number; onSent: (message: string) => void }) {
-  const [changing, setChanging] = useState<ChangeKind | null>(null);
-  const [withdrawing, setWithdrawing] = useState(false);
-  const withdraw = useWithdrawMeetingRequest();
-  const pending = meeting.request?.status === 'pending' ? meeting.request : null;
+  const change = useMeetingChange(meeting, timeZone, onSent);
   const start = new Date(meeting.startsAt).getTime();
   const live = start <= now;
   const joinable = start - JOIN_EARLY_MS <= now;
@@ -71,19 +71,7 @@ function MeetingCard({ meeting, timeZone, now, onSent }: { meeting: Meeting; tim
         </div>
         {live ? <Badge tone="gold">Now</Badge> : wait ? <span className="shrink-0 pt-0.5 text-xs text-muted">In {wait.split(', ')[0]}</span> : null}
       </div>
-      {pending ? (
-        <div className="mt-3 rounded-card border border-gold/40 bg-gold/5 px-3 py-2.5 text-sm">
-          <p className="flex flex-wrap items-center gap-2">
-            <Badge tone="gold">{pending.kind === 'cancel' ? 'Cancellation requested' : 'Reschedule requested'}</Badge>
-            <span className="text-muted">Waiting for {meeting.coachName ?? 'your coach'}</span>
-          </p>
-          {pending.preferredStartsAt ? <p className="mt-1.5">Asked for {sessionMoment(pending.preferredStartsAt, timeZone)}</p> : null}
-          {pending.message ? <p className="mt-1.5 line-clamp-3 whitespace-pre-wrap break-words text-muted">“{pending.message}”</p> : null}
-          <div className="mt-2 flex justify-end">
-            <Button variant="ghost-gold" onClick={() => setWithdrawing(true)}>Withdraw request</Button>
-          </div>
-        </div>
-      ) : null}
+      <PendingRequestNotice meeting={meeting} timeZone={timeZone} onWithdraw={change.withdraw} className="mt-3" />
       {programs.length ? (
         <ul className="mt-3 grid gap-1.5">
           {programs.map((p) => (
@@ -106,25 +94,9 @@ function MeetingCard({ meeting, timeZone, now, onSent }: { meeting: Meeting; tim
             Join call<ArrowUpRightIcon />
           </a>
         ) : <p className="text-sm text-muted">Your coach will share the call link.</p>}
-        {canRequestChange(meeting, now) ? (
-          <div className="-mr-3 ml-auto flex flex-wrap justify-end gap-1">
-            <Button variant="ghost" onClick={() => setChanging('reschedule')}>Reschedule</Button>
-            <Button variant="ghost-danger" onClick={() => setChanging('cancel')}>Cancel meeting</Button>
-          </div>
-        ) : null}
+        <ChangeButtons meeting={meeting} now={now} onChange={change.change} className="-mr-3 ml-auto" />
       </div>
-      {changing ? (
-        <ChangeMeetingDialog meeting={meeting} timeZone={timeZone} initialKind={changing} onClose={() => setChanging(null)}
-          onSent={(message) => { setChanging(null); onSent(message); }} />
-      ) : null}
-      {withdrawing && pending ? (
-        <ConfirmDialog title="Withdraw your request?" confirmLabel="Withdraw" pending={withdraw.isPending}
-          description={pending.kind === 'cancel' ? 'The meeting stays as it is.' : 'The meeting stays at its current time, and any time you asked for is released.'}
-          onClose={() => { withdraw.reset(); setWithdrawing(false); }}
-          onConfirm={() => withdraw.mutate(pending.id, { onSuccess: () => { setWithdrawing(false); onSent('Request withdrawn.'); } })}>
-          <DialogBody><Alert visible={!!withdraw.error}>{schedulingError(withdraw.error)}</Alert></DialogBody>
-        </ConfirmDialog>
-      ) : null}
+      {change.dialogs}
     </Card>
   );
 }
