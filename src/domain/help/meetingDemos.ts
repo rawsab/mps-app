@@ -127,14 +127,14 @@ function repeatingPattern(): DemoScript<PatternDemoState> {
   type Frame = DemoFrame<PatternDemoState>;
   const frames: Frame[] = [
     { state: state([]), ms: 600, caption: 'Repeat meetings opens the pattern. Choose the days first.', pointer: { target: dayToggleTarget(TUESDAY) } },
-    { state: state([]), ms: 200, caption: 'Repeat meetings opens the pattern. Choose the days first.', pointer: { target: dayToggleTarget(TUESDAY), press: true } },
-    { state: state([tue], { changed: dates([tue]) }), ms: 700, caption: 'Tuesday starts at 7:00 AM for 60 minutes. Next meetings fills in.', pointer: { target: dayToggleTarget(THURSDAY) } },
-    { state: state([tue]), ms: 200, caption: 'Add Thursday. It copies Tuesday’s time and length.', pointer: { target: dayToggleTarget(THURSDAY), press: true } },
-    { state: state([tue, thu], { changed: dates([tue, thu]).filter((d) => !dates([tue]).includes(d)) }), ms: 900, caption: 'Add Thursday. It copies Tuesday’s time and length.', pointer: { target: startTarget(THURSDAY) } },
-    { state: state([tue, thu]), ms: 200, caption: 'Thursdays are in the evening, so change the start.', pointer: { target: startTarget(THURSDAY), press: true } },
-    { state: state(final, { changed: dates(final).filter((d) => !dates([tue, thu]).includes(d)) }), ms: 900, caption: 'Thursdays are in the evening, so change the start.', pointer: { target: startTarget(THURSDAY) } },
+    { state: state([]), ms: 250, caption: 'Repeat meetings opens the pattern. Choose the days first.', pointer: { target: dayToggleTarget(TUESDAY), press: true } },
+    { state: state([tue], { changed: dates([tue]) }), ms: 850, caption: 'Tuesday starts at 7:00 AM for 60 minutes. Next meetings fills in.', pointer: { target: dayToggleTarget(THURSDAY) } },
+    { state: state([tue]), ms: 250, caption: 'Add Thursday. It copies Tuesday’s time and length.', pointer: { target: dayToggleTarget(THURSDAY), press: true } },
+    { state: state([tue, thu], { changed: dates([tue, thu]).filter((d) => !dates([tue]).includes(d)) }), ms: 1250, caption: 'Add Thursday. It copies Tuesday’s time and length.', pointer: { target: startTarget(THURSDAY) } },
+    { state: state([tue, thu]), ms: 250, caption: 'Thursdays are in the evening, so change the start.', pointer: { target: startTarget(THURSDAY), press: true } },
+    { state: state(final, { changed: dates(final).filter((d) => !dates([tue, thu]).includes(d)) }), ms: 1350, caption: 'Thursdays are in the evening, so change the start.', pointer: { target: startTarget(THURSDAY) } },
     { state: state(final), ms: 600, caption: 'Select Set up meetings.', pointer: { target: SET_UP_TARGET } },
-    { state: state(final), ms: 200, caption: 'Select Set up meetings.', pointer: { target: SET_UP_TARGET, press: true } },
+    { state: state(final), ms: 250, caption: 'Select Set up meetings.', pointer: { target: SET_UP_TARGET, press: true } },
     // The dialog fades out as filled in, then resets while hidden, so the next loop opens it empty.
     { state: state(final, { saved }), ms: 500, caption: done, pointer: { target: PATTERN_ROW_TARGET } },
     { state: state([], { saved }), ms: 2200, caption: done, pointer: { target: PATTERN_ROW_TARGET } },
