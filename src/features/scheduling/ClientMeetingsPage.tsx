@@ -139,7 +139,9 @@ function MeetingItem({ meeting, timeZone, now, onSent }: { meeting: Meeting; tim
         ) : null}
         {pending && !cancelled ? (
           <Fact label="Your request" wide>
-            <span className="flex flex-wrap items-start justify-between gap-x-3">
+            {/* The button sits in the box's bottom-right corner. Its label is 20px from the right edge
+                (12px box padding + 16px button padding - 8px) and the bottom (10px + 12px - 2px). */}
+            <span className="flex flex-wrap items-end justify-between gap-x-3">
               <span className="min-w-0">
                 <span className="block">
                   {pending.kind === 'cancel' ? 'Cancel this meeting' : pending.preferredStartsAt ? `Move to ${sessionMoment(pending.preferredStartsAt, timeZone)}` : 'Find another time'}
@@ -147,7 +149,7 @@ function MeetingItem({ meeting, timeZone, now, onSent }: { meeting: Meeting; tim
                 </span>
                 {pending.message ? <span className="mt-0.5 line-clamp-3 block whitespace-pre-wrap text-muted">“{pending.message}”</span> : null}
               </span>
-              <Button variant="ghost-gold" className="-my-2 -mr-2" onClick={change.withdraw}>Withdraw request</Button>
+              <Button variant="ghost-gold" className="-mb-0.5 -mr-2 -mt-2 ml-auto" onClick={change.withdraw}>Withdraw request</Button>
             </span>
           </Fact>
         ) : null}
