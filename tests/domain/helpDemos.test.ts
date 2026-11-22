@@ -124,7 +124,7 @@ describe('meeting demo scripts', () => {
     for (const frame of MEETING_DEMOS['attendance-undo'].frames) {
       const target = frame.pointer?.target;
       if (target?.startsWith('attendance:')) expect(frame.state.rows.map((r) => r.id), target).toContain(target.split(':')[1]);
-      if (target === UNDO_NOTICE_TARGET) expect(frame.state.notice).toBeTruthy();
+      if (target === UNDO_NOTICE_TARGET) expect(frame.state.notice?.shown).toBe(true);
     }
   });
 
@@ -132,7 +132,9 @@ describe('meeting demo scripts', () => {
     const frames = MEETING_DEMOS['attendance-undo'].frames;
     expect(frames.find((f) => f.state.restored)?.state.rows.map((r) => r.id)).toEqual(['avery', 'riley', 'jo']);
     expect(frames.at(-1)!.state.rows.map((r) => r.id)).toEqual(['riley', 'jo']);
-    expect(frames.at(-1)!.state.notice).toEqual({ id: 'avery', status: 'completed' });
+    expect(frames.findLast((f) => f.state.notice?.shown)!.state.notice).toEqual({ id: 'avery', status: 'completed', shown: true });
+    // It starts and ends centred, with no notice, so the loop joins up.
+    expect([frames[0]!.state.room, frames.at(-1)!.state.room, frames.at(-1)!.state.notice?.shown]).toEqual([undefined, undefined, false]);
     // Grouped by day as the Meetings page groups them.
     expect(groupAttendanceByDay(ATTENDANCE_ROWS, DEMO_TIME_ZONE, DEMO_NOW).map((d) => d.relative)).toEqual(['today', 'yesterday', null]);
   });

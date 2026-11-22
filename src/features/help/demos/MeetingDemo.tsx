@@ -47,8 +47,10 @@ function AttendancePicture({ state }: { state: AttendanceDemoState }) {
   const waiting = state.rows.filter((row) => row.id !== state.leaving).length;
   const noticeRow = state.notice ? [...state.rows, ...MEETING_DEMOS['attendance-undo'].frames[0]!.state.rows].find((row) => row.id === state.notice!.id) : null;
   return (
-    <div className="flex w-[30rem] flex-col text-left text-sm text-text">
-      <div className="rounded-card border border-line bg-surface p-4 shadow-popover">
+    // Fixed height: the list plus the notice's room. Without a notice the list moves down by half
+    // that room, so it sits in the middle, and glides up when a notice needs the space.
+    <div className="flex w-[36rem] flex-col items-center text-left text-sm text-text">
+      <div className={`w-full rounded-card border border-line bg-surface p-4 shadow-popover transition-transform duration-500 ease-[var(--ease-ui)] ${state.room ? 'translate-y-0' : 'translate-y-[1.625rem]'}`}>
         <div className="mb-2 flex min-h-8 items-center justify-between gap-2">
           <span className="text-xs font-medium text-muted">Record attendance<span className="ml-2 text-gold-fg">{waiting} waiting</span></span>
           <Button variant="ghost" className="min-h-9 px-3">Mark all completed</Button>
@@ -71,11 +73,12 @@ function AttendancePicture({ state }: { state: AttendanceDemoState }) {
           )))}
         </ul>
       </div>
-      <div className="mt-3 flex min-h-11 justify-center">
+      <div className="mt-3 flex h-10 w-full justify-center">
         {state.notice && noticeRow ? (
-          <p key={`${state.notice.id}:${state.notice.status}`} className="notice-swap flex min-h-11 items-center gap-x-3 rounded-card border border-line bg-surface-raised px-4 py-1 text-sm shadow-lg">
-            {attendanceMessage(noticeRow, state.notice.status, DEMO_TIME_ZONE)}
-            <span data-demo-target={UNDO_NOTICE_TARGET} className="font-medium text-gold-fg underline underline-offset-2">Undo</span>
+          <p className={`flex w-[30rem] items-center justify-between gap-x-3 rounded-card border border-line bg-surface-raised px-4 text-xs shadow-lg transition-[opacity,translate] duration-300 ${state.notice.shown ? 'translate-y-0 opacity-100' : 'translate-y-1 opacity-0'}`}>
+            {/* Keyed, so a new notice swaps in as the page's does. */}
+            <span key={`${state.notice.id}:${state.notice.status}`} className="notice-swap">{attendanceMessage(noticeRow, state.notice.status, DEMO_TIME_ZONE)}</span>
+            <span data-demo-target={UNDO_NOTICE_TARGET} className="shrink-0 font-medium text-gold-fg underline underline-offset-2">Undo</span>
           </p>
         ) : null}
       </div>
