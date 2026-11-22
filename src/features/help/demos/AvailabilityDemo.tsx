@@ -77,7 +77,7 @@ function OpenTimesPicture({ state }: { state: OpenTimesDemoState }) {
       <div className="grid grid-cols-[6.5rem_600px] gap-x-3">
         <span />
         <span className="relative mb-1 h-4">
-          {hours.map((h) => <span key={h} className="absolute -translate-x-1/2 text-[11px] text-muted tabular-nums" style={{ left: left(h) }}>{hourLabel(h)}</span>)}
+          {hours.map((h) => <span key={h} className="absolute -translate-x-1/2 whitespace-nowrap text-[11px] text-muted tabular-nums" style={{ left: left(h) }}>{hourLabel(h)}</span>)}
         </span>
         {LANES.map(({ lane: key, label }) => (
           <Lane key={key} label={label} target={laneTarget(key)} shown={shown(key)} hours={hours}>{lane(key)}</Lane>
