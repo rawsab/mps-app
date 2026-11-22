@@ -1,3 +1,4 @@
+import { useRef, type ReactNode } from 'react';
 import { PlusIcon } from '@/components/icons';
 import { Badge, Button } from '@/components/ui';
 import { chargeStatusLabel, isOverdue, periodLabel, statements, type Charge } from '@/domain/billing/billing';
@@ -16,8 +17,9 @@ export function BillingDemo({ name }: { name: BillingDemoName }) {
   const tallest = script.frames.reduce((a, b) => (b.state.charges.length > a.state.charges.length ? b : a)).state;
   return <DemoPlayer script={script} render={(state) => (
     <div className="grid">
-      <div className="[grid-area:1/1]"><BillingPicture state={state} /></div>
-      <div aria-hidden className="pointer-events-none opacity-0 [grid-area:1/1]"><BillingPicture state={{ ...tallest, dialog: null, faded: false }} /></div>
+      {/* Centred in the frame, so it moves up and down evenly as rows unfold and fold. */}
+      <div className="self-center [grid-area:1/1]"><BillingPicture state={state} every={tallest.charges} /></div>
+      <div aria-hidden className="pointer-events-none opacity-0 [grid-area:1/1]"><BillingPicture state={{ ...tallest, dialog: null, faded: false }} every={tallest.charges} /></div>
     </div>
   )} />;
 }
@@ -26,7 +28,12 @@ export function BillingDemo({ name }: { name: BillingDemoName }) {
  * A client's billing as the coach's panel shows it, drawn from a demo frame: the balance, then every
  * month's statement open, grouped and labelled with the panel's own rules.
  */
-function BillingPicture({ state }: { state: BillingDemoState }) {
+function BillingPicture({ state, every }: { state: BillingDemoState; every: Charge[] }) {
+  // Every charge the demo shows stays drawn, so a new one can unfold instead of appearing at once.
+  const months = statements(every);
+  const current = new Map(statements(state.charges).map((statement) => [statement.period, statement]));
+  // The last amount left to pay on each month, kept so the line still reads right while it folds away.
+  const lastLeft = useRef(new Map<string, number>());
   const summary = demoSummary(state.charges, state.creditCents);
   const changed = new Set(state.changed ?? []);
   return (
@@ -52,23 +59,32 @@ function BillingPicture({ state }: { state: BillingDemoState }) {
         </dl>
         <p className="mb-2 mt-4 text-base font-semibold">Statements</p>
         <div className="divide-y divide-line rounded-card border border-line">
-          {statements(state.charges).map((statement) => (
-            <div key={statement.period} className="px-4 py-1">
-              <div className="flex min-h-12 items-center gap-2">
-                <span className="min-w-0 flex-1 font-medium">{periodLabel(statement.period)}{statement.period === DEMO_PERIOD ? <span className="ml-2 text-xs font-normal text-muted">This month</span> : null}</span>
-                <span className="text-base font-semibold tabular-nums">{formatCents(statement.totalCents)}</span>
-                {isOverdue(statement, DEMO_PERIOD)
-                  ? <Badge size="sm" tone="danger">Overdue</Badge>
-                  : <Badge size="sm" tone={STATUS_TONE[statement.status]}>{statement.status === 'empty' ? 'Nothing due' : chargeStatusLabel[statement.status as Exclude<typeof statement.status, 'empty'>]}</Badge>}
+          {months.map(({ period, charges: drawn }) => {
+            const statement = current.get(period)!;
+            const shown = new Map(statement.charges.map((charge) => [charge.id, charge]));
+            if (statement.outstandingCents > 0) lastLeft.current.set(period, statement.outstandingCents);
+            return (
+              <div key={period} className="px-4 py-1">
+                <div className="flex min-h-12 items-center gap-2">
+                  <span className="min-w-0 flex-1 font-medium">{periodLabel(period)}{period === DEMO_PERIOD ? <span className="ml-2 text-xs font-normal text-muted">This month</span> : null}</span>
+                  <span className="text-base font-semibold tabular-nums">{formatCents(statement.totalCents)}</span>
+                  {isOverdue(statement, DEMO_PERIOD)
+                    ? <Badge size="sm" tone="danger">Overdue</Badge>
+                    : <Badge size="sm" tone={STATUS_TONE[statement.status]}>{statement.status === 'empty' ? 'Nothing due' : chargeStatusLabel[statement.status as Exclude<typeof statement.status, 'empty'>]}</Badge>}
+                </div>
+                <div className="pb-2">
+                  {drawn.map((charge, index) => (
+                    <Unfold key={charge.id} open={shown.has(charge.id)} instant={state.faded}>
+                      <ChargeLine charge={shown.get(charge.id) ?? charge} monthStatus={statement.status} changed={changed.has(charge.id)} divided={index > 0} />
+                    </Unfold>
+                  ))}
+                </div>
+                <Unfold open={statement.outstandingCents > 0} instant={state.faded}>
+                  <p className="flex items-baseline gap-1.5 pb-2"><span className="text-lg font-semibold tabular-nums">{formatCents(statement.outstandingCents || (lastLeft.current.get(period) ?? 0))}</span><span className="text-muted/70">left to pay</span></p>
+                </Unfold>
               </div>
-              <ul className="divide-y divide-line pb-2">
-                {statement.charges.map((charge) => <ChargeLine key={charge.id} charge={charge} monthStatus={statement.status} changed={changed.has(charge.id)} />)}
-              </ul>
-              {statement.outstandingCents > 0 ? (
-                <p className="flex items-baseline gap-1.5 pb-2"><span className="text-lg font-semibold tabular-nums">{formatCents(statement.outstandingCents)}</span><span className="text-muted/70">left to pay</span></p>
-              ) : null}
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -98,10 +114,10 @@ function BillingPicture({ state }: { state: BillingDemoState }) {
 }
 
 /** One charge, as the statement lists it: a programming charge shows its services and the bundle discount. */
-function ChargeLine({ charge, monthStatus, changed }: { charge: Charge; monthStatus: string; changed: boolean }) {
+function ChargeLine({ charge, monthStatus, changed, divided }: { charge: Charge; monthStatus: string; changed: boolean; divided: boolean }) {
   const left = charge.amountCents - charge.paidCents;
   return (
-    <li data-demo-target={chargeTarget(charge.id)} className={`rounded-[4px] py-2 ${changed ? 'help-demo-changed' : ''}`}>
+    <div data-demo-target={chargeTarget(charge.id)} className={`rounded-[4px] py-2 ${divided ? 'border-t border-line' : ''} ${changed ? 'help-demo-changed' : ''}`}>
       <div className="flex items-center gap-3">
         <span className="w-14 shrink-0 text-xs text-muted">{formatDate(charge.occurredOn).replace(/,? \d{4}$/, '')}</span>
         <span className="min-w-0 flex-1">
@@ -118,6 +134,16 @@ function ChargeLine({ charge, monthStatus, changed }: { charge: Charge; monthSta
           ))}
         </ul>
       ) : null}
-    </li>
+    </div>
+  );
+}
+
+/** Unfolds and folds its content, so the window's height changes smoothly. */
+function Unfold({ open, instant, children }: { open: boolean; instant?: boolean; children: ReactNode }) {
+  return (
+    // Instant while the window is faded out between loops, so it's already settled when it fades in.
+    <div data-open={open} className="animated-disclosure-content help-demo-unfold" style={instant ? { transition: 'none' } : undefined}>
+      <div className="min-h-0 overflow-hidden">{children}</div>
+    </div>
   );
 }
