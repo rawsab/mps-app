@@ -1,17 +1,19 @@
-import { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
+import { Link } from 'react-router';
 import { useViewer } from '@/app/auth';
 import { Avatar } from '@/components/Avatar';
-import { Alert, Badge, Card, EmptyState, PageHeader } from '@/components/ui';
-import { LoadingRegion, SkeletonText } from '@/components/Skeleton';
+import { ArrowUpRightIcon } from '@/components/icons';
+import { Alert, Badge, Button, EmptyState, PageHeader } from '@/components/ui';
+import { LoadingRegion, Skeleton, SkeletonText } from '@/components/Skeleton';
 import { countdown } from '@/domain/scheduling/calendar';
 import { upcomingByZonedDay } from '@/domain/scheduling/upcoming';
 import { useNextMeeting, useNow } from '@/features/home/api';
-import { JoinCall, MeetingProgramLinks, useCoachPhoto } from '@/features/home/UpcomingMeeting';
+import { JoinCall, useCoachPhoto } from '@/features/home/UpcomingMeeting';
+import { clientProgramPath, SERVICE_SHORT_LABELS } from '@/lib/services';
 import { schedulingError, type Meeting } from './api';
-import { ChangeButtons, PendingRequestNotice, useMeetingChange } from './MeetingRequestControls';
-import { MeetingCardSkeleton } from './MeetingSkeletons';
+import { ChangeButtons, useMeetingChange } from './MeetingRequestControls';
 import { topicLabel } from './MeetingTopic';
-import { sessionRange, zoneLabel } from './time';
+import { sessionMoment, sessionRange, zoneLabel } from './time';
 import { useMeetingToast } from './useMeetingToast';
 
 const longDay = new Intl.DateTimeFormat(undefined, { weekday: 'long', month: 'long', day: 'numeric', timeZone: 'UTC' });
@@ -39,7 +41,11 @@ export function ClientMeetingsPage() {
           {[2, 1].map((count, i) => (
             <div key={i}>
               <SkeletonText size="base" width="w-36" className="mb-3" />
-              <div className="grid gap-3 md:grid-cols-2">{Array.from({ length: count }, (_, j) => <MeetingCardSkeleton key={j} actions={2} />)}</div>
+              <div className="grid gap-5">
+                {Array.from({ length: count }, (_, j) => (
+                  <div key={j} className="border-l-2 border-line pl-4"><SkeletonText width="w-32" /><Skeleton className="mt-2 h-14" /></div>
+                ))}
+              </div>
             </div>
           ))}
         </LoadingRegion>
@@ -54,8 +60,8 @@ export function ClientMeetingsPage() {
                 {day.offset === 0 ? 'Today' : day.offset === 1 ? 'Tomorrow' : dayName(day.date)}
                 {day.offset === 0 || day.offset === 1 ? <span className="font-normal text-muted"> · {dayName(day.date)}</span> : null}
               </h2>
-              <ul className="grid gap-3 md:grid-cols-2">
-                {day.sessions.map((m) => <MeetingCard key={m.id} meeting={m} timeZone={viewer.timezone} now={now} onSent={(message) => toast.show(message)} />)}
+              <ul className="grid gap-5">
+                {day.sessions.map((m) => <MeetingItem key={m.id} meeting={m} timeZone={viewer.timezone} now={now} onSent={(message) => toast.show(message)} />)}
               </ul>
             </section>
           ))}
@@ -65,56 +71,84 @@ export function ClientMeetingsPage() {
   );
 }
 
+/** A labelled fact in a meeting's details box, like the facts on the coach's Activity page. */
+function Fact({ label, children, wide = false }: { label: string; children: ReactNode; wide?: boolean }) {
+  return (
+    <div className={`min-w-0 ${wide ? 'col-span-full' : ''}`}>
+      <dt className="text-[0.6875rem] text-muted">{label}</dt>
+      <dd className="mt-0.5 break-words text-[0.8125rem]">{children}</dd>
+    </div>
+  );
+}
+
 /**
- * One meeting as a card: when, then who and what, then any request waiting, with the actions in a
- * footer. A cancelled meeting keeps only its time, details and status, faded.
+ * One meeting, full width behind a gold rule: the time and actions on one line, then a details box
+ * with the coach, topic, programs and any request waiting. A cancelled meeting fades, with a grey
+ * rule and no actions.
  */
-function MeetingCard({ meeting, timeZone, now, onSent }: { meeting: Meeting; timeZone: string; now: number; onSent: (message: string) => void }) {
+function MeetingItem({ meeting, timeZone, now, onSent }: { meeting: Meeting; timeZone: string; now: number; onSent: (message: string) => void }) {
   const change = useMeetingChange(meeting, timeZone, onSent);
   const cancelled = meeting.status === 'cancelled' || meeting.status === 'late_cancelled';
+  const pending = meeting.request?.status === 'pending' ? meeting.request : null;
   const start = Date.parse(meeting.startsAt);
   const live = !cancelled && start <= now;
   const wait = countdown(now, start);
   const coach = meeting.coachName ?? 'Your coach';
   const photo = useCoachPhoto(meeting.coachAvatarPath);
+  const programs = meeting.programs.filter((p) => p.programId);
   return (
-    <li className="min-w-0">
-      <Card as="div" padding="none" fill={cancelled ? 'page' : 'surface'} className="flex h-full flex-col">
-        {/* When: the time leads, with its status or how long until it starts. */}
-        <div className="flex items-start justify-between gap-3 px-4 pt-4">
-          <div className="min-w-0">
-            <p className={`text-lg font-semibold tabular-nums ${cancelled ? 'text-muted line-through' : ''}`}>{sessionRange(meeting.startsAt, meeting.durationMinutes, timeZone)}</p>
-            <p className="text-xs text-muted">{meeting.durationMinutes} min · {meeting.scheduleId ? '↻ Repeating' : 'One-off'}</p>
-          </div>
-          <span className="flex shrink-0 flex-wrap justify-end gap-1 pt-1">
-            {meeting.status === 'cancelled' ? <Badge>Cancelled</Badge> : null}
-            {meeting.status === 'late_cancelled' ? <Badge tone="danger">Late cancellation</Badge> : null}
-            {live ? <Badge tone="gold">Now</Badge> : null}
-            {!cancelled && !live && wait ? <span className="text-xs text-muted">In {wait.split(', ')[0]}</span> : null}
-          </span>
-        </div>
-        {/* Who and what. */}
-        <div className={`flex items-center gap-3 px-4 pt-3 ${cancelled ? 'pb-4 opacity-70' : ''}`}>
-          <Avatar url={photo.data} name={coach} className="size-9 shrink-0" />
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium">{coach}</p>
-            <p className="truncate text-xs text-muted">{topicLabel(meeting.services)}</p>
-          </div>
-        </div>
+    <li className={`min-w-0 border-l-2 pl-4 ${cancelled ? 'border-line opacity-60' : 'border-gold'}`}>
+      <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1">
+        <p className="flex min-w-0 flex-wrap items-center gap-x-2 gap-y-1">
+          <span className={`font-semibold tabular-nums ${cancelled ? 'text-muted line-through' : ''}`}>{sessionRange(meeting.startsAt, meeting.durationMinutes, timeZone)}</span>
+          {live ? <Badge tone="gold">Now</Badge> : null}
+          {!cancelled && !live && wait ? <span className="text-sm text-muted">In {wait.split(', ')[0]}</span> : null}
+          {meeting.status === 'cancelled' ? <Badge>Cancelled</Badge> : null}
+          {meeting.status === 'late_cancelled' ? <Badge tone="danger">Late cancellation</Badge> : null}
+          {pending ? <Badge tone="gold">{pending.kind === 'cancel' ? 'Cancellation requested' : 'Reschedule requested'}</Badge> : null}
+        </p>
         {!cancelled ? (
-          <>
-            <MeetingProgramLinks meeting={meeting} className="px-4 pt-3" />
-            <PendingRequestNotice meeting={meeting} timeZone={timeZone} onWithdraw={change.withdraw} className="mx-4 mt-3" />
-            {/* Actions sit at the bottom, so cards in a row line up. */}
-            <div className="mt-auto pt-4">
-              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-4 py-2.5">
-                <JoinCall meeting={meeting} now={now} />
-                <ChangeButtons meeting={meeting} now={now} onChange={change.change} className="-mr-3 ml-auto" />
-              </div>
-            </div>
-          </>
+          <div className="-mr-3 ml-auto flex flex-wrap items-center justify-end gap-1">
+            {meeting.meetingUrl && meeting.status === 'scheduled' ? <JoinCall meeting={meeting} now={now} /> : null}
+            <ChangeButtons meeting={meeting} now={now} onChange={change.change} />
+          </div>
         ) : null}
-      </Card>
+      </div>
+      <dl className="mt-2 grid grid-cols-2 gap-x-6 gap-y-2.5 rounded-card border border-line bg-ink px-3 py-2.5 sm:grid-cols-[repeat(auto-fill,minmax(10rem,1fr))]">
+        <Fact label="Coach">
+          <span className="flex items-center gap-1.5"><Avatar url={photo.data} name={coach} className="size-5 shrink-0" /><span className="min-w-0 truncate">{coach}</span></span>
+        </Fact>
+        {meeting.services.length ? <Fact label="Topic">{topicLabel(meeting.services)}</Fact> : null}
+        <Fact label="Length">{meeting.durationMinutes} min</Fact>
+        <Fact label="Repeats">{meeting.scheduleId ? '↻ Repeating' : 'One-off'}</Fact>
+        {!cancelled && !meeting.meetingUrl ? <Fact label="Call link">Your coach will share it.</Fact> : null}
+        {programs.length ? (
+          <Fact label={programs.length === 1 ? 'Program' : 'Programs'} wide={programs.length > 1}>
+            <span className="flex flex-wrap gap-x-4 gap-y-1">
+              {programs.map((p) => (
+                <Link key={p.service} to={clientProgramPath(p.service, p.programId)} className="inline-flex min-w-0 items-center gap-1 text-gold-fg">
+                  {programs.length > 1 ? <span className="text-muted">{SERVICE_SHORT_LABELS[p.service]}</span> : null}
+                  <span className="link min-w-0 truncate">{p.title?.trim() || 'Untitled program'}</span><ArrowUpRightIcon />
+                </Link>
+              ))}
+            </span>
+          </Fact>
+        ) : null}
+        {pending && !cancelled ? (
+          <Fact label="Your request" wide>
+            <span className="flex flex-wrap items-start justify-between gap-x-3">
+              <span className="min-w-0">
+                <span className="block">
+                  {pending.kind === 'cancel' ? 'Cancel this meeting' : pending.preferredStartsAt ? `Move to ${sessionMoment(pending.preferredStartsAt, timeZone)}` : 'Find another time'}
+                  <span className="text-muted"> · waiting for {meeting.coachName ?? 'your coach'}</span>
+                </span>
+                {pending.message ? <span className="mt-0.5 line-clamp-3 block whitespace-pre-wrap text-muted">“{pending.message}”</span> : null}
+              </span>
+              <Button variant="ghost-gold" className="-my-2 -mr-2" onClick={change.withdraw}>Withdraw request</Button>
+            </span>
+          </Fact>
+        ) : null}
+      </dl>
       {change.dialogs}
     </li>
   );
