@@ -45,11 +45,15 @@ The test checks that the manifest and files match and that section ids are uniqu
 - [ ] Programs in Help lists Mesocycle, Personal training and Nutrition. Both training pages include the editor sections (Drafts and publishing through Current and archived programs) between their own sections, and their topic lists and search results show those headings.
 - [ ] Demos (Mesocycle or Personal training page): each plays when scrolled into view and stops when scrolled away. The pointer moves to each cell, the caption under it follows along, and Pause and Play work. With reduced motion turned on in your system settings, each opens on its last frame, paused. On a phone the picture shrinks to fit, and the pointer still lands on the right cells.
 - [ ] Nutrition demos: the client's log card types three values and saves, and Tuesday's row fills in with the gold flash. The "Calories for Nov 2" note appears under Tuesday's calorie cell. Average Weight appears on Wednesday. In the second demo, the Missing cells, the corrected cell's tint, and Correction history opening below the table all read clearly.
+- [ ] New pages: Roles and permissions and What clients see sit under Start here, and Availability and open times between Meetings and Billing. Each has a thumbnail (an admin row menu, the client's Home, a week of open times).
+- [ ] Meetings demos: the attendance rows leave one at a time, the notice shows with Undo, and the undone meeting fades back in. In the pattern demo, Tuesday then Thursday light up, the day rows appear, and Next meetings fills in with the new dates flashing gold. It ends on the Meetings card.
+- [ ] Open times demo: each lane fades in with its caption, the Open lane shrinks to match, the gold ticks mark the start times, and the client's picker appears last. The time off and Too soon stripes read clearly in light and dark mode.
+- [ ] Billing demo: the dialog dims the panel while 750 is typed. October turns Paid, then November, the balance changes to "$50 in credit", and a new session charge shows "$50 paid · $50 left".
 - [ ] Read each page once for accuracy and tone.
 
 ## Phase 2 plan: detail, step-by-step guides and animated demos (owner choices, 2026-11-21)
 
-Status: **steps 1 and 2 built 2026-11-21** (the demo player, demos 1 to 6, the fuller editor text and two nutrition demos); the rest planned. The first pages explain what each area is for but rarely how to do things.
+Status: **steps 1 to 4 built 2026-11-21** (the demo player, demos 1 to 10, the fuller editor text, the new Roles and permissions, What clients see, and Availability and open times pages, and the rewritten Meetings and Billing pages); step 5 planned. The first pages explain what each area is for but rarely how to do things.
 
 **Step 1 as built:**
 - `src/domain/help/demo.ts`: the frame and script types, `demoProblems` (captions, frame lengths, a 30 s loop limit, no dashes) and `typing`.
@@ -74,6 +78,14 @@ Status: **steps 1 and 2 built 2026-11-21** (the demo player, demos 1 to 6, the f
   - Each frame is drawn through `nutritionWeeks`, `nutritionGridText`, `nutritionGridMissing` and `nutritionGridCoachEdited`. Calculated cells use the spreadsheet's rounding (`nutritionNumber`). The correction is planned with `planNutritionCells`.
 - **Correction to the plan:** a log made on Tuesday goes on **Tuesday's** row, with Monday's calories in the "Day Before" columns. It does not go on Monday's row. Correction history lists calorie changes by the day the calories were eaten (`entry_date = activity_on`). The Nutrition page now says both.
 - `tests/domain/helpDemos.test.ts` checks every script, that the pointer only targets cells the frame draws, and the real results (`10 / 8 / 6`, the renumbering, and Undo giving back the starting table).
+
+**Steps 3 and 4 as built:**
+- New pages `roles-and-permissions`, `what-clients-see` (Start here) and `availability` (Meetings and billing), each with a thumbnail. Meetings and Billing are rewritten with step-by-step guides.
+- `src/domain/help/meetingDemos.ts` and `MeetingDemo.tsx`: attendance with Undo (demo 7), using `groupAttendanceByDay`, `nextFocus` and `attendanceMessage`; and a repeating pattern (demo 8), whose Next meetings list is `patternPreview`, a weekly copy of `preview_meeting_schedule`.
+- `src/domain/help/billingDemos.ts` and `BillingDemo.tsx`: a $750 payment over $700 owed (demo 9). `applyCredit` copies `private.apply_credit`: open charges by month, then date, and the rest kept as credit for the next charge.
+- `src/domain/help/availabilityDemos.ts` and `AvailabilityDemo.tsx`: one day's open times (demo 10). `dayWindows` and `dayOpenTimes` copy `private.availability_windows` and `private.open_slots`: hours plus extra hours, minus time off, then every quarter hour where the meeting fits, from the notice on, clear of meetings and held times by the gap. Time off stripes reuse `.calendar-unavailable`.
+- These SQL copies exist only for the demos. If the database rule changes, change the copy too; the tests pin the results.
+- Accuracy fixes found on the way: a meeting's attendance is a Status dropdown (Attended, No-show, Not recorded), and a pattern ends from **End** on the pattern.
 
 **Pages (13).** Each page gets numbered step-by-step guides for its common jobs, with short explanations around them.
 

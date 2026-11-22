@@ -1,6 +1,9 @@
 import type { ReactNode } from 'react';
 import { Avatar } from '@/components/Avatar';
-import { BillingIcon, CalendarIcon, ClientsIcon, ReviewsIcon, SearchIcon, TemplatesIcon } from '@/components/icons';
+import {
+  ArrowUpRightIcon, BillingIcon, CalendarIcon, ClientsIcon, HistoryIcon, HomeIcon, MesocycleIcon, MoveIcon, NutritionIcon, ProgressIcon, ReviewsIcon,
+  SearchIcon, StopIcon, TemplatesIcon, TrainingIcon,
+} from '@/components/icons';
 import { Badge, Button, Card, Kbd } from '@/components/ui';
 import { statusBadge } from '@/features/clients/ClientsTable';
 
@@ -191,8 +194,90 @@ function Billing() {
   );
 }
 
+function Roles() {
+  const rows = [['Avery Chen', 'Jordan Avery'], ['Sam Okafor', 'Priya Nair'], ['Riley Moreau', 'Jordan Avery'], ['Jo Lindqvist', 'Priya Nair']] as const;
+  const menu = [
+    { label: 'View client', icon: <ArrowUpRightIcon /> },
+    { label: 'See recent updates', icon: <HistoryIcon /> },
+    { label: 'Transfer client', icon: <MoveIcon />, separator: true },
+    { label: 'Disable', icon: <StopIcon />, danger: true },
+  ];
+  return (
+    <>
+      <Title>Clients</Title>
+      <Card as="div" padding="sm" className="relative">
+        {rows.map(([name, coach], i) => (
+          <Row key={name}><Avatar name={name} className="size-8" /><span className={`w-32 font-medium ${i === 1 ? 'text-gold-fg' : ''}`}>{name}</span><span className="flex-1 text-muted">{coach}</span></Row>
+        ))}
+        {/* The admin's row menu, open on the second row. */}
+        <span className="absolute left-40 top-16 w-52 rounded-card border border-line bg-surface p-1 text-sm shadow-popover">
+          {menu.map((item) => (
+            <span key={item.label} className={`flex min-h-9 items-center gap-2.5 rounded-[5px] px-2.5 ${item.separator ? 'mt-1 border-t border-line pt-1' : ''} ${item.danger ? 'text-danger' : ''} ${item.label === 'Transfer client' ? 'bg-surface-raised' : ''}`}>
+              <span className="text-muted">{item.icon}</span>{item.label}
+            </span>
+          ))}
+        </span>
+      </Card>
+    </>
+  );
+}
+
+function ClientHome() {
+  const tabs = [
+    { label: 'Home', icon: <HomeIcon />, active: true },
+    { label: 'Mesocycle', icon: <MesocycleIcon /> },
+    { label: 'PT', icon: <TrainingIcon /> },
+    { label: 'Nutrition', icon: <NutritionIcon /> },
+    { label: 'Progress', icon: <ProgressIcon /> },
+  ];
+  return (
+    <>
+      <span className="mb-5 flex gap-1 border-b border-line pb-2">
+        {tabs.map((t) => (
+          <span key={t.label} className={`flex items-center gap-1.5 rounded-card px-2.5 py-1.5 text-xs ${t.active ? 'bg-surface-raised font-medium text-text' : 'text-muted'}`}>
+            <span className={t.active ? 'text-gold-fg' : ''}>{t.icon}</span>{t.label}
+          </span>
+        ))}
+      </span>
+      <Title subtitle="Saturday, November 21">Hi, Avery</Title>
+      <span className="flex items-center justify-between border-b border-line pb-4">
+        <span><span className="block text-sm text-muted">You owe</span><span className="block text-3xl font-semibold tabular-nums">$140.00</span></span>
+        <Button>Pay</Button>
+      </span>
+      <span className="mt-4 block text-sm font-medium">Next meeting</span>
+      <span className="mt-1 block text-sm text-muted">Tue, Nov 24 · 7:00 to 8:00 AM</span>
+      <span className="mt-3 flex gap-2"><Button variant="ghost">Reschedule</Button><Button variant="ghost-danger">Cancel meeting</Button></span>
+    </>
+  );
+}
+
+function Availability() {
+  const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'];
+  // Hours 9 to 5 as eight rows: working hours, a booked meeting, and open start times.
+  const booked: Record<string, number[]> = { Mon: [1], Tue: [3, 4], Wed: [0], Thu: [], Fri: [5] };
+  const off: Record<string, number[]> = { Thu: [0, 1, 2, 3, 4, 5, 6, 7] };
+  return (
+    <>
+      <Title subtitle="Mon to Fri 9:00 AM to 5:00 PM">Availability</Title>
+      <span className="grid grid-cols-5 gap-2">
+        {days.map((d) => (
+          <span key={d} className="flex flex-col gap-1">
+            <span className="text-center text-xs text-muted">{d}</span>
+            {[0, 1, 2, 3, 4, 5, 6, 7].map((h) => {
+              const kind = off[d]?.includes(h) ? 'off' : booked[d]?.includes(h) ? 'booked' : 'open';
+              return <span key={h} className={`h-6 rounded-[4px] border text-[10px] leading-6 ${kind === 'booked' ? 'border-gold bg-gold/25' : kind === 'off' ? 'calendar-unavailable border-line' : 'border-gold/40 bg-gold/5'}`} />;
+            })}
+          </span>
+        ))}
+      </span>
+    </>
+  );
+}
+
 const THUMBNAILS: Record<string, { path: string; page: () => ReactNode }> = {
   'getting-started': { path: '/coach/clients', page: Sidebar },
+  'roles-and-permissions': { path: '/coach/clients', page: Roles },
+  'what-clients-see': { path: '/home', page: ClientHome },
   'profile-settings': { path: '/coach/profile', page: Profile },
   clients: { path: '/coach/clients', page: Clients },
   activity: { path: '/coach/reviews', page: Activity },
@@ -200,6 +285,7 @@ const THUMBNAILS: Record<string, { path: string; page: () => ReactNode }> = {
   'personal-training': { path: '/personal-training', page: PersonalTraining },
   nutrition: { path: '/coach/clients/jo/nutrition', page: Nutrition },
   meetings: { path: '/coach/meetings', page: Meetings },
+  availability: { path: '/coach/profile', page: Availability },
   billing: { path: '/coach/billing', page: Billing },
 };
 

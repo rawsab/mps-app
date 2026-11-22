@@ -697,3 +697,19 @@ Decision 0055, "Owner follow-ups".
   - Missing entries, a coach correction (planned with `planNutritionCells`), and Correction history.
 - The page now explains that a log fills one row: that morning's weight and the previous day's calories. It also explains the calculated columns. This corrects the earlier plan's wording.
 - **Verification.** `pnpm verify` passes (433 tests). No browser checks.
+
+## Help phase 2, steps 3 and 4: new pages and meeting, availability and billing demos (2026-11-21)
+
+- Decision 0057. Three new pages, each with a thumbnail:
+  - **Roles and permissions** (Start here): coach and administrator, which clients each sees, the primary coach, transferring a client, and one table of who can do what. Checked against the admin checks in the database and the app.
+  - **What clients see** (Start here): signing in, the tabs for each service, Home, programs (Workout and Spreadsheet), logging, meeting requests, paying, and what clients never see.
+  - **Availability and open times** (Meetings and billing): working hours, booking rules, time off and extra hours, how open times are worked out, held times, and short notice.
+- **Meetings** rewritten with step-by-step guides: one meeting, repeating meetings, changing a pattern from a date or for one meeting, pattern notes, ending and paused patterns, the Meetings card and page, requests, and attendance. Two corrections to the old text: a meeting's attendance is a **Status** dropdown, not two buttons, and a pattern is ended with **End** (the dialog's button is Stop repeating).
+- **Billing** rewritten: an itemized monthly charge with the bundle discount and mid-month services, step-by-step guides to set a missing price, record a payment, record or dismiss a client's notice, Mark unpaid, void and edit, and how to read a statement.
+- Four demos:
+  - Record attendance with Undo (`src/domain/help/meetingDemos.ts`), grouped and focused with the page's own `groupAttendanceByDay` and `nextFocus`, and its notice text from `attendanceMessage`.
+  - A repeating pattern filling Next meetings, with the dialog's day-copy rule and the pattern's `describePattern` summary.
+  - A payment paying the oldest charges first and leaving credit (`billingDemos.ts`), drawn through `statements`, `isOverdue` and `balanceText`.
+  - How open times are worked out (`availabilityDemos.ts`), one lane at a time.
+- Allocation and open times are worked out only in SQL. The billing and availability demo files each hold a small copy of that rule (`applyCredit`, `dayWindows`, `dayOpenTimes`), with a comment saying to change both together. Tests check the demos against these copies.
+- **Verification.** `pnpm verify` passes (444 tests). No browser checks; manual checks are in decision 0057.

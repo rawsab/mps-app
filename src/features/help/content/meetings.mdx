@@ -1,79 +1,138 @@
 import { Callout, Example } from '../blocks';
+import { AttendanceDemo, PatternDemo } from '../demos/MeetingDemo';
 import { ToggleButton } from '@/components/controls';
-import { Badge, Button } from '@/components/ui';
+import { Badge } from '@/components/ui';
 
-Meetings covers personal training sessions and check-ins. You schedule them from a client's page and manage them on the Meetings page.
+Meetings covers personal training sessions and check-ins. You schedule them from a client's page and follow them on the Meetings page.
 
 ## Before you start
 
 Set these in Profile settings first:
 
-- Your **time zone**.
-- Your **meeting link**, if you meet by video.
-- Your **availability**: the hours clients can pick when they ask to move a session.
-- Your **late cancellation window**.
+- Your **time zone**. Meetings are scheduled in the primary coach's time zone. Clients see them in their own.
+- Your **Meeting link**, if you meet by video. Clients see it on every meeting.
+- Your **Late cancellation window**, under Personal training sessions.
+- Your **Availability**: the times clients can pick when they ask to reschedule. See Availability and open times in Help.
 
-## Scheduling a meeting
+A client needs an active service and a primary coach before you can schedule for them.
 
-Open the client's page and find **Meetings**.
+## Adding one meeting
 
-- **Add meeting** schedules a single meeting.
-- **Repeat meetings** sets up a repeating pattern: choose the days, a start time for each, the start date and an optional end date.
+1. Open the client's page and find **Meetings**.
+2. Select **Add meeting**.
+3. Choose the **Date**, **Start** and length.
+4. Under **About**, choose what the meeting is for. You can pick more than one service.
+5. Choose a program for each service, or leave it on **Current program**.
+6. Add private notes if you like, then select **Add meeting**.
 
-<Example caption="Choose the days a pattern repeats on." interactive>
+Only meetings about **Personal training** are billed. A personal training meeting can be **Solo** or **Partner**. Partner sessions use the partner price and are charged to this client.
+
+## Repeating meetings
+
+Most clients train at the same times each week. A repeating pattern creates those meetings for you.
+
+1. On the client's Meetings card, select **Repeat meetings**.
+2. Choose what the meetings are about, as for one meeting.
+3. Choose how often it **Repeats**: every week, or every 2, 3 or 4 weeks.
+4. Choose **Starts on**, and **Ends on** if the pattern should stop on a date.
+5. Under **Days**, select each day. Set its **Start** and **Minutes**. A new day copies the last day's time and length.
+6. Check **Next meetings**, which lists the first dates the pattern makes.
+7. Select **Set up meetings**.
+
+<PatternDemo />
+
+For a pattern of 2 to 4 weeks, each week has its own days. Choose which week of the cycle the start date falls in with **The week of … is**.
+
+<Example caption="The days a pattern repeats on." interactive>
   <div role="group" aria-label="Days example" className="flex gap-1.5">
-    <ToggleButton pressed className="px-3">Mon</ToggleButton>
-    <ToggleButton pressed={false} className="px-3">Tue</ToggleButton>
-    <ToggleButton pressed className="px-3">Wed</ToggleButton>
-    <ToggleButton pressed={false} className="px-3">Thu</ToggleButton>
-    <ToggleButton pressed className="px-3">Fri</ToggleButton>
+    <ToggleButton pressed className="min-w-12 px-2">Mon</ToggleButton>
+    <ToggleButton pressed={false} className="min-w-12 px-2">Tue</ToggleButton>
+    <ToggleButton pressed className="min-w-12 px-2">Wed</ToggleButton>
+    <ToggleButton pressed={false} className="min-w-12 px-2">Thu</ToggleButton>
+    <ToggleButton pressed className="min-w-12 px-2">Fri</ToggleButton>
   </div>
 </Example>
 
-Each meeting says what it is about, such as personal training or a nutrition check-in. A personal training session can be **Solo** or **Partner**. Partner sessions use the partner price and are charged to this client.
+### Changing a pattern
 
-To end a pattern, choose **Stop repeating** and pick the first date with no meetings. Meetings you changed, or that have notes, resources, attendance or requests, stay as they are.
+You can change every meeting from a date on, or one meeting only.
+
+- **From a date on**: select the pencil on the pattern, or open a meeting and choose **change the repeating pattern**. Set **Apply from** to the first date that changes. Earlier meetings stay as they are.
+- **One meeting only**: open the meeting and use **Change this meeting only**. It is then marked **Changed from the pattern**. Later changes to the pattern keep it as it is.
+
+### Pattern notes
+
+Select **Notes** on the pattern to add notes that show on every meeting in it. They are private to staff. Each meeting can also have its own notes.
+
+### Ending a pattern
+
+1. Select **End** on the pattern.
+2. Choose **No meetings from**: the first date with no meetings.
+3. Select **Stop repeating**.
+
+Meetings before that date stay. Meetings you changed, or that have notes, resources, attendance or client requests, stay as they are.
+
+### Paused patterns
+
+A pattern shows **Paused** while none of its services are active. It makes no new meetings until a service is resumed. Resuming doesn't fill in the meetings it missed. If every service is paused or ended, the Meetings card offers to cancel the remaining meetings.
+
+## The client's Meetings card
+
+- **Next 31 days** lists upcoming meetings. Each says what it is about and whether it is Repeating, Changed or One-off.
+- **Past** lists the latest five. **View all past meetings** opens the full history.
+- **Hide cancelled** hides cancelled meetings from the list.
 
 ## The Meetings page
 
-- **Calendar**: your meetings by month, week or day. Striped times are outside your availability.
-- **Upcoming**: your next meetings in a list.
-- **To-dos**: requests from clients to move or cancel a session.
+The Meetings page shows meetings for all your clients.
+
+- **To-dos**: requests from clients to move or cancel a meeting.
 - **Record attendance**: past meetings that still need attendance.
-- **Time off and extra hours**: changes to your usual week.
+- **Next meeting** and **Upcoming**: what's coming next.
+- **Time off & extra hours**: changes to your usual week. See Availability and open times in Help.
+- **Calendar**: your meetings by **Month**, **Week** or **Day**. **Today** and the arrows move through dates. Select a day in month view to open it. Time outside your availability is striped. **Hide cancelled** works here too.
 
 ## Inside a meeting
 
-Select any meeting to open it. From there you can:
+Select any meeting to open it. Its badges show its status, and **Not billed** if it isn't personal training. From there you can:
 
-- Move it to another date or time.
-- Cancel it, or reinstate a cancelled one.
-- Add **private notes**, which only staff see.
-- Add **shared notes**, which the client sees with the meeting.
-- Add **resources**: images, videos and PDFs up to 50 MB, or links for longer videos. Resources are always shared with the client.
+- Change its date, time, topic or program under **Change this meeting only**, then select **Save meeting**.
+- Select **Cancel meeting**, with an optional reason the client sees. A cancellation by staff is never late.
+- **Reinstate meeting** if it was cancelled and hasn't started.
+- Write **Shared with client** notes, which the client sees with the meeting.
+- Write private notes, under **Private to staff**.
+- Add **Resources**: images, videos and PDFs up to 50 MB with **Upload file**, or **Add link** for longer videos. Resources are always shared with the client.
+
+If you leave a service on **Current program**, the meeting follows whatever program is current for it.
 
 ## Client requests
 
-Clients can ask to reschedule or cancel. Requests appear in To-dos and in Activity.
+Clients can ask to reschedule or cancel. Requests appear in To-dos and in Activity, and the meeting shows **Reschedule requested** or **Cancellation requested**.
 
-- For a reschedule request, check the new time and select **Move meeting**.
-- For a cancellation request, select **Accept cancellation**. If it came in after your late cancellation window, it is recorded as a late cancellation.
-- Select **Decline** to keep the meeting as it was.
+1. Open the meeting. The request is at the top, with the client's message and any time they picked.
+2. For a reschedule, check the new date and time, then select **Move meeting**.
+3. For a cancellation, select **Accept cancellation**. If it came in inside your late cancellation window, it is recorded as a late cancellation.
+4. Or select **Decline** to keep the meeting as it was.
 
-You can add a reply for the client with either answer.
+You can add a **Reply** with either answer. The client sees it.
 
-Once a meeting has started, its request can only be declined.
+Once a meeting has started, its request can only be declined. Answer a request before recording attendance.
 
 ## Recording attendance
 
-After a meeting starts, record whether the client came.
+Record attendance after each session. It counts toward the client's progress, and it charges personal training sessions.
 
-<Example caption="Attendance choices on a past meeting.">
-  <Button variant="secondary">No-Show</Button>
-  <Button>Mark Completed</Button>
-</Example>
+Under **Record attendance** on the Meetings page:
 
-Under **Record attendance**, **Mark all completed** records every listed meeting as attended. Mark any no-shows first. You can correct attendance later from the meeting.
+1. Select the tick if the client came, or the cross for a no-show.
+2. The meeting leaves the list, and a notice confirms it.
+3. If you chose the wrong one, select **Undo** in the notice. The meeting comes back with nothing recorded.
+
+<AttendanceDemo />
+
+**Mark all completed** records every listed meeting as attended. Mark any no-shows first. It can't be undone from the notice, but each meeting can still be corrected.
+
+To correct attendance later, open the meeting and change its **Status** to Attended, No-show or Not recorded. You can give a reason. It is kept with the change, and the client doesn't see it.
 
 <Example caption="Meeting labels.">
   <Badge tone="success">Attended</Badge>
@@ -81,15 +140,9 @@ Under **Record attendance**, **Mark all completed** records every listed meeting
   <Badge tone="danger">Late cancellation</Badge>
   <Badge>Cancelled</Badge>
   <Badge tone="gold">Reschedule requested</Badge>
+  <Badge tone="gold">Record attendance</Badge>
 </Example>
 
 <Callout tone="tip" title="Attendance and billing">
-A personal training session is charged once you record its attendance. See Billing in Help.
+A personal training session is charged once you record its attendance. A no-show is charged too. See Billing in Help.
 </Callout>
-
-## Time off and extra hours
-
-- **Time off**: clients can't pick times during it. Meetings already booked stay as they are, so move or cancel them yourself.
-- **Extra hours**: clients can pick times during these hours as well as your usual week.
-
-Notes on time off are visible to staff only. Clients just see fewer open times.

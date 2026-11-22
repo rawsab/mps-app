@@ -1,0 +1,90 @@
+import { Callout } from '../blocks';
+import { AvailabilityDemo } from '../demos/AvailabilityDemo';
+
+Open times are the times a client can pick when they ask to reschedule a meeting. The app works them out from your working hours, your time off and extra hours, your meetings and your booking rules.
+
+Open times only limit what clients can pick. You can still add or move a meeting to any time yourself.
+
+## Where to set it
+
+- **Working hours** and **Booking rules**: the Availability card in Profile settings.
+- **Time off** and **Extra hours**: the Time off & extra hours section on the Meetings page.
+
+All of these are in your time zone. Clients see the open times in their own.
+
+## Setting your working hours
+
+1. Open Profile settings and find **Availability**.
+2. Tick each day you work. A new day starts at 9:00 AM to 5:00 PM.
+3. Change the start and end times.
+4. To add a second range on a day, such as after lunch, select the + button at the end of its line. The trash button removes a range.
+5. Select **Save availability**.
+
+Ranges on the same day that overlap or touch are joined into one. A meeting can then run across them, such as 9 AM to 12 PM and 12 PM to 5 PM.
+
+The line above the days sums up your week. If you have no working hours, clients can't pick new times. They can still send you a message saying what suits them.
+
+If you change your time zone, your hours stay at the same clock times in the new zone.
+
+## Booking rules
+
+| Rule | What it does | Default | Allowed |
+| --- | --- | --- | --- |
+| **Notice (hours)** | The soonest a client can pick, counted from now. | 12 | 0 to 168 |
+| **Look ahead (days)** | How far ahead clients can pick. | 28 | 1 to 90 |
+| **Gap (minutes)** | Time kept free before and after each meeting. | 0 | 0 to 120 |
+
+Save them with **Save availability**, along with your hours.
+
+## Time off and extra hours
+
+On the Meetings page, find **Time off & extra hours**.
+
+1. Select **Add time off** or **Add extra hours**.
+2. For a whole day or several days, tick **All day** and choose the **First day** and **Last day**.
+3. For part of a day, leave All day unticked and choose the **Date**, **From** and **To**.
+4. Add a **Note** if you like. Only staff see it.
+5. Select **Save**.
+
+- **Time off** takes time away. Clients can't pick times during it.
+- **Extra hours** add time outside your usual week, such as a Saturday morning.
+
+To change or remove one, open its ⋯ menu and choose **Edit** or **Remove**.
+
+<Callout tone="warning" title="Time off doesn't cancel meetings">
+Meetings already booked during time off stay scheduled. When you save, the app lists them so you can move or cancel each one.
+</Callout>
+
+## How open times are worked out
+
+For each day, the app takes:
+
+1. Your working hours for that weekday.
+2. Plus any extra hours.
+3. Minus any time off. Time off wins where it overlaps extra hours.
+4. Minus your scheduled meetings, with the gap kept free on each side.
+5. Minus times other clients have asked for and are waiting on, with the gap on each side.
+6. Minus anything sooner than your notice, or further ahead than your look ahead.
+
+A meeting can then start every 15 minutes, on the quarter hour, wherever its whole length fits. A longer meeting has fewer start times.
+
+<AvailabilityDemo name="open-times" />
+
+The meeting being moved doesn't block its own time. A client can pick a time that overlaps their current slot.
+
+## Held times
+
+When a client picks a time, it's held until you answer the request, they withdraw it, or the meeting starts. Other clients can't pick a held time.
+
+If two clients choose the same time at once, the second is told that the time is no longer available, and the open times refresh.
+
+## On the calendar
+
+In week and day views on the Meetings page, time outside your working hours and extra hours is striped. In month view, days with time off say Time off.
+
+## Short notice
+
+Your **Late cancellation window** is in Profile settings, under Personal training sessions. It doesn't change open times. A personal training client who asks to cancel or reschedule inside it sees a Short notice warning first:
+
+- An accepted cancellation is recorded as a late cancellation.
+- A reschedule request shows as Short notice to you. If you accept it, nothing is recorded as late.

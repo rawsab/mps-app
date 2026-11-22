@@ -5,6 +5,12 @@ import { cellText, gridRows } from '@/domain/programs/grid';
 import { NUTRITION_DEMOS, NUTRITION_DEMO_PROGRAM, type NutritionDemoState } from '@/domain/help/nutritionDemos';
 import { nutritionGridCoachEdited, nutritionGridMissing, nutritionGridText } from '@/domain/nutritionGrid';
 import { nutritionWeeks } from '@/domain/nutritionProgram';
+import { AVAILABILITY_DEMOS, OPEN_TIMES_DAY, dayOpenTimes, dayWindows } from '@/domain/help/availabilityDemos';
+import { BILLING_DEMOS, BILLING_DEMO_CHARGES, NEXT_SESSION, applyCredit, demoSummary } from '@/domain/help/billingDemos';
+import { ATTENDANCE_ROWS, DEMO_NOW, DEMO_TIME_ZONE, MEETING_DEMOS, UNDO_NOTICE_TARGET, patternPreview } from '@/domain/help/meetingDemos';
+import { statements } from '@/domain/billing/billing';
+import { groupAttendanceByDay } from '@/domain/scheduling/attendance';
+import { zonedDateTime } from '@/domain/scheduling/pattern';
 
 const table = (draft: Parameters<typeof gridRows>[0]) => gridRows(draft).map((row) => DEMO_COLUMNS.map((c) => cellText(row, c)));
 
@@ -105,5 +111,97 @@ describe('nutrition demo scripts', () => {
     expect([2, 4].map((c) => text(last, '2026-11-05', c))).toEqual(['2810', '110']);
     expect(nutritionGridCoachEdited(week(last), { exerciseId: '2026-11-05', column: 2 })).toBe(true);
     expect(last.history?.[0]?.activityDate).toBe('2026-11-04');
+  });
+});
+
+describe('meeting demo scripts', () => {
+  it('are all valid', () => {
+    expect(demoProblems(MEETING_DEMOS['attendance-undo'])).toEqual([]);
+    expect(demoProblems(MEETING_DEMOS['repeating-pattern'])).toEqual([]);
+  });
+
+  it('only point at meetings still listed, or at Undo while a notice shows', () => {
+    for (const frame of MEETING_DEMOS['attendance-undo'].frames) {
+      const target = frame.pointer?.target;
+      if (target?.startsWith('attendance:')) expect(frame.state.rows.map((r) => r.id), target).toContain(target.split(':')[1]);
+      if (target === UNDO_NOTICE_TARGET) expect(frame.state.notice).toBeTruthy();
+    }
+  });
+
+  it('records two meetings, with the mistaken no-show undone', () => {
+    const frames = MEETING_DEMOS['attendance-undo'].frames;
+    expect(frames.find((f) => f.state.restored)?.state.rows.map((r) => r.id)).toEqual(['avery', 'riley', 'jo']);
+    expect(frames.at(-1)!.state.rows.map((r) => r.id)).toEqual(['riley', 'jo']);
+    expect(frames.at(-1)!.state.notice).toEqual({ id: 'avery', status: 'completed' });
+    // Grouped by day as the Meetings page groups them.
+    expect(groupAttendanceByDay(ATTENDANCE_ROWS, DEMO_TIME_ZONE, DEMO_NOW).map((d) => d.relative)).toEqual(['today', 'yesterday', null]);
+  });
+
+  it('fills the next meetings from the chosen days, in date order', () => {
+    const last = MEETING_DEMOS['repeating-pattern'].frames.at(-1)!.state;
+    const local = last.preview.map((item) => zonedDateTime(item.startsAt, DEMO_TIME_ZONE));
+    expect(local.map((d) => `${d.date} ${d.time}`)).toEqual([
+      '2026-12-01 07:00', '2026-12-03 18:00', '2026-12-08 07:00', '2026-12-10 18:00', '2026-12-15 07:00', '2026-12-17 18:00',
+    ]);
+    expect(patternPreview([], '2026-11-30')).toEqual([]);
+  });
+});
+
+describe('open times demo', () => {
+  const day = OPEN_TIMES_DAY;
+  const clock = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
+
+  it('is valid, and points only at drawn lanes', () => {
+    const script = AVAILABILITY_DEMOS['open-times'];
+    expect(demoProblems(script)).toEqual([]);
+    for (const frame of script.frames) {
+      const lane = frame.pointer?.target.startsWith('lane:') ? frame.pointer.target.slice(5) : null;
+      if (lane && lane !== 'open') expect(frame.state.lanes as string[]).toContain(lane);
+    }
+  });
+
+  it('works out open times as the database does', () => {
+    expect(dayWindows(day).map((w) => `${clock(w.from)}-${clock(w.to)}`)).toEqual(['9:00-12:00', '13:00-15:00', '16:00-18:00']);
+    expect(dayOpenTimes(day).map(clock)).toEqual(['9:30', '9:45', '13:00', '13:15', '13:30', '13:45', '14:00', '16:00', '16:15', '16:30', '16:45', '17:00']);
+  });
+
+  it('marks start times that all fit in the Open lane the picture draws', () => {
+    const last = AVAILABILITY_DEMOS['open-times'].frames.at(-1)!.state;
+    expect(last.starts).toEqual(dayOpenTimes(day));
+    for (const s of last.starts!) expect(last.open.some((w) => w.from <= s && s + day.length <= w.to), clock(s)).toBe(true);
+  });
+
+  it('lets time off win over extra hours, and keeps the gap around meetings', () => {
+    expect(dayWindows({ hours: [], extra: [{ from: 600, to: 720 }], timeOff: [{ from: 660, to: 690 }] })).toEqual([{ from: 600, to: 660 }, { from: 690, to: 720 }]);
+    const tight = { ...day, meetings: [{ from: 600, to: 660, label: 'x' }], gap: 30, earliest: 0, timeOff: [], extra: [], hours: [{ from: 540, to: 720 }] };
+    expect(dayOpenTimes(tight).map(clock)).toEqual([]);
+    expect(dayOpenTimes({ ...tight, gap: 0 }).map(clock)).toEqual(['9:00', '11:00']);
+  });
+});
+
+describe('billing demo', () => {
+  it('is valid', () => {
+    expect(demoProblems(BILLING_DEMOS['payment-oldest-first'])).toEqual([]);
+  });
+
+  it('pays the oldest charges first and keeps the rest as credit', () => {
+    // October's programming (Oct 1) comes before October's session (Oct 27).
+    const { charges, creditCents } = applyCredit(BILLING_DEMO_CHARGES, 35000);
+    expect(charges.map((c) => `${c.id} ${c.status} ${c.paidCents}`)).toEqual(['oct-session part_paid 5000', 'oct paid 30000', 'nov unpaid 0']);
+    expect(creditCents).toBe(0);
+    expect(applyCredit(BILLING_DEMO_CHARGES, 75000).creditCents).toBe(5000);
+  });
+
+  it('shows the balance the captions describe', () => {
+    const frames = BILLING_DEMOS['payment-oldest-first'].frames;
+    const summary = (i: number) => demoSummary(frames[i]!.state.charges, frames[i]!.state.creditCents);
+    expect(summary(0)).toMatchObject({ balanceCents: 70000, carriedOverCents: 40000 });
+    const credit = frames.findIndex((f) => f.caption.includes('credit') && f.state.creditCents > 0);
+    expect(summary(credit).balanceCents).toBe(-5000);
+    const last = frames.at(-1)!.state;
+    expect(summary(frames.length - 1).balanceCents).toBe(5000);
+    expect(last.charges.find((c) => c.id === NEXT_SESSION.id)).toMatchObject({ paidCents: 5000, status: 'part_paid' });
+    // Each month's statement, from the panel's own grouping.
+    expect(statements(last.charges).map((s) => `${s.period} ${s.status}`)).toEqual(['2026-11-01 part_paid', '2026-10-01 paid']);
   });
 });

@@ -1,5 +1,6 @@
 import { Callout, Example } from '../blocks';
-import { Badge, Button, Card } from '@/components/ui';
+import { BillingDemo } from '../demos/BillingDemo';
+import { Badge } from '@/components/ui';
 
 Billing tracks what each client owes and what they have paid. Amounts are in Canadian dollars, before tax. Clients pay you by e-Transfer outside the app, and you record each payment here.
 
@@ -10,6 +11,25 @@ Billing tracks what each client owes and what they have paid. Amounts are in Can
 - **No-shows and late cancellations** are charged the full session price. You can void the charge if you choose not to bill it.
 - Meetings that aren't personal training, such as check-ins, are never charged. The monthly price covers them.
 
+### A monthly charge
+
+Each month, a client's monthly services go on one charge, with a line for each service.
+
+| Line | Amount |
+| --- | --- |
+| Mesocycle programming | $200 |
+| Nutrition programming | $200 |
+| Bundle discount (Mesocycle + Nutrition) | −$100 |
+| **November 2026 programming** | **$300** |
+
+- The **bundle discount** is added when a client has both Mesocycle and Nutrition in the same month.
+- A service active on the 1st is charged that day. A service started or resumed later in the month is charged the day it starts.
+- If that month's charge is still unpaid, the new service is added to it. If it's already paid, the service gets its own charge.
+- A service paused for the whole month isn't charged. A service ended partway through a month isn't refunded automatically.
+- There is no proration. Edit the charge or add a credit if you want to adjust it.
+
+The amounts above are the default prices. A client can have their own.
+
 ## Session prices
 
 A session's price comes from the first of these that is set:
@@ -18,9 +38,17 @@ A session's price comes from the first of these that is set:
 2. The client's own price for that kind of session.
 3. The default price.
 
-Setting a price on a meeting also makes it that client's price for that kind of session from then on.
+Setting a price on a meeting also makes it that client's price for that kind of session from then on. A kind of session is Solo or Partner, and its length.
 
-A price of $0 is complimentary. A missing price is different: the session isn't charged until you set one. Sessions like this are listed on the Billing page.
+A price of $0 is complimentary. A missing price is different: the session isn't charged until you set one.
+
+### Setting a price on a session that needs one
+
+Sessions without a price are listed under **Sessions that need a price** on the Billing page.
+
+1. Select the session to open the meeting.
+2. Under **Price**, check **Session type** is right, and enter the **Price ($)**.
+3. Select **Save price**. If its attendance is recorded, the session is charged straight away.
 
 <Callout tone="note">
 Administrators set the default prices with **Default prices** on the Billing page. Changes apply to new charges only.
@@ -28,49 +56,98 @@ Administrators set the default prices with **Default prices** on the Billing pag
 
 ## The Billing page
 
-The Billing page lists your clients with their balances:
+- The tiles show **Outstanding**, **From previous months**, **Billed this month** and **Received this month**. Credits don't count as received.
+- **Payments clients reported** lists notices from clients who say they've paid.
+- **Sessions that need a price** lists sessions that can't be charged yet.
+- The client list can be filtered to **Owing**, **All** or **In credit**. Select a client to open their billing beside the list.
 
-- **Outstanding**: what is owed now.
-- **From previous months**: unpaid amounts from earlier months.
-- **Overdue** and **In credit** help you find clients who are behind or paid ahead.
+## A client's billing
+
+Open a client's page and find **Billing**, or select them on the Billing page.
+
+- **Balance**: what they owe now, or how much credit they have.
+- **From previous months**: the part of the balance from earlier months.
+- **Monthly plan**: their monthly services at their current prices.
+
+**Record payment** is at the top. Its ⋯ menu has **Edit client's prices**, **Add a charge** and **Add a credit**.
+
+### Reading a statement
+
+**Statements** has one row per month, newest first. Each shows the month's total and a badge:
+
+<Example caption="Statement badges.">
+  <Badge size="sm" tone="danger">Unpaid</Badge>
+  <Badge size="sm" tone="gold">Part paid</Badge>
+  <Badge size="sm" tone="success">Paid</Badge>
+  <Badge size="sm" tone="danger">Overdue</Badge>
+</Example>
+
+- **Overdue** marks an earlier month that still has something left to pay.
+- Open a month to see its charges. A part paid charge says how much is paid and how much is left.
+- A charge whose status differs from its month shows its own badge.
+- Settled earlier months move to **See statements for previous months**.
+
+## Recording a payment
+
+1. Check that the e-Transfer has arrived.
+2. Select **Record payment**.
+3. Enter the **Amount ($)**, the **Received on** date and the **Method**.
+4. Select **Record payment**.
+
+The payment pays the oldest unpaid charges first. Anything left over becomes credit, and the next charge uses it automatically.
+
+<BillingDemo name="payment-oldest-first" />
+
+To pay one charge or one month in full, use **Mark paid** from the charge's ⋯ menu, or **Mark … paid** under the month. It records a payment of exactly what's left.
 
 ## When a client says they've paid
 
-When a client sends an e-Transfer, they can tell you in their app. A notice appears on the Billing page and in Activity.
+When a client sends an e-Transfer, they can tell you in their app. A notice appears under **Payments clients reported** on the Billing page and in Activity.
 
 1. Check that the e-Transfer arrived.
-2. Select **Record payment** and enter the amount and date received.
+2. Select **Record payment** on the notice. It opens with the client's amount and date. If they named charges, the payment goes to those first.
+3. Change the amount if you received something different, then select **Record payment**.
+
+If the money never arrived, select **Dismiss** and give a reason. The client doesn't see the reason, and their balance doesn't change.
 
 <Callout tone="warning" title="Balances only change when you record a payment">
 A client's notice doesn't change their balance. Record the payment once the money arrives.
 </Callout>
 
-## A client's billing
+## Fixing mistakes
 
-Open a client's page and find **Billing**.
+### Undoing Mark paid
 
-<Example caption="A client's billing, with fictional amounts." width="md">
-  <Card className="w-full">
-    <div className="flex items-baseline justify-between gap-3">
-      <span className="text-sm text-muted">Balance</span>
-      <span className="text-2xl font-medium text-text">$300.00</span>
-    </div>
-    <div className="mt-3 flex flex-wrap items-center gap-2">
-      <Badge tone="danger">Overdue</Badge>
-      <span className="flex-1" />
-      <Button variant="secondary">Add a charge</Button>
-      <Button>Record payment</Button>
-    </div>
-  </Card>
-</Example>
+1. Open the charge's ⋯ menu and select **Mark unpaid**.
+2. Give a reason, then select **Mark unpaid**.
 
-- **Record payment**: money received. It pays the oldest unpaid charges first. Anything left over becomes credit for later charges.
-- **Add a charge**: a one-off amount, such as an opening balance.
-- **Add a credit**: lowers the balance without counting as money received, for goodwill or a discount after the fact.
-- **Mark paid** and **Mark unpaid**: settle a month, or undo one marked paid by mistake.
-- **Void**: cancels a charge or credit. It no longer counts toward the balance, but stays on record.
-- **Edit client's prices**: this client's own prices for monthly services and sessions.
+This voids the payment recorded against the charge. If that payment also paid other charges, the dialog says so, and they are owed again too.
 
-**Statements** shows each earlier month. **Payments** lists every payment recorded.
+You can also select **Mark unpaid** on a payment in **Payments**. A payment marked unpaid by mistake can be put back with **Mark paid** from its menu.
+
+### Voiding a charge
+
+1. Open the charge's ⋯ menu and select **Void**.
+2. Give a reason. The client doesn't see it.
+3. Select **Void charge**.
+
+A voided charge no longer counts toward the balance, but stays on record. Anything already paid on it becomes credit for other charges.
+
+### Editing a charge
+
+Select **Edit** on a line to change its description or amount. Only that charge changes. A charge can't go below what has already been paid on it.
+
+### Credits and extra charges
+
+- **Add a credit** lowers the balance without counting as money received, for goodwill or a discount after the fact.
+- **Add a charge** adds a one-off amount, such as an opening balance. Choose an earlier month to count it as carried over.
 
 Notes on payments and credits are private to staff.
+
+## A client's prices
+
+**Edit client's prices** sets this client's own prices for their monthly services, the bundle discount and each kind of session. **Use default** puts a price back to the default.
+
+## What the client sees
+
+Clients see their balance on Home and on their Billing page, with each month's statement, their prices and the payments you've recorded. They don't see voided charges, notes or reasons. See What clients see in Help.

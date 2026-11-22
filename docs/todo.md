@@ -14,9 +14,9 @@ Development is moving from Claude Code to Codex. Agent instructions now live in 
   - [x] `<Demo>` player (autoplay in view, Pause, reduced-motion final frame) and spreadsheet demos 1 to 3 (built 2026-11-21; waiting for the owner's review before more demos).
   - [x] Separate Mesocycle and Personal training pages, with shared editor text (built 2026-11-21).
   - [x] More editor detail and step-by-step guides in the shared editor text, with the paste review and publish readiness demos (built 2026-11-21).
-  - [ ] New pages: Roles and permissions, What clients see.
+  - [x] New pages: Roles and permissions, What clients see. (built 2026-11-21)
   - [x] Nutrition demos: a week filling in, and missing entries with a correction (built 2026-11-21).
-  - [ ] Meetings, new Availability and open times page, and Billing, with demos 7 to 10.
+  - [x] Meetings, new Availability and open times page, and Billing, with demos 7 to 10. (built 2026-11-21)
   - [ ] Fill in Clients, Activity, Nutrition, Profile settings and Getting started, then an accuracy pass.
 - [ ] **Owner's manual UI checks** for decisions 0043–0054 (checklists are in each decision record and in `docs/status.md`).
 - [ ] **Scheduling phase C** (decision 0050): a client list of all upcoming meetings, each with the reschedule/cancel dialog.

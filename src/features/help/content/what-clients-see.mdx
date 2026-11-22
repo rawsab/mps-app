@@ -1,0 +1,94 @@
+import { Callout, Example } from '../blocks';
+import { Button } from '@/components/ui';
+
+Clients have their own app. It shows only their own records, and only what you have published or shared. This page explains what they see, so you can guide them.
+
+## Signing in
+
+Clients can't sign up on their own. An administrator sends an invitation from the client's page, and the client chooses a password from the link in the email. Until they first sign in, the client shows as Invited.
+
+If a client's access is disabled, they can't see anything, even if they are already signed in.
+
+## Their tabs
+
+The tabs follow the client's services. A tab for a service they don't have is hidden.
+
+| Tab | Shown when | What's on it |
+| --- | --- | --- |
+| Home | Always | Their billing, next meeting, services, today's to-dos and progress. |
+| Mesocycle | They have Mesocycle | Their published mesocycle programs, for logging workouts. |
+| Personal training | They have Personal training | Their sessions, program and attendance figures. On phones the tab says PT. |
+| Nutrition | They have Nutrition | Their nutritional program and daily log. |
+| Progress | They have any service | Summaries of their nutritional programs. |
+
+Their picture at the top opens their Profile settings, where they set their name, picture and time zone. Session times and daily logs use that time zone.
+
+## Home
+
+Home greets the client by first name and shows:
+
+- **Billing**: what they owe, with **Pay**, or Paid up.
+- **Next meeting**: the time, the meeting link and the program it follows.
+- **Your services**: links to each service, and **Request a new service**.
+- **To-dos**: the daily nutrition entry and their next workout.
+- **Progress**: a quick look at their training and nutrition.
+
+## Programs
+
+Clients see a program only after you publish it. Drafts and unpublished changes stay private. The program marked **Current** is the one they follow.
+
+Each program opens on its weeks and days. A switch at the top shows it two ways:
+
+- **Workout**: one day at a time, each exercise with its targets, notes and demo links.
+- **Spreadsheet**: the whole week as a table, like yours.
+
+Program notes and a progress bar show above the workouts. Resources are listed below them.
+
+To see a published program as the client does, open it in the editor and select **Client log**.
+
+## Logging workouts
+
+For a mesocycle, the client starts a day, enters the weight and reps for each set, and selects **Mark workout complete**. After a workout they can score Stimulus and Fatigue. See Mesocycle in Help for the details.
+
+Personal training programs are read only. The client follows along in your sessions, and you record attendance.
+
+<Callout tone="note">
+A workout the client has started keeps the targets it began with. Publishing a new version doesn't change it.
+</Callout>
+
+## Logging nutrition
+
+Each morning the client logs today's weight, and yesterday's calories consumed and caloric output. Their log fills one row of your nutrition spreadsheet. See Nutrition in Help.
+
+## Meetings and requests
+
+The client sees their next meeting on Home, in their own time zone. While it is scheduled and hasn't started, they can ask to change it.
+
+<Example caption="What the client can do with their next meeting.">
+  <Button variant="ghost">Reschedule</Button>
+  <Button variant="ghost-danger">Cancel meeting</Button>
+</Example>
+
+- **Reschedule**: they pick a day, then one of your open times. If none work, they tick **None of these work** and write which times suit them.
+- **Cancel meeting**: they can add a reason.
+
+Nothing changes until you answer. A request inside your late cancellation window warns them first. They can withdraw a request while it is waiting. Your answer shows on Home for a week.
+
+On their Personal training page, each past session shows the shared notes and resources you added. Private notes never show.
+
+## Billing and paying
+
+The client's Billing page shows their balance, monthly statements, their prices and the payments you have recorded.
+
+1. They select **Pay** and see the amount and your e-Transfer email.
+2. They send the e-Transfer from their bank.
+3. They select **I've sent it**, or **I've paid this** on one charge or month, and enter the amount and date.
+
+This sends you a notice. Their balance changes only after you record the payment. See Billing in Help.
+
+## What clients never see
+
+- Notes you keep about the client, and private notes on meetings, patterns, payments and credits.
+- Reasons you give when correcting attendance.
+- Your time off, extra hours and booking rules. They only see the times that are open.
+- Other clients, and other coaches' calendars.
