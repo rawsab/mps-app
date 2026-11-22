@@ -125,7 +125,7 @@ function openTimes(): DemoScript<OpenTimesDemoState> {
     { state: state(['hours', 'extra', 'timeOff']), ms: 2600, caption: 'Time off takes time away: 3 PM to 4 PM here.', pointer: { target: laneTarget('timeOff') } },
     { state: state(['hours', 'extra', 'timeOff', 'meetings']), ms: 3000, caption: 'Booked meetings are taken, with your 15 minute gap kept free on each side.', pointer: { target: laneTarget('meetings') } },
     { state: state(all), ms: 3000, caption: 'Your notice is 12 hours. It’s Monday at 9:30 PM, so nothing before 9:30 AM.', pointer: { target: laneTarget('notice') } },
-    { state: state(all, { starts }), ms: 3200, caption: 'A 60 minute session can start every 15 minutes where the whole hour fits.', pointer: { target: laneTarget('open') } },
+    { state: state(all, { starts }), ms: 2000, caption: 'A 60 minute session can start every 15 minutes where the whole hour fits.', pointer: { target: laneTarget('open') } },
     // The picker unfolds first; the pointer waits until it has settled.
     { state: state(all, { starts, picker: starts }), ms: 450, caption: 'The client picks from these times, shown in their own time zone.', pointer: { target: laneTarget('open') } },
     { state: state(all, { starts, picker: starts }), ms: 3200, caption: 'The client picks from these times, shown in their own time zone.', pointer: { target: PICKER_TARGET } },
