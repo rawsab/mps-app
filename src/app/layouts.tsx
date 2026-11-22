@@ -1,4 +1,4 @@
-import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type ReactNode } from 'react';
+import { useEffect, useId, useMemo, useRef, useState, type CSSProperties, type PointerEvent as ReactPointerEvent, type ReactNode } from 'react';
 import { NavLink, Outlet, useLocation, useMatches } from 'react-router';
 import {
   ChevronIcon,
@@ -191,7 +191,8 @@ export function ClientLayout() {
  * The client's services behind one Services button: a dropdown under the top bar's word, or a panel
  * above the phone tab bar. A disclosure of links rather than an ARIA menu, so it reads as navigation.
  * It is marked current while one of its sections is open, and closes on navigation, Escape or a
- * click outside.
+ * click outside. With a mouse, the top bar's dropdown also opens on hover and closes shortly after
+ * the pointer leaves, so it survives the gap between the word and the list.
  */
 function ServicesMenu({ items, placement }: { items: ClientNavItem[]; placement: 'top' | 'tab' }) {
   const [open, setOpen] = useState(false);
@@ -201,6 +202,21 @@ function ServicesMenu({ items, placement }: { items: ClientNavItem[]; placement:
   const { pathname } = useLocation();
   const active = items.some((i) => pathname === i.to || pathname.startsWith(`${i.to}/`));
   useEffect(() => setOpen(false), [pathname]);
+  // Hover: a short delay before closing; `byHover` stops the click that follows a hover from closing it.
+  const closeTimer = useRef<number | undefined>(undefined);
+  const byHover = useRef(false);
+  useEffect(() => () => window.clearTimeout(closeTimer.current), []);
+  const hover = placement === 'top' ? {
+    onPointerEnter: (event: ReactPointerEvent) => {
+      if (event.pointerType !== 'mouse') return;
+      window.clearTimeout(closeTimer.current);
+      if (!open) { byHover.current = true; setOpen(true); }
+    },
+    onPointerLeave: (event: ReactPointerEvent) => {
+      if (event.pointerType !== 'mouse') return;
+      closeTimer.current = window.setTimeout(() => { byHover.current = false; setOpen(false); }, 200);
+    },
+  } : {};
   useEffect(() => {
     if (!open) return;
     const outside = (event: PointerEvent) => { if (!root.current?.contains(event.target as Node)) setOpen(false); };
@@ -209,13 +225,16 @@ function ServicesMenu({ items, placement }: { items: ClientNavItem[]; placement:
   }, [open]);
   const top = placement === 'top';
   return (
-    <div ref={root} className={`relative flex ${top ? '' : 'h-full'}`}
+    <div ref={root} className={`relative flex ${top ? '' : 'h-full'}`} {...hover}
       onKeyDown={(event) => {
         if (event.key === 'Escape' && open) { event.preventDefault(); setOpen(false); trigger.current?.focus(); }
       }}
       onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
       <button ref={trigger} type="button" aria-expanded={open} aria-controls={id} data-active={active || undefined}
-        onClick={() => setOpen((value) => !value)}
+        onClick={() => {
+          if (byHover.current) { byHover.current = false; return; }
+          setOpen((value) => !value);
+        }}
         className={top
           ? `nav-word flex min-h-12 items-center gap-1 px-3 text-sm ${active ? 'text-text' : 'text-muted hover:text-text'}`
           : `flex min-h-16 w-full flex-col items-center justify-center gap-1 text-xs transition-colors ${active ? 'font-semibold text-gold-fg' : 'text-muted'}`}>
