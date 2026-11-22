@@ -2,12 +2,12 @@ import { useMemo, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { useViewer } from '@/app/auth';
 import { Avatar } from '@/components/Avatar';
-import { ArrowUpRightIcon } from '@/components/icons';
 import { Alert, Badge, Button, EmptyState, PageHeader } from '@/components/ui';
 import { LoadingRegion, Skeleton, SkeletonText } from '@/components/Skeleton';
 import { countdown } from '@/domain/scheduling/calendar';
 import { upcomingByZonedDay } from '@/domain/scheduling/upcoming';
 import { useNextMeeting, useNow } from '@/features/home/api';
+import { programServiceIcon, programServiceIconStyle } from '@/features/programs/ProgramsCard';
 import { JoinCall, useCoachPhoto } from '@/features/home/UpcomingMeeting';
 import { clientProgramPath, SERVICE_SHORT_LABELS } from '@/lib/services';
 import { schedulingError, type Meeting } from './api';
@@ -124,11 +124,14 @@ function MeetingItem({ meeting, timeZone, now, onSent }: { meeting: Meeting; tim
         {!cancelled && !meeting.meetingUrl ? <Fact label="Call link">Your coach will share it.</Fact> : null}
         {programs.length ? (
           <Fact label={programs.length === 1 ? 'Program' : 'Programs'} wide={programs.length > 1}>
-            <span className="flex flex-wrap gap-x-4 gap-y-1">
+            {/* Each program in its own box: the service's icon, then the name. */}
+            <span className="mt-0.5 flex flex-wrap gap-1.5">
               {programs.map((p) => (
-                <Link key={p.service} to={clientProgramPath(p.service, p.programId)} className="inline-flex min-w-0 items-center gap-1 text-gold-fg">
-                  {programs.length > 1 ? <span className="text-muted">{SERVICE_SHORT_LABELS[p.service]}</span> : null}
-                  <span className="link min-w-0 truncate">{p.title?.trim() || 'Untitled program'}</span><ArrowUpRightIcon />
+                <Link key={p.service} to={clientProgramPath(p.service, p.programId)} title={p.title ?? undefined}
+                  className="flex min-h-9 min-w-0 max-w-full items-center gap-2 rounded-card border border-line bg-surface px-2.5 transition-colors hover:border-muted/70 hover:bg-surface-raised">
+                  <span aria-hidden className={`grid size-5 shrink-0 place-items-center rounded-full [&>svg]:size-3 ${programServiceIconStyle(p.service)}`}>{programServiceIcon(p.service)}</span>
+                  <span className="sr-only">{SERVICE_SHORT_LABELS[p.service]}: </span>
+                  <span className="min-w-0 truncate">{p.title?.trim() || 'Untitled program'}</span>
                 </Link>
               ))}
             </span>
