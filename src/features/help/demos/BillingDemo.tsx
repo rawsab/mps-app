@@ -30,7 +30,7 @@ function BillingPicture({ state }: { state: BillingDemoState }) {
   const summary = demoSummary(state.charges, state.creditCents);
   const changed = new Set(state.changed ?? []);
   return (
-    <div className={`relative w-[36rem] text-left text-sm text-text transition-opacity duration-300 ${state.faded ? 'opacity-0' : 'opacity-100'}`}>
+    <div className={`relative w-[36rem] text-left text-sm text-text transition-[opacity,translate] duration-300 ease-[var(--ease-ui)] ${state.faded ? 'translate-y-3 opacity-0' : 'translate-y-0 opacity-100'}`}>
       <div className="rounded-card border border-line bg-surface p-4 shadow-popover">
         <div className="mb-3 flex items-center justify-between gap-2">
           <span className="text-lg font-semibold">Riley Moreau</span>

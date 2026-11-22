@@ -90,9 +90,9 @@ function paymentToOldest(): DemoScript<BillingDemoState> {
   const opening = 'Riley sent $750. Select Record payment and enter it.';
   type Frame = DemoFrame<BillingDemoState>;
   const frames: Frame[] = [
-    // The last loop's end fades out, then the window fades back in at the start.
-    { state: { ...next, faded: true }, ms: 350, caption: 'Riley owes $700. October is overdue.' },
-    { state: { ...start, faded: true }, ms: 150, caption: 'Riley owes $700. October is overdue.' },
+    // The last loop's end fades out moving down, then the start fades in moving up, almost at once.
+    { state: { ...next, faded: true }, ms: 300, caption: 'Riley owes $700. October is overdue.' },
+    { state: { ...start, faded: true }, ms: 60, caption: 'Riley owes $700. October is overdue.' },
     { state: start, ms: 2400, caption: 'Riley owes $700. October is overdue.', pointer: { target: BALANCE_TARGET } },
     { state: start, ms: 900, caption: opening, pointer: { target: RECORD_PAYMENT_TARGET } },
     { state: start, ms: 400, caption: opening, pointer: { target: RECORD_PAYMENT_TARGET, press: true } },
