@@ -17,7 +17,7 @@ export function BillingDemo({ name }: { name: BillingDemoName }) {
   return <DemoPlayer script={script} render={(state) => (
     <div className="grid">
       <div className="[grid-area:1/1]"><BillingPicture state={state} /></div>
-      <div aria-hidden className="pointer-events-none opacity-0 [grid-area:1/1]"><BillingPicture state={{ ...tallest, dialog: null }} /></div>
+      <div aria-hidden className="pointer-events-none opacity-0 [grid-area:1/1]"><BillingPicture state={{ ...tallest, dialog: null, faded: false }} /></div>
     </div>
   )} />;
 }
@@ -30,7 +30,7 @@ function BillingPicture({ state }: { state: BillingDemoState }) {
   const summary = demoSummary(state.charges, state.creditCents);
   const changed = new Set(state.changed ?? []);
   return (
-    <div className="relative w-[36rem] text-left text-sm text-text">
+    <div className={`relative w-[36rem] text-left text-sm text-text transition-opacity duration-300 ${state.faded ? 'opacity-0' : 'opacity-100'}`}>
       <div className="rounded-card border border-line bg-surface p-4 shadow-popover">
         <div className="mb-3 flex items-center justify-between gap-2">
           <span className="text-lg font-semibold">Riley Moreau</span>

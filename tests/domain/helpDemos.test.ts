@@ -203,7 +203,11 @@ describe('billing demo', () => {
   it('shows the balance the captions describe', () => {
     const frames = BILLING_DEMOS['payment-oldest-first'].frames;
     const summary = (i: number) => demoSummary(frames[i]!.state.charges, frames[i]!.state.creditCents);
-    expect(summary(0)).toMatchObject({ balanceCents: 70000, carriedOverCents: 40000 });
+    // It opens faded, on the last loop's end then the start, before showing the start.
+    expect(frames.slice(0, 2).map((f) => f.state.faded)).toEqual([true, true]);
+    expect(frames.at(-1)!.state.faded).toBeUndefined();
+    const first = frames.findIndex((f) => !f.state.faded);
+    expect(summary(first)).toMatchObject({ balanceCents: 70000, carriedOverCents: 40000 });
     const credit = frames.findIndex((f) => f.caption.includes('credit') && f.state.creditCents > 0);
     expect(summary(credit).balanceCents).toBe(-5000);
     const last = frames.at(-1)!.state;

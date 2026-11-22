@@ -72,6 +72,8 @@ export type BillingDemoState = {
   /** The Record a payment dialog, with the amount typed so far. */
   dialog?: { amount: string } | null;
   changed?: string[];
+  /** The whole window faded out, between one loop's end and the next one's start. */
+  faded?: boolean;
 };
 
 export const RECORD_PAYMENT_TARGET = 'billing-record-payment';
@@ -88,6 +90,9 @@ function paymentToOldest(): DemoScript<BillingDemoState> {
   const opening = 'Riley sent $750. Select Record payment and enter it.';
   type Frame = DemoFrame<BillingDemoState>;
   const frames: Frame[] = [
+    // The last loop's end fades out, then the window fades back in at the start.
+    { state: { ...next, faded: true }, ms: 350, caption: 'Riley owes $700. October is overdue.' },
+    { state: { ...start, faded: true }, ms: 150, caption: 'Riley owes $700. October is overdue.' },
     { state: start, ms: 2400, caption: 'Riley owes $700. October is overdue.', pointer: { target: BALANCE_TARGET } },
     { state: start, ms: 900, caption: opening, pointer: { target: RECORD_PAYMENT_TARGET } },
     { state: start, ms: 400, caption: opening, pointer: { target: RECORD_PAYMENT_TARGET, press: true } },
