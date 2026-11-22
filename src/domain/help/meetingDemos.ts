@@ -60,8 +60,8 @@ function attendanceWithUndo(): DemoScript<AttendanceDemoState> {
   const fold = 450;
   const frames: Frame[] = [
     // The rows left at the end fade out, all four unfold while hidden, then fade in one after another.
-    { state: { rows: without('sam', 'avery'), faded: true }, ms: 350, caption: 'Past meetings without attendance wait here, newest first.' },
-    { state: { rows: all, faded: true }, ms: 450, caption: 'Past meetings without attendance wait here, newest first.' },
+    { state: { rows: without('sam', 'avery'), faded: true }, ms: 200, caption: 'Past meetings without attendance wait here, newest first.' },
+    { state: { rows: all, faded: true }, ms: 300, caption: 'Past meetings without attendance wait here, newest first.' },
     { state: { rows: all }, ms: 2000, caption: 'Past meetings without attendance wait here, newest first.' },
     { state: { rows: all }, ms: 900, caption: 'Sam came, so select the tick.', pointer: { target: sam } },
     { state: { rows: all, leaving: 'sam' }, ms: 400, caption: 'Sam came, so select the tick.', pointer: { target: sam, press: true } },
