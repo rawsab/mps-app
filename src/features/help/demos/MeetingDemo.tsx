@@ -3,7 +3,7 @@ import { ToggleButton } from '@/components/controls';
 import { CheckIcon, CrossIcon } from '@/components/icons';
 import { Badge, Button } from '@/components/ui';
 import {
-  DEMO_NOW, DEMO_TIME_ZONE, MEETING_DEMOS, PATTERN_ROW_TARGET, SET_UP_TARGET, UNDO_NOTICE_TARGET, attendanceTarget, dayToggleTarget, startTarget,
+  ATTENDANCE_ROWS, DEMO_NOW, DEMO_TIME_ZONE, MEETING_DEMOS, PATTERN_ROW_TARGET, SET_UP_TARGET, UNDO_NOTICE_TARGET, attendanceTarget, dayToggleTarget, startTarget,
   type AttendanceDemoState, type PatternDemoState,
 } from '@/domain/help/meetingDemos';
 import { groupAttendanceByDay } from '@/domain/scheduling/attendance';
@@ -43,9 +43,11 @@ const ROUND_BUTTON = 'inline-flex size-9 items-center justify-center rounded-car
  * day, labels and notice text. The notice sits at the bottom of the picture instead of the window.
  */
 function AttendancePicture({ state }: { state: AttendanceDemoState }) {
-  const days = groupAttendanceByDay(state.rows, DEMO_TIME_ZONE, DEMO_NOW);
+  // Every meeting the demo has stays drawn, so a recorded row can fold away and come back on Undo.
+  const days = groupAttendanceByDay(ATTENDANCE_ROWS, DEMO_TIME_ZONE, DEMO_NOW);
+  const listed = new Set(state.rows.map((row) => row.id));
   const waiting = state.rows.filter((row) => row.id !== state.leaving).length;
-  const noticeRow = state.notice ? [...state.rows, ...MEETING_DEMOS['attendance-undo'].frames[0]!.state.rows].find((row) => row.id === state.notice!.id) : null;
+  const noticeRow = state.notice ? ATTENDANCE_ROWS.find((row) => row.id === state.notice!.id) : null;
   return (
     // Fixed height: the list plus the notice's room. Without a notice the list moves down by half
     // that room, so it sits in the middle, and glides up when a notice needs the space.
@@ -55,23 +57,34 @@ function AttendancePicture({ state }: { state: AttendanceDemoState }) {
           <span className="text-xs font-medium text-muted">Record attendance<span className="ml-2 text-gold-fg">{waiting} waiting</span></span>
           <Button variant="ghost" className="min-h-9 px-3">Mark all completed</Button>
         </div>
-        {/* Room for all four rows, so the list never changes height. */}
-        <ul className="min-h-[13.5rem] divide-y divide-line">
-          {days.flatMap((day) => day.meetings.map((row) => (
-            <li key={row.id} className={row.id === state.leaving ? 'row-fade-out' : row.id === state.restored ? 'row-fade-in' : undefined}>
-              <div className="flex items-center gap-2 py-1.5">
-                <span className="min-w-0 flex-1 py-0.5">
-                  <span className="block text-xs tabular-nums text-muted">
-                    {day.relative === 'today' ? 'Today' : day.relative === 'yesterday' ? 'Yesterday' : formatDate(day.date)} · {sessionTime(row.startsAt, DEMO_TIME_ZONE)}
-                  </span>
-                  <span className="flex items-baseline gap-2"><span className="font-medium">{row.clientName}</span><span className="text-xs text-muted">Personal training</span></span>
-                </span>
-                <span data-demo-target={attendanceTarget(row.id, 'no_show')} className={`${ROUND_BUTTON} text-danger`}><CrossIcon /></span>
-                <span data-demo-target={attendanceTarget(row.id, 'completed')} className={`${ROUND_BUTTON} text-success`}><CheckIcon /></span>
-              </div>
-            </li>
-          )))}
-        </ul>
+        {/* Room for all four rows, so the pane never changes height. The last row's line is clipped. */}
+        <div className="min-h-[13.5rem] overflow-hidden">
+          <ul className="-mb-px">
+            {days.flatMap((day) => day.meetings).map((row, index) => {
+              const day = days.find((d) => d.meetings.includes(row))!;
+              const shown = listed.has(row.id) && row.id !== state.leaving && !state.faded;
+              return (
+                // Folds closed once recorded, so the rows below glide up into its place.
+                <li key={row.id} data-open={listed.has(row.id)} className="animated-disclosure-content help-demo-unfold">
+                  <div className="min-h-0 overflow-hidden">
+                    {/* Fades on its own: out when recorded or before a loop, in one by one as the list appears. */}
+                    <div className={`flex items-center gap-2 border-b border-line py-1.5 transition-opacity duration-200 ${shown ? 'opacity-100' : 'opacity-0'}`}
+                      style={{ transitionDelay: shown && state.restored !== row.id ? `${index * 90}ms` : undefined }}>
+                      <span className="min-w-0 flex-1 py-0.5">
+                        <span className="block text-xs tabular-nums text-muted">
+                          {day.relative === 'today' ? 'Today' : day.relative === 'yesterday' ? 'Yesterday' : formatDate(day.date)} · {sessionTime(row.startsAt, DEMO_TIME_ZONE)}
+                        </span>
+                        <span className="flex items-baseline gap-2"><span className="font-medium">{row.clientName}</span><span className="text-xs text-muted">Personal training</span></span>
+                      </span>
+                      <span data-demo-target={attendanceTarget(row.id, 'no_show')} className={`${ROUND_BUTTON} text-danger`}><CrossIcon /></span>
+                      <span data-demo-target={attendanceTarget(row.id, 'completed')} className={`${ROUND_BUTTON} text-success`}><CheckIcon /></span>
+                    </div>
+                  </div>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       </div>
       <div className="mt-3 flex h-10 w-full justify-center">
         {state.notice && noticeRow ? (

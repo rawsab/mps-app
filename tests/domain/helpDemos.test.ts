@@ -121,11 +121,13 @@ describe('meeting demo scripts', () => {
   });
 
   it('only point at meetings still listed, or at Undo while a notice shows', () => {
-    for (const frame of MEETING_DEMOS['attendance-undo'].frames) {
+    MEETING_DEMOS['attendance-undo'].frames.forEach((frame, i, frames) => {
       const target = frame.pointer?.target;
-      if (target?.startsWith('attendance:')) expect(frame.state.rows.map((r) => r.id), target).toContain(target.split(':')[1]);
+      // While a recorded row folds away, the pointer stays on the button it pressed.
+      const waiting = target === frames[i - 1]?.pointer?.target && !frame.pointer?.press;
+      if (target?.startsWith('attendance:') && !waiting) expect(frame.state.rows.map((r) => r.id), target).toContain(target.split(':')[1]);
       if (target === UNDO_NOTICE_TARGET) expect(frame.state.notice?.shown).toBe(true);
-    }
+    });
   });
 
   it('records two meetings, with the mistaken no-show undone', () => {
