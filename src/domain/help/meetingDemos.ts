@@ -57,28 +57,28 @@ function attendanceWithUndo(): DemoScript<AttendanceDemoState> {
   const averyDone = attendanceTarget('avery', 'completed');
   // A recorded row fades, then folds away while the rows below glide up. The pointer waits on the
   // button it pressed until they have settled, so it never aims at a row that's still moving.
-  const fold = 420;
+  const fold = 435;
   const frames: Frame[] = [
     // The rows left at the end fade out, all four unfold while hidden, then fade in one after another.
     { state: { rows: without('sam', 'avery'), faded: true }, ms: 200, caption: 'Past meetings without attendance wait here, newest first.' },
     { state: { rows: all, faded: true }, ms: 300, caption: 'Past meetings without attendance wait here, newest first.' },
-    { state: { rows: all }, ms: 1700, caption: 'Past meetings without attendance wait here, newest first.' },
-    { state: { rows: all }, ms: 750, caption: 'Sam came, so select the tick.', pointer: { target: sam } },
-    { state: { rows: all, leaving: 'sam' }, ms: 300, caption: 'Sam came, so select the tick.', pointer: { target: sam, press: true } },
+    { state: { rows: all }, ms: 1850, caption: 'Past meetings without attendance wait here, newest first.' },
+    { state: { rows: all }, ms: 825, caption: 'Sam came, so select the tick.', pointer: { target: sam } },
+    { state: { rows: all, leaving: 'sam' }, ms: 350, caption: 'Sam came, so select the tick.', pointer: { target: sam, press: true } },
     { state: { rows: without('sam'), notice: notice('sam', 'completed'), room: true }, ms: fold, caption: 'The row leaves, and a notice confirms it.', pointer: { target: sam } },
-    { state: { rows: without('sam'), notice: notice('sam', 'completed'), room: true }, ms: 1500, caption: 'The row leaves, and a notice confirms it.', pointer: { target: after('sam', 'completed') } },
-    { state: { rows: without('sam'), notice: notice('sam', 'completed'), room: true }, ms: 750, caption: 'Avery came too, but the cross gets pressed by mistake.', pointer: { target: averyNoShow } },
+    { state: { rows: without('sam'), notice: notice('sam', 'completed'), room: true }, ms: 1700, caption: 'The row leaves, and a notice confirms it.', pointer: { target: after('sam', 'completed') } },
+    { state: { rows: without('sam'), notice: notice('sam', 'completed'), room: true }, ms: 825, caption: 'Avery came too, but the cross gets pressed by mistake.', pointer: { target: averyNoShow } },
     // The notice stays until the next one replaces it, as on the page.
-    { state: { rows: without('sam'), leaving: 'avery', notice: notice('sam', 'completed'), room: true }, ms: 300, caption: 'Avery came too, but the cross gets pressed by mistake.', pointer: { target: averyNoShow, press: true } },
+    { state: { rows: without('sam'), leaving: 'avery', notice: notice('sam', 'completed'), room: true }, ms: 350, caption: 'Avery came too, but the cross gets pressed by mistake.', pointer: { target: averyNoShow, press: true } },
     { state: { rows: without('sam', 'avery'), notice: notice('avery', 'no_show'), room: true }, ms: fold, caption: 'Now Avery is marked as a no-show.', pointer: { target: averyNoShow } },
-    { state: { rows: without('sam', 'avery'), notice: notice('avery', 'no_show'), room: true }, ms: 1050, caption: 'Now Avery is marked as a no-show.', pointer: { target: UNDO_NOTICE_TARGET } },
-    { state: { rows: without('sam', 'avery'), notice: notice('avery', 'no_show'), room: true }, ms: 300, caption: 'Select Undo straight away.', pointer: { target: UNDO_NOTICE_TARGET, press: true } },
-    { state: { rows: without('sam'), restored: 'avery', notice: notice('avery', 'no_show', false), room: true }, ms: 1800, caption: 'Avery’s meeting comes back, with nothing recorded.', pointer: { target: averyDone } },
-    { state: { rows: without('sam'), leaving: 'avery', notice: notice('avery', 'no_show', false), room: true }, ms: 300, caption: 'This time, the tick.', pointer: { target: averyDone, press: true } },
+    { state: { rows: without('sam', 'avery'), notice: notice('avery', 'no_show'), room: true }, ms: 1175, caption: 'Now Avery is marked as a no-show.', pointer: { target: UNDO_NOTICE_TARGET } },
+    { state: { rows: without('sam', 'avery'), notice: notice('avery', 'no_show'), room: true }, ms: 350, caption: 'Select Undo straight away.', pointer: { target: UNDO_NOTICE_TARGET, press: true } },
+    { state: { rows: without('sam'), restored: 'avery', notice: notice('avery', 'no_show', false), room: true }, ms: 2000, caption: 'Avery’s meeting comes back, with nothing recorded.', pointer: { target: averyDone } },
+    { state: { rows: without('sam'), leaving: 'avery', notice: notice('avery', 'no_show', false), room: true }, ms: 350, caption: 'This time, the tick.', pointer: { target: averyDone, press: true } },
     { state: { rows: without('sam', 'avery'), notice: notice('avery', 'completed'), room: true }, ms: fold, caption: 'Two meetings left. To fix one later, open the meeting and change its Status.', pointer: { target: averyDone } },
-    { state: { rows: without('sam', 'avery'), notice: notice('avery', 'completed'), room: true }, ms: 1800, caption: 'Two meetings left. To fix one later, open the meeting and change its Status.', pointer: { target: after('avery', 'completed', without('sam').map((row) => row.id)) } },
+    { state: { rows: without('sam', 'avery'), notice: notice('avery', 'completed'), room: true }, ms: 2000, caption: 'Two meetings left. To fix one later, open the meeting and change its Status.', pointer: { target: after('avery', 'completed', without('sam').map((row) => row.id)) } },
     // The last notice goes, and the list settles back into the middle.
-    { state: { rows: without('sam', 'avery'), notice: notice('avery', 'completed', false) }, ms: 1200, caption: 'The notice goes away after a few seconds.' },
+    { state: { rows: without('sam', 'avery'), notice: notice('avery', 'completed', false) }, ms: 1300, caption: 'The notice goes away after a few seconds.' },
   ];
   return {
     id: 'attendance-undo',
