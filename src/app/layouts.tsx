@@ -14,6 +14,7 @@ import {
   BillingIcon,
   CloseIcon,
   SearchIcon,
+  ServicesIcon,
   SidebarIcon,
   SignOutIcon,
   TemplatesIcon,
@@ -120,29 +121,51 @@ function NavLabel({ label, short }: { label: string; short?: string }) {
   return <><span aria-hidden>{short}</span><span className="sr-only">{label}</span></>;
 }
 
-/** Client app: Home, Mesocycle, Personal training, Nutrition, Progress — filtered by assigned services (PRD §6, decision 0051). */
+type ClientNavItem = NavItem & { short?: string };
+
+/**
+ * Client app (decision 0051, updated by decision 0058): Home, the services, Progress, Meetings and
+ * Billing. With two or more services they share one Services menu, so the phone tab bar never has
+ * more than five tabs.
+ */
 export function ClientLayout() {
   const viewer = useViewer();
   const sections = clientSections(viewer.data?.services ?? []);
-  const items: (NavItem & { short?: string; show: boolean })[] = [
-    { to: '/home', label: 'Home', icon: <HomeIcon />, show: true },
+  const services: (ClientNavItem & { show: boolean })[] = [
     { to: '/mesocycle', label: 'Mesocycle', icon: <MesocycleIcon />, show: sections.mesocycle },
     { to: '/personal-training', label: 'Personal training', short: 'PT', icon: <TrainingIcon />, show: sections.personalTraining },
     { to: '/nutrition', label: 'Nutrition', icon: <NutritionIcon />, show: sections.nutrition },
-    { to: '/progress', label: 'Progress', icon: <ProgressIcon />, show: sections.progress },
-  ].filter((i) => i.show);
+  ];
+  const shown = services.filter((i) => i.show);
+  const grouped = shown.length >= 2;
+  const home: ClientNavItem = { to: '/home', label: 'Home', icon: <HomeIcon /> };
+  const after: ClientNavItem[] = [
+    ...(sections.progress ? [{ to: '/progress', label: 'Progress', icon: <ProgressIcon /> }] : []),
+    { to: '/meetings', label: 'Meetings', icon: <CalendarIcon /> },
+    { to: '/billing', label: 'Billing', icon: <BillingIcon /> },
+  ];
+  const tab = ({ isActive }: { isActive: boolean }) =>
+    `flex min-h-16 w-full flex-col items-center justify-center gap-1 text-xs transition-colors ${isActive ? 'font-semibold text-gold-fg' : 'text-muted'}`;
+  const topLink = (i: ClientNavItem) => (
+    <NavLink key={i.to} to={i.to} className={navWord}>
+      <span className="lg:hidden"><NavLabel label={i.label} short={i.short} /></span>
+      <span className="hidden lg:inline">{i.label}</span>
+    </NavLink>
+  );
+  const tabLink = (i: ClientNavItem) => (
+    <li key={i.to} className="flex-1">
+      <NavLink to={i.to} className={tab}>{i.icon}<NavLabel label={i.label} short={i.short} /></NavLink>
+    </li>
+  );
 
   return (
     <div className="flex min-h-dvh flex-col pb-24 sm:pb-0">
       <SkipLink />
       <TopBar contentWidth="max-w-[70rem]">
         <nav aria-label="Main" className="mr-2 hidden items-stretch sm:flex">
-          {items.map((i) => (
-            <NavLink key={i.to} to={i.to} className={navWord}>
-              <span className="lg:hidden"><NavLabel label={i.label} short={i.short} /></span>
-              <span className="hidden lg:inline">{i.label}</span>
-            </NavLink>
-          ))}
+          {topLink(home)}
+          {grouped ? <ServicesMenu items={shown} placement="top" /> : shown.map(topLink)}
+          {after.map(topLink)}
         </nav>
         <ProfileLink />
       </TopBar>
@@ -155,21 +178,63 @@ export function ClientLayout() {
         className="fixed inset-x-0 bottom-0 z-10 border-t border-line bg-ink/90 pb-[env(safe-area-inset-bottom)] backdrop-blur-md sm:hidden"
       >
         <ul className="mx-auto flex max-w-md justify-around">
+          {tabLink(home)}
+          {grouped ? <li className="flex-1"><ServicesMenu items={shown} placement="tab" /></li> : shown.map(tabLink)}
+          {after.map(tabLink)}
+        </ul>
+      </nav>
+    </div>
+  );
+}
+
+/**
+ * The client's services behind one Services button: a dropdown under the top bar's word, or a panel
+ * above the phone tab bar. A disclosure of links rather than an ARIA menu, so it reads as navigation.
+ * It is marked current while one of its sections is open, and closes on navigation, Escape or a
+ * click outside.
+ */
+function ServicesMenu({ items, placement }: { items: ClientNavItem[]; placement: 'top' | 'tab' }) {
+  const [open, setOpen] = useState(false);
+  const root = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const id = useId();
+  const { pathname } = useLocation();
+  const active = items.some((i) => pathname === i.to || pathname.startsWith(`${i.to}/`));
+  useEffect(() => setOpen(false), [pathname]);
+  useEffect(() => {
+    if (!open) return;
+    const outside = (event: PointerEvent) => { if (!root.current?.contains(event.target as Node)) setOpen(false); };
+    document.addEventListener('pointerdown', outside);
+    return () => document.removeEventListener('pointerdown', outside);
+  }, [open]);
+  const top = placement === 'top';
+  return (
+    <div ref={root} className={`relative flex ${top ? '' : 'h-full'}`}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape' && open) { event.preventDefault(); setOpen(false); trigger.current?.focus(); }
+      }}
+      onBlur={(event) => { if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false); }}>
+      <button ref={trigger} type="button" aria-expanded={open} aria-controls={id} data-active={active || undefined}
+        onClick={() => setOpen((value) => !value)}
+        className={top
+          ? `nav-word flex min-h-12 items-center gap-1 px-3 text-sm ${active ? 'text-text' : 'text-muted hover:text-text'}`
+          : `flex min-h-16 w-full flex-col items-center justify-center gap-1 text-xs transition-colors ${active ? 'font-semibold text-gold-fg' : 'text-muted'}`}>
+        {top ? null : <ServicesIcon />}
+        Services
+        {top ? <span aria-hidden className={`transition-transform duration-150 motion-reduce:transition-none ${open ? '-rotate-90' : 'rotate-90'}`}><ChevronIcon open={false} /></span> : null}
+      </button>
+      {open ? (
+        <ul id={id} className={`absolute z-30 grid w-56 max-w-[calc(100vw-2rem)] rounded-card border border-line bg-surface p-1 shadow-lg ${top ? 'left-0 top-full mt-1' : 'bottom-full left-0 mb-2'}`}>
           {items.map((i) => (
-            <li key={i.to} className="flex-1">
-              <NavLink
-                to={i.to}
-                className={({ isActive }) =>
-                  `flex min-h-16 flex-col items-center justify-center gap-1 text-xs transition-colors ${isActive ? 'font-semibold text-gold-fg' : 'text-muted'}`
-                }
-              >
-                {i.icon}
-                <NavLabel label={i.label} short={i.short} />
+            <li key={i.to}>
+              <NavLink to={i.to}
+                className={({ isActive }) => `flex min-h-11 w-full items-center gap-3 rounded-card px-3 text-sm hover:bg-surface-raised ${isActive || pathname.startsWith(`${i.to}/`) ? 'font-semibold text-gold-fg' : 'text-text'}`}>
+                <span aria-hidden className="inline-flex shrink-0">{i.icon}</span>{i.label}
               </NavLink>
             </li>
           ))}
         </ul>
-      </nav>
+      ) : null}
     </div>
   );
 }

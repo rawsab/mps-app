@@ -732,3 +732,9 @@ Decision 0055, "Owner follow-ups".
 - `upcomingByZonedDay` in `src/domain/scheduling/upcoming.ts` groups by the profile zone's calendar dates, with unit tests (including a daylight saving change).
 - No server changes. The Help page What clients see is updated.
 - **Verification.** `pnpm verify` passes (446 tests). No browser checks; manual checks are in decision 0050.
+
+## Client meetings cards and client menu (2026-11-21)
+
+- Client Meetings (decision 0050): each meeting is a full-width row behind a gold rule, with the time and actions on one line and a details box below (coach, topic, length, repeats, programs as boxed links with their service icons, and the waiting request with Withdraw).
+- Client menu (decision 0058): Meetings and Billing are always in the menu. Two or more services share one Services item: a dropdown in the top bar, a panel above the phone tab bar.
+- **Verification.** `pnpm verify` passes (446 tests). No browser checks; manual checks are in decisions 0050 and 0058.

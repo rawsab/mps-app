@@ -1,6 +1,6 @@
 # 0051 — Client navigation per service
 
-Date: 2026-11-20 · Status: accepted (2026-11-20 planning session, plan item 3) · Navigation built; PT dashboard pending
+Date: 2026-11-20 · Status: accepted (2026-11-20 planning session, plan item 3) · Navigation built; PT dashboard pending · Menu updated by decision 0058
 
 - **Sections.** Client navigation is Home · Mesocycle · Personal training · Nutrition · Progress. Each training service gets its own section instead of a shared "Training" one. `clientSections` returns `mesocycle`, `personalTraining`, `nutrition` and `progress`, and the route guards check the section for each route. Progress is shown when any service is active, as before.
 - **Routes.**

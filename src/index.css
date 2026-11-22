@@ -181,7 +181,8 @@ html[data-theme='light'] .brand-logo {
   transform-origin: left;
   transition: transform 150ms var(--ease-ui);
 }
-.nav-word[aria-current='page']::after {
+.nav-word[aria-current='page']::after,
+.nav-word[data-active]::after {
   transform: scaleX(1);
 }
 
