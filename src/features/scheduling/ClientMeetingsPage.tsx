@@ -1,14 +1,15 @@
 import { useMemo } from 'react';
 import { useViewer } from '@/app/auth';
-import { ArrowUpRightIcon } from '@/components/icons';
-import { Alert, Badge, EmptyState, PageHeader } from '@/components/ui';
+import { Avatar } from '@/components/Avatar';
+import { Alert, Badge, Card, EmptyState, PageHeader } from '@/components/ui';
 import { LoadingRegion, SkeletonText } from '@/components/Skeleton';
+import { countdown } from '@/domain/scheduling/calendar';
 import { upcomingByZonedDay } from '@/domain/scheduling/upcoming';
 import { useNextMeeting, useNow } from '@/features/home/api';
-import { JOIN_EARLY_MS } from '@/features/home/UpcomingMeeting';
+import { JoinCall, MeetingProgramLinks, useCoachPhoto } from '@/features/home/UpcomingMeeting';
 import { schedulingError, type Meeting } from './api';
 import { ChangeButtons, PendingRequestNotice, useMeetingChange } from './MeetingRequestControls';
-import { MeetingListSkeleton } from './MeetingSkeletons';
+import { MeetingCardSkeleton } from './MeetingSkeletons';
 import { topicLabel } from './MeetingTopic';
 import { sessionRange, zoneLabel } from './time';
 import { useMeetingToast } from './useMeetingToast';
@@ -35,7 +36,12 @@ export function ClientMeetingsPage() {
       {toast.element}
       {meetings.isPending ? (
         <LoadingRegion label="Loading meetings" className="grid gap-6">
-          {[2, 1].map((count, i) => <div key={i}><SkeletonText size="base" width="w-36" className="mb-2" /><MeetingListSkeleton count={count} /></div>)}
+          {[2, 1].map((count, i) => (
+            <div key={i}>
+              <SkeletonText size="base" width="w-36" className="mb-3" />
+              <div className="grid gap-3 md:grid-cols-2">{Array.from({ length: count }, (_, j) => <MeetingCardSkeleton key={j} actions={2} />)}</div>
+            </div>
+          ))}
         </LoadingRegion>
       ) : null}
       <Alert visible={!!meetings.error} title="Could not load meetings">{schedulingError(meetings.error)}</Alert>
@@ -44,12 +50,12 @@ export function ClientMeetingsPage() {
         <div className="grid gap-7">
           {days.map((day) => (
             <section key={day.date} aria-labelledby={`day-${day.date}`}>
-              <h2 id={`day-${day.date}`} className="mb-1 text-base font-semibold">
+              <h2 id={`day-${day.date}`} className="mb-3 text-base font-semibold">
                 {day.offset === 0 ? 'Today' : day.offset === 1 ? 'Tomorrow' : dayName(day.date)}
                 {day.offset === 0 || day.offset === 1 ? <span className="font-normal text-muted"> · {dayName(day.date)}</span> : null}
               </h2>
-              <ul className="divide-y divide-line">
-                {day.sessions.map((m) => <MeetingItem key={m.id} meeting={m} timeZone={viewer.timezone} now={now} onSent={(message) => toast.show(message)} />)}
+              <ul className="grid gap-3 md:grid-cols-2">
+                {day.sessions.map((m) => <MeetingCard key={m.id} meeting={m} timeZone={viewer.timezone} now={now} onSent={(message) => toast.show(message)} />)}
               </ul>
             </section>
           ))}
@@ -59,44 +65,56 @@ export function ClientMeetingsPage() {
   );
 }
 
-function MeetingItem({ meeting, timeZone, now, onSent }: { meeting: Meeting; timeZone: string; now: number; onSent: (message: string) => void }) {
+/**
+ * One meeting as a card: when, then who and what, then any request waiting, with the actions in a
+ * footer. A cancelled meeting keeps only its time, details and status, faded.
+ */
+function MeetingCard({ meeting, timeZone, now, onSent }: { meeting: Meeting; timeZone: string; now: number; onSent: (message: string) => void }) {
   const change = useMeetingChange(meeting, timeZone, onSent);
   const cancelled = meeting.status === 'cancelled' || meeting.status === 'late_cancelled';
   const start = Date.parse(meeting.startsAt);
   const live = !cancelled && start <= now;
-  const joinable = start - JOIN_EARLY_MS <= now;
-  const programs = meeting.programs.filter((p) => p.programId).map((p) => p.title?.trim() || 'Untitled program');
-  const details = [meeting.coachName ? `With ${meeting.coachName}` : '', `${meeting.durationMinutes} min`, topicLabel(meeting.services), ...programs,
-    meeting.scheduleId ? '↻ Repeating' : 'One-off'].filter(Boolean).join(' · ');
+  const wait = countdown(now, start);
+  const coach = meeting.coachName ?? 'Your coach';
+  const photo = useCoachPhoto(meeting.coachAvatarPath);
   return (
-    <li className="flex gap-3 py-3">
-      {/* Gold for meetings still to come, faint for cancelled, like the coach's meeting rows. */}
-      <span aria-hidden className={`w-1 shrink-0 self-stretch rounded-full ${cancelled ? 'bg-line' : 'bg-gold'}`} />
-      <div className="min-w-0 flex-1">
-        <div className="flex flex-wrap items-start justify-between gap-x-3 gap-y-1">
+    <li className="min-w-0">
+      <Card as="div" padding="none" fill={cancelled ? 'page' : 'surface'} className="flex h-full flex-col">
+        {/* When: the time leads, with its status or how long until it starts. */}
+        <div className="flex items-start justify-between gap-3 px-4 pt-4">
           <div className="min-w-0">
-            <p className={`text-sm font-medium tabular-nums ${cancelled ? 'text-muted line-through' : ''}`}>{sessionRange(meeting.startsAt, meeting.durationMinutes, timeZone)}</p>
-            <p className="text-xs text-muted">{details}</p>
+            <p className={`text-lg font-semibold tabular-nums ${cancelled ? 'text-muted line-through' : ''}`}>{sessionRange(meeting.startsAt, meeting.durationMinutes, timeZone)}</p>
+            <p className="text-xs text-muted">{meeting.durationMinutes} min · {meeting.scheduleId ? '↻ Repeating' : 'One-off'}</p>
           </div>
-          <span className="flex shrink-0 flex-wrap gap-1">
-            {live ? <Badge tone="gold">Now</Badge> : null}
+          <span className="flex shrink-0 flex-wrap justify-end gap-1 pt-1">
             {meeting.status === 'cancelled' ? <Badge>Cancelled</Badge> : null}
             {meeting.status === 'late_cancelled' ? <Badge tone="danger">Late cancellation</Badge> : null}
+            {live ? <Badge tone="gold">Now</Badge> : null}
+            {!cancelled && !live && wait ? <span className="text-xs text-muted">In {wait.split(', ')[0]}</span> : null}
           </span>
         </div>
-        <PendingRequestNotice meeting={meeting} timeZone={timeZone} onWithdraw={change.withdraw} className="mt-2" />
-        {!cancelled ? (
-          <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
-            {meeting.meetingUrl && meeting.status === 'scheduled' ? (
-              <a href={meeting.meetingUrl} target="_blank" rel="noreferrer"
-                className={`btn-motion inline-flex min-h-11 items-center gap-1.5 rounded-card text-sm font-medium ${joinable ? 'bg-gold px-4 font-semibold text-on-gold hover:bg-gold-hover' : 'text-gold-fg'}`}>
-                <span className={joinable ? '' : 'link'}>Join call</span><ArrowUpRightIcon />
-              </a>
-            ) : <span />}
-            <ChangeButtons meeting={meeting} now={now} onChange={change.change} className="-mr-3 ml-auto" />
+        {/* Who and what. */}
+        <div className={`flex items-center gap-3 px-4 pt-3 ${cancelled ? 'pb-4 opacity-70' : ''}`}>
+          <Avatar url={photo.data} name={coach} className="size-9 shrink-0" />
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium">{coach}</p>
+            <p className="truncate text-xs text-muted">{topicLabel(meeting.services)}</p>
           </div>
+        </div>
+        {!cancelled ? (
+          <>
+            <MeetingProgramLinks meeting={meeting} className="px-4 pt-3" />
+            <PendingRequestNotice meeting={meeting} timeZone={timeZone} onWithdraw={change.withdraw} className="mx-4 mt-3" />
+            {/* Actions sit at the bottom, so cards in a row line up. */}
+            <div className="mt-auto pt-4">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-4 py-2.5">
+                <JoinCall meeting={meeting} now={now} />
+                <ChangeButtons meeting={meeting} now={now} onChange={change.change} className="-mr-3 ml-auto" />
+              </div>
+            </div>
+          </>
         ) : null}
-      </div>
+      </Card>
       {change.dialogs}
     </li>
   );

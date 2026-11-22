@@ -46,6 +46,7 @@ Date: 2026-11-20 · Status: accepted (owner request) · Phases A–C built
   - `/meetings` lists every meeting in Home's 60-day range, across services, grouped by day in the client's **profile** zone (`upcomingByZonedDay`; `upcomingByDay` groups by the browser's zone, which can differ). Days read Today, Tomorrow, then the full date.
   - Each meeting shows its time, coach, length, topic, programs and repeat state, Join call, and the same Reschedule, Cancel meeting, pending state and Withdraw as Home (`MeetingRequestControls.tsx`, now shared by both).
   - Cancelled meetings stay listed, crossed out, as on the PT page.
+  - Each meeting is a card (two per row from tablet width): the time with its length, repeat state and countdown or status; the coach's photo, name and topic; program links; any waiting request; then a footer with Join call, Reschedule and Cancel meeting. Cancelled cards are faded and keep only the time, coach and status.
   - Home's meeting heading links to it as **All meetings**. The PT page doesn't, since it lists its own sessions. There is no nav item.
   - The page reuses Home's query, so no server changes. Answers to requests still show only on Home.
   - Manual checks: open Home as a client and select All meetings. Check the days and times match the profile zone. Reschedule and cancel a later meeting (not the next one), then withdraw. Check a cancelled meeting is crossed out with no buttons. Check the page at phone width.
