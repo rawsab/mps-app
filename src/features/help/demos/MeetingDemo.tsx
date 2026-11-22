@@ -21,10 +21,10 @@ export function AttendanceDemo() {
 export function PatternDemo() {
   const script = MEETING_DEMOS['repeating-pattern'];
   // Every day the demo adds, so each row is drawn from the start and can unfold when its day is chosen.
-  const days = script.frames.at(-1)!.state.slots;
+  const days = script.frames.at(-1)!.state.saved!.slots;
   // The dialog at its tallest, with every day open, sizes the picture. The dialog stays centred in it
   // and grows from the middle as days are added.
-  const tallest: PatternDemoState = { ...script.frames.at(-1)!.state, saved: false, changed: [] };
+  const tallest = script.frames.reduce((a, b) => (b.state.slots.length > a.state.slots.length ? b : a)).state;
   return <DemoPlayer script={script} render={(state) => (
     <div className="grid">
       {/* The real picture comes first, so the pointer finds its targets rather than the sizer's. */}
@@ -96,7 +96,7 @@ function Field({ label, children, target }: { label: string; children: ReactNode
  */
 function PatternPicture({ state, days }: { state: PatternDemoState; days: PatternDemoState['slots'] }) {
   const changed = new Set(state.changed ?? []);
-  const summary = describePattern({ cycleWeeks: 1, slots: state.slots.map((slot) => ({ ...slot, cycleWeek: 1 })) }).summary;
+  const summary = describePattern({ cycleWeeks: 1, slots: (state.saved?.slots ?? []).map((slot) => ({ ...slot, cycleWeek: 1 })) }).summary;
   return (
     <div className="grid w-[34rem] text-left text-sm text-text">
       <div className={`self-center rounded-card border border-line bg-surface shadow-popover transition-opacity duration-300 [grid-area:1/1] ${state.saved ? 'opacity-0' : 'opacity-100'}`}>
@@ -162,7 +162,7 @@ function PatternPicture({ state, days }: { state: PatternDemoState; days: Patter
           </span>
         </div>
         <ul className="mt-3 divide-y divide-line">
-          {state.preview.slice(0, 3).map((item) => (
+          {(state.saved?.preview ?? []).slice(0, 3).map((item) => (
             <li key={item.startsAt} className="flex min-h-14 items-center gap-3 py-2 pl-2">
               <span aria-hidden className="w-1 self-stretch rounded-full bg-gold" />
               <span className="w-28 font-medium">{sessionDay(item.startsAt, DEMO_TIME_ZONE)}</span>

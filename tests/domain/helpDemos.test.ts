@@ -138,8 +138,12 @@ describe('meeting demo scripts', () => {
   });
 
   it('fills the next meetings from the chosen days, in date order', () => {
-    const last = MEETING_DEMOS['repeating-pattern'].frames.at(-1)!.state;
-    const local = last.preview.map((item) => zonedDateTime(item.startsAt, DEMO_TIME_ZONE));
+    const frames = MEETING_DEMOS['repeating-pattern'].frames;
+    const last = frames.at(-1)!.state;
+    // The dialog is reset behind the Meetings card, ready for the next loop.
+    expect(last.slots).toEqual([]);
+    expect(frames[0]!.state.slots).toEqual([]);
+    const local = last.saved!.preview.map((item) => zonedDateTime(item.startsAt, DEMO_TIME_ZONE));
     expect(local.map((d) => `${d.date} ${d.time}`)).toEqual([
       '2026-12-01 07:00', '2026-12-03 18:00', '2026-12-08 07:00', '2026-12-10 18:00', '2026-12-15 07:00', '2026-12-17 18:00',
     ]);

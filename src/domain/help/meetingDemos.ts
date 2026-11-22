@@ -78,8 +78,11 @@ export type PatternDemoState = {
   startsOn: string;
   /** The dialog's Next meetings list. */
   preview: PatternPreviewItem[];
-  /** After Set up meetings: the dialog has closed onto the client's Meetings card. */
-  saved: boolean;
+  /**
+   * After Set up meetings: the dialog has closed onto the client's Meetings card, which shows this
+   * pattern. Kept apart from the dialog's own fields, so the hidden dialog can reset for the next loop.
+   */
+  saved: { slots: PatternDemoSlot[]; preview: PatternPreviewItem[] } | null;
   changed?: string[];
 };
 
@@ -112,25 +115,29 @@ const THURSDAY = 4;
 
 function repeatingPattern(): DemoScript<PatternDemoState> {
   const startsOn = '2026-11-30';
-  const state = (slots: PatternDemoSlot[], extra: Partial<PatternDemoState> = {}): PatternDemoState => ({ slots, startsOn, preview: patternPreview(slots, startsOn), saved: false, ...extra });
+  const state = (slots: PatternDemoSlot[], extra: Partial<PatternDemoState> = {}): PatternDemoState => ({ slots, startsOn, preview: patternPreview(slots, startsOn), saved: null, ...extra });
   // A new day copies the last day's time and length, as the dialog does.
   const tue: PatternDemoSlot = { weekday: TUESDAY, startTime: '07:00', durationMinutes: 60 };
   const thu: PatternDemoSlot = { ...tue, weekday: THURSDAY };
   const thuEvening: PatternDemoSlot = { ...thu, startTime: '18:00' };
   const final = [tue, thuEvening];
   const dates = (slots: PatternDemoSlot[]) => patternPreview(slots, startsOn).map((item) => item.startsAt);
+  const saved = { slots: final, preview: patternPreview(final, startsOn) };
+  const done = 'The pattern shows on the client’s Meetings card, and its meetings are marked Repeating.';
   type Frame = DemoFrame<PatternDemoState>;
   const frames: Frame[] = [
-    { state: state([]), ms: 800, caption: 'Repeat meetings opens the pattern. Choose the days first.', pointer: { target: dayToggleTarget(TUESDAY) } },
-    { state: state([]), ms: 400, caption: 'Repeat meetings opens the pattern. Choose the days first.', pointer: { target: dayToggleTarget(TUESDAY), press: true } },
-    { state: state([tue], { changed: dates([tue]) }), ms: 1100, caption: 'Tuesday starts at 7:00 AM for 60 minutes. Next meetings fills in.', pointer: { target: dayToggleTarget(THURSDAY) } },
-    { state: state([tue]), ms: 400, caption: 'Add Thursday. It copies Tuesday’s time and length.', pointer: { target: dayToggleTarget(THURSDAY), press: true } },
-    { state: state([tue, thu], { changed: dates([tue, thu]).filter((d) => !dates([tue]).includes(d)) }), ms: 2400, caption: 'Add Thursday. It copies Tuesday’s time and length.', pointer: { target: startTarget(THURSDAY) } },
-    { state: state([tue, thu]), ms: 400, caption: 'Thursdays are in the evening, so change the start.', pointer: { target: startTarget(THURSDAY), press: true } },
-    { state: state(final, { changed: dates(final).filter((d) => !dates([tue, thu]).includes(d)) }), ms: 2600, caption: 'Thursdays are in the evening, so change the start.', pointer: { target: startTarget(THURSDAY) } },
-    { state: state(final), ms: 900, caption: 'Select Set up meetings.', pointer: { target: SET_UP_TARGET } },
-    { state: state(final), ms: 400, caption: 'Select Set up meetings.', pointer: { target: SET_UP_TARGET, press: true } },
-    { state: state(final, { saved: true }), ms: 3400, caption: 'The pattern shows on the client’s Meetings card, and its meetings are marked Repeating.', pointer: { target: PATTERN_ROW_TARGET } },
+    { state: state([]), ms: 600, caption: 'Repeat meetings opens the pattern. Choose the days first.', pointer: { target: dayToggleTarget(TUESDAY) } },
+    { state: state([]), ms: 300, caption: 'Repeat meetings opens the pattern. Choose the days first.', pointer: { target: dayToggleTarget(TUESDAY), press: true } },
+    { state: state([tue], { changed: dates([tue]) }), ms: 1000, caption: 'Tuesday starts at 7:00 AM for 60 minutes. Next meetings fills in.', pointer: { target: dayToggleTarget(THURSDAY) } },
+    { state: state([tue]), ms: 300, caption: 'Add Thursday. It copies Tuesday’s time and length.', pointer: { target: dayToggleTarget(THURSDAY), press: true } },
+    { state: state([tue, thu], { changed: dates([tue, thu]).filter((d) => !dates([tue]).includes(d)) }), ms: 1600, caption: 'Add Thursday. It copies Tuesday’s time and length.', pointer: { target: startTarget(THURSDAY) } },
+    { state: state([tue, thu]), ms: 300, caption: 'Thursdays are in the evening, so change the start.', pointer: { target: startTarget(THURSDAY), press: true } },
+    { state: state(final, { changed: dates(final).filter((d) => !dates([tue, thu]).includes(d)) }), ms: 1800, caption: 'Thursdays are in the evening, so change the start.', pointer: { target: startTarget(THURSDAY) } },
+    { state: state(final), ms: 600, caption: 'Select Set up meetings.', pointer: { target: SET_UP_TARGET } },
+    { state: state(final), ms: 300, caption: 'Select Set up meetings.', pointer: { target: SET_UP_TARGET, press: true } },
+    // The dialog fades out as filled in, then resets while hidden, so the next loop opens it empty.
+    { state: state(final, { saved }), ms: 500, caption: done, pointer: { target: PATTERN_ROW_TARGET } },
+    { state: state([], { saved }), ms: 2200, caption: done, pointer: { target: PATTERN_ROW_TARGET } },
   ];
   return {
     id: 'repeating-pattern',
