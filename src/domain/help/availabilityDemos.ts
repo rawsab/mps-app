@@ -120,11 +120,11 @@ function openTimes(): DemoScript<OpenTimesDemoState> {
   const all: OpenTimesLane[] = ['hours', 'extra', 'timeOff', 'meetings', 'notice'];
   const starts = dayOpenTimes(day);
   const frames: Frame[] = [
-    { state: state(['hours']), ms: 2200, caption: 'Start with your working hours for Tuesday: 9 AM to 12 PM, then 1 PM to 5 PM.', pointer: { target: laneTarget('hours') } },
-    { state: state(['hours', 'extra']), ms: 2200, caption: 'Extra hours add time. This week you also work 5 PM to 6 PM.', pointer: { target: laneTarget('extra') } },
-    { state: state(['hours', 'extra', 'timeOff']), ms: 2200, caption: 'Time off takes time away: 3 PM to 4 PM here.', pointer: { target: laneTarget('timeOff') } },
-    { state: state(['hours', 'extra', 'timeOff', 'meetings']), ms: 2500, caption: 'Booked meetings are taken, with your 15 minute gap kept free on each side.', pointer: { target: laneTarget('meetings') } },
-    { state: state(all), ms: 2500, caption: 'Your notice is 12 hours. It’s Monday at 9:30 PM, so nothing before 9:30 AM.', pointer: { target: laneTarget('notice') } },
+    { state: state(['hours']), ms: 1300, caption: 'Start with your working hours for Tuesday: 9 AM to 12 PM, then 1 PM to 5 PM.', pointer: { target: laneTarget('hours') } },
+    { state: state(['hours', 'extra']), ms: 1300, caption: 'Extra hours add time. This week you also work 5 PM to 6 PM.', pointer: { target: laneTarget('extra') } },
+    { state: state(['hours', 'extra', 'timeOff']), ms: 1300, caption: 'Time off takes time away: 3 PM to 4 PM here.', pointer: { target: laneTarget('timeOff') } },
+    { state: state(['hours', 'extra', 'timeOff', 'meetings']), ms: 1600, caption: 'Booked meetings are taken, with your 15 minute gap kept free on each side.', pointer: { target: laneTarget('meetings') } },
+    { state: state(all), ms: 1600, caption: 'Your notice is 12 hours. It’s Monday at 9:30 PM, so nothing before 9:30 AM.', pointer: { target: laneTarget('notice') } },
     { state: state(all, { starts }), ms: 1800, caption: 'A 60 minute session can start every 15 minutes where the whole hour fits.', pointer: { target: laneTarget('open') } },
     // The picker unfolds first; the pointer waits until it has settled.
     { state: state(all, { starts, picker: starts }), ms: 450, caption: 'The client picks from these times, shown in their own time zone.', pointer: { target: laneTarget('open') } },
