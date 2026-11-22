@@ -723,6 +723,5 @@ Decision 0055, "Owner follow-ups".
   - Profile settings: a first-time setup list.
   - Getting started: a First steps list.
 - "See … in Help" references on every page are now links.
-- Accuracy fixes: the client row menu is a right-click menu. The starting weight change is worked out, not typed. Correction history includes client corrections. Only clients see **Missing** highlights; the coach's spreadsheet leaves the cells blank. The Nutrition page and its correction demo now match, and a test pins it.
-- **Open question for the owner:** should coaches see Missing highlights too? The app has hidden them from coaches since decision 0029. Help now describes the app as it is.
+- Accuracy fixes: the client row menu is a right-click menu. The starting weight change is worked out, not typed. Correction history includes client corrections. Coaches now see **Missing** highlights too (owner choice). They were shown only to clients before; the flag is removed, and the Nutrition page, its correction demo and a test match.
 - **Verification.** `pnpm verify` passes (444 tests). No browser checks; manual checks are in decision 0057.

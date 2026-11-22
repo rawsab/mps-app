@@ -42,3 +42,7 @@ Decision 0033 allows coaches to edit shared daily actuals directly from a workin
 5. Paste a small numeric rectangle; check a rejected paste cannot partially save. Open the same record in two tabs and check stale edits fail visibly.
 6. Publish an overlapping program and confirm the warning permits it and shared dates show the same actuals. Correct a value as coach and inspect correction history.
 7. Archive a program and confirm history remains readable. Check both themes and phone width; the main spreadsheet scrolls inside its frame and the weekly summaries stack below it.
+
+## Update 2026-11-21
+
+- Coaches now see **Missing** highlights and the "Some entries are missing" notice in the nutrition spreadsheet, as clients do (owner choice). They were client-only before.

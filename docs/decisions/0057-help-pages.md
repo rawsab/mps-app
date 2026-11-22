@@ -44,7 +44,7 @@ The test checks that the manifest and files match and that section ids are uniqu
 - [ ] ⌘K: "help", "docs" and "billing" show the Help pages under a Help group.
 - [ ] Programs in Help lists Mesocycle, Personal training and Nutrition. Both training pages include the editor sections (Drafts and publishing through Current and archived programs) between their own sections, and their topic lists and search results show those headings.
 - [ ] Demos (Mesocycle or Personal training page): each plays when scrolled into view and stops when scrolled away. The pointer moves to each cell, the caption under it follows along, and Pause and Play work. With reduced motion turned on in your system settings, each opens on its last frame, paused. On a phone the picture shrinks to fit, and the pointer still lands on the right cells.
-- [ ] Nutrition demos: the client's log card types three values and saves, and Tuesday's row fills in with the gold flash. The "Calories for Nov 2" note appears under Tuesday's calorie cell. Average Weight appears on Wednesday. In the second demo, Wednesday's blank calorie cell (no Missing label, as in your spreadsheet), the corrected cell's tint, and Correction history opening below the table all read clearly.
+- [ ] Nutrition demos: the client's log card types three values and saves, and Tuesday's row fills in with the gold flash. The "Calories for Nov 2" note appears under Tuesday's calorie cell. Average Weight appears on Wednesday. In the second demo, the Missing cells, the corrected cell's tint, and Correction history opening below the table all read clearly.
 - [ ] New pages: Roles and permissions and What clients see sit under Start here, and Availability and open times between Meetings and Billing. Each has a thumbnail (an admin row menu, the client's Home, a week of open times).
 - [ ] Meetings demos: the attendance rows leave one at a time, the notice shows with Undo, and the undone meeting fades back in. In the pattern demo, Tuesday then Thursday light up, the day rows appear, and Next meetings fills in with the new dates flashing gold. It ends on the Meetings card.
 - [ ] Open times demo: each lane fades in with its caption, the Open lane shrinks to match, the gold ticks mark the start times, and the client's picker appears last. The time off and Too soon stripes read clearly in light and dark mode.
@@ -97,7 +97,7 @@ Status: **steps 1 to 5 built 2026-11-21** (the demo player, demos 1 to 10, the f
 - **Accuracy fixes:**
   - The client row menu opens with a right-click, not from a button at the end of the row.
   - Starting Predicted Weight Change Per Week is worked out, not typed in. Program Style is required to publish.
-  - Only the client's own spreadsheet highlights **Missing** cells (`showMissingEntries={!coach}`, there since decision 0029). The coach's leaves them blank. The Nutrition page and the correction demo said the coach's highlighted them; both now match the app.
+  - **Missing** highlights were shown only to clients (`showMissingEntries={!coach}`). The owner chose to show them to coaches too (2026-11-21), so the flag is gone and the Nutrition page and correction demo stay as written.
   - Correction history lists client corrections too, not only coach ones.
 
 **Pages (13).** Each page gets numbered step-by-step guides for its common jobs, with short explanations around them.

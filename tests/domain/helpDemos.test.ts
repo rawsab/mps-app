@@ -105,8 +105,8 @@ describe('nutrition demo scripts', () => {
 
   it('correct the typo through the spreadsheet’s own plan, marked as a coach edit', () => {
     const frames = NUTRITION_DEMOS['nutrition-correction'].frames;
-    // The coach's spreadsheet leaves missing entries blank; only the client's highlights them.
-    expect(frames.some((frame) => frame.state.showMissing)).toBe(false);
+    // Coach and client spreadsheets both highlight missing entries.
+    expect(frames[0]!.state.showMissing).toBe(true);
     expect(nutritionGridMissing({ exerciseId: '2026-11-04', column: 2 }, frames[0]!.state.today, text(frames[0]!.state, '2026-11-04', 2))).toBe(true);
     expect(text(frames[0]!.state, '2026-11-05', 2)).toBe('28100');
     const last = frames.at(-1)!.state;
