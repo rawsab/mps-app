@@ -737,4 +737,5 @@ Decision 0055, "Owner follow-ups".
 
 - Client Meetings (decision 0050): each meeting is a full-width row behind a gold rule, with the time and actions on one line and a details box below (coach, topic, length, repeats, programs as boxed links with their service icons, and the waiting request with Withdraw).
 - Client menu (decision 0058): Meetings and Billing are always in the menu. Two or more services share one Services item: a dropdown in the top bar, a panel above the phone tab bar.
+- On phones the Services tab opens a `/services` page: each service with its programs, the current one first and marked Current (decision 0058).
 - **Verification.** `pnpm verify` passes (446 tests). No browser checks; manual checks are in decisions 0050 and 0058.

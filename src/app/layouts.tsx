@@ -164,7 +164,7 @@ export function ClientLayout() {
       <TopBar contentWidth="max-w-[70rem]">
         <nav aria-label="Main" className="mr-2 hidden items-stretch sm:flex">
           {topLink(home)}
-          {grouped ? <ServicesMenu items={shown} placement="top" /> : shown.map(topLink)}
+          {grouped ? <ServicesMenu items={shown} /> : shown.map(topLink)}
           {after.map(topLink)}
         </nav>
         <ProfileLink />
@@ -179,7 +179,7 @@ export function ClientLayout() {
       >
         <ul className="mx-auto flex max-w-md justify-around">
           {tabLink(home)}
-          {grouped ? <li className="flex-1"><ServicesMenu items={shown} placement="tab" /></li> : shown.map(tabLink)}
+          {grouped ? <li className="flex-1"><ServicesTab items={shown} className={tab} /></li> : shown.map(tabLink)}
           {after.map(tabLink)}
         </ul>
       </nav>
@@ -187,14 +187,20 @@ export function ClientLayout() {
   );
 }
 
+/** The phone tab for grouped services: opens the Services page, and stays current inside any service. */
+function ServicesTab({ items, className }: { items: ClientNavItem[]; className: (state: { isActive: boolean }) => string }) {
+  const { pathname } = useLocation();
+  const inService = items.some((i) => pathname === i.to || pathname.startsWith(`${i.to}/`));
+  return <NavLink to="/services" className={({ isActive }) => className({ isActive: isActive || inService })}><ServicesIcon />Services</NavLink>;
+}
+
 /**
- * The client's services behind one Services button: a dropdown under the top bar's word, or a panel
- * above the phone tab bar. A disclosure of links rather than an ARIA menu, so it reads as navigation.
- * It is marked current while one of its sections is open, and closes on navigation, Escape or a
- * click outside. With a mouse, the top bar's dropdown also opens on hover and closes shortly after
- * the pointer leaves, so it survives the gap between the word and the list.
+ * The top bar's Services dropdown: a disclosure of links rather than an ARIA menu, so it reads as
+ * navigation. It is marked current while one of its sections is open, and closes on navigation,
+ * Escape or a click outside. With a mouse it also opens on hover and closes shortly after the
+ * pointer leaves, so it survives the gap between the word and the list. Phones get ServicesTab.
  */
-function ServicesMenu({ items, placement }: { items: ClientNavItem[]; placement: 'top' | 'tab' }) {
+function ServicesMenu({ items }: { items: ClientNavItem[] }) {
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -206,7 +212,7 @@ function ServicesMenu({ items, placement }: { items: ClientNavItem[]; placement:
   const closeTimer = useRef<number | undefined>(undefined);
   const byHover = useRef(false);
   useEffect(() => () => window.clearTimeout(closeTimer.current), []);
-  const hover = placement === 'top' ? {
+  const hover = {
     onPointerEnter: (event: ReactPointerEvent) => {
       if (event.pointerType !== 'mouse') return;
       window.clearTimeout(closeTimer.current);
@@ -216,16 +222,15 @@ function ServicesMenu({ items, placement }: { items: ClientNavItem[]; placement:
       if (event.pointerType !== 'mouse') return;
       closeTimer.current = window.setTimeout(() => { byHover.current = false; setOpen(false); }, 200);
     },
-  } : {};
+  };
   useEffect(() => {
     if (!open) return;
     const outside = (event: PointerEvent) => { if (!root.current?.contains(event.target as Node)) setOpen(false); };
     document.addEventListener('pointerdown', outside);
     return () => document.removeEventListener('pointerdown', outside);
   }, [open]);
-  const top = placement === 'top';
   return (
-    <div ref={root} className={`relative flex ${top ? '' : 'h-full'}`} {...hover}
+    <div ref={root} className="relative flex" {...hover}
       onKeyDown={(event) => {
         if (event.key === 'Escape' && open) { event.preventDefault(); setOpen(false); trigger.current?.focus(); }
       }}
@@ -235,15 +240,12 @@ function ServicesMenu({ items, placement }: { items: ClientNavItem[]; placement:
           if (byHover.current) { byHover.current = false; return; }
           setOpen((value) => !value);
         }}
-        className={top
-          ? `nav-word flex min-h-12 items-center gap-1 px-3 text-sm ${active ? 'text-text' : 'text-muted hover:text-text'}`
-          : `flex min-h-16 w-full flex-col items-center justify-center gap-1 text-xs transition-colors ${active ? 'font-semibold text-gold-fg' : 'text-muted'}`}>
-        {top ? null : <ServicesIcon />}
+        className={`nav-word flex min-h-12 items-center gap-1 px-3 text-sm ${active ? 'text-text' : 'text-muted hover:text-text'}`}>
         Services
-        {top ? <span aria-hidden className={`transition-transform duration-150 motion-reduce:transition-none ${open ? '-rotate-90' : 'rotate-90'}`}><ChevronIcon open={false} /></span> : null}
+        <span aria-hidden className={`transition-transform duration-150 motion-reduce:transition-none ${open ? '-rotate-90' : 'rotate-90'}`}><ChevronIcon open={false} /></span>
       </button>
       {open ? (
-        <ul id={id} className={`absolute z-30 grid w-56 max-w-[calc(100vw-2rem)] rounded-card border border-line bg-surface p-1 shadow-lg ${top ? 'left-0 top-full mt-1' : 'bottom-full left-0 mb-2'}`}>
+        <ul id={id} className="absolute left-0 top-full z-30 mt-1 grid w-56 max-w-[calc(100vw-2rem)] rounded-card border border-line bg-surface p-1 shadow-lg">
           {items.map((i) => (
             <li key={i.to}>
               <NavLink to={i.to}

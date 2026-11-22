@@ -5,7 +5,7 @@ import { Alert, Badge, Button, EmptyState, PageHeader } from '@/components/ui';
 import { LoadingRegion, Skeleton, SkeletonText, SkeletonHeader, SkeletonTable } from '@/components/Skeleton';
 import { NutritionIcon } from '@/components/icons';
 import { activeNutritionProgram } from '@/domain/clientHome';
-import { nutritionWeeks } from '@/domain/nutritionProgram';
+import { nutritionWeeks, type NutritionProgramSummary } from '@/domain/nutritionProgram';
 import { formatDate } from '@/lib/format';
 import { nutritionError, useNutrition } from './api';
 import { useNutritionProgram, useNutritionPrograms } from './programApi';
@@ -30,15 +30,20 @@ export function NutritionPage({ coach = false }: { coach?: boolean }) {
     <Alert visible={!!daily.error} title="Daily entry unavailable">{nutritionError(daily.error)}</Alert>
     {daily.error ? <Button variant="secondary" onClick={() => void daily.refetch()}>Retry daily entry</Button> : null}
     {programs.data?.length ? <h2 className={`${active ? 'mt-10' : 'mt-4'} mb-2 text-lg font-semibold`}>Your programs</h2> : null}
-    <ul className="divide-y divide-line">{programs.data?.map((p) => <li key={p.id}>
-      <Link to={`/nutrition/${p.id}`} className="row-link group flex min-h-16 items-center gap-3 rounded-card px-2 py-3 hover:bg-surface-raised">
-        <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-success/10 text-success [&>svg]:size-4"><NutritionIcon /></span>
-        <div className="min-w-0 flex-1"><p className="break-words font-medium">{p.program_style}</p><p className="text-xs text-muted">Nutritional programming · {p.week_count} weeks · Start Date {formatDate(p.start_date)}</p></div>
-        {p.is_current && !p.archived_at ? <Badge tone="gold">Current</Badge> : null}{p.archived_at ? <Badge>Archived</Badge> : null}<span aria-hidden className="text-muted group-hover:text-text">→</span>
-      </Link>
-    </li>)}</ul>
+    <ul className="divide-y divide-line">{programs.data?.map((p) => <NutritionProgramRow key={p.id} program={p} />)}</ul>
     {active ? <UseNotice className="mt-10 border-t border-line pt-6" /> : null}
   </div>;
+}
+
+/** One nutritional program in a client list, marked Current or Archived. */
+export function NutritionProgramRow({ program: p }: { program: NutritionProgramSummary }) {
+  return <li>
+    <Link to={`/nutrition/${p.id}`} className="row-link group flex min-h-16 items-center gap-3 rounded-card px-2 py-3 hover:bg-surface-raised">
+      <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-success/10 text-success [&>svg]:size-4"><NutritionIcon /></span>
+      <div className="min-w-0 flex-1"><p className="break-words font-medium">{p.program_style}</p><p className="text-xs text-muted">Nutritional programming · {p.week_count} weeks · Start Date {formatDate(p.start_date)}</p></div>
+      {p.is_current && !p.archived_at ? <Badge tone="gold">Current</Badge> : null}{p.archived_at ? <Badge>Archived</Badge> : null}<span aria-hidden className="text-muted group-hover:text-text">→</span>
+    </Link>
+  </li>;
 }
 
 export function NutritionProgressPage() {

@@ -15,6 +15,7 @@ import { ClientDetailPage } from '@/features/clients/ClientDetailPage';
 import { ClientsPage } from '@/features/clients/ClientsPage';
 import { ProgramEditorPage } from '@/features/programs/ProgramEditorPage';
 import { ClientHomePage, CoachPlaceholderPage } from '@/features/home/ClientPages';
+import { ServicesPage } from '@/features/home/ServicesPage';
 import { CoachTrainingLogPage, LegacyTrainingRedirect, ProgramListPage, TrainingProgramPage } from '@/features/training/TrainingPages';
 import { UseNoticePage } from '@/components/LegalFooter';
 import { USE_NOTICE_PATH } from '@/lib/legal';
@@ -40,6 +41,7 @@ export const router = createBrowserRouter([
               { path: '/profile', element: <ProfileSettingsPage /> },
               { path: '/billing', element: <ClientBillingPage /> },
               { path: '/meetings', element: <ClientMeetingsPage /> },
+              { path: '/services', element: <ServicesPage /> },
               {
                 element: <RequireClient section="mesocycle" />,
                 children: [
