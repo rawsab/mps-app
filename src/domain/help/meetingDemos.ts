@@ -121,9 +121,9 @@ function repeatingPattern(): DemoScript<PatternDemoState> {
   const dates = (slots: PatternDemoSlot[]) => patternPreview(slots, startsOn).map((item) => item.startsAt);
   type Frame = DemoFrame<PatternDemoState>;
   const frames: Frame[] = [
-    { state: state([]), ms: 2000, caption: 'Repeat meetings opens the pattern. Choose the days first.', pointer: { target: dayToggleTarget(TUESDAY) } },
+    { state: state([]), ms: 800, caption: 'Repeat meetings opens the pattern. Choose the days first.', pointer: { target: dayToggleTarget(TUESDAY) } },
     { state: state([]), ms: 400, caption: 'Repeat meetings opens the pattern. Choose the days first.', pointer: { target: dayToggleTarget(TUESDAY), press: true } },
-    { state: state([tue], { changed: dates([tue]) }), ms: 2600, caption: 'Tuesday starts at 7:00 AM for 60 minutes. Next meetings fills in.', pointer: { target: dayToggleTarget(THURSDAY) } },
+    { state: state([tue], { changed: dates([tue]) }), ms: 1100, caption: 'Tuesday starts at 7:00 AM for 60 minutes. Next meetings fills in.', pointer: { target: dayToggleTarget(THURSDAY) } },
     { state: state([tue]), ms: 400, caption: 'Add Thursday. It copies Tuesday’s time and length.', pointer: { target: dayToggleTarget(THURSDAY), press: true } },
     { state: state([tue, thu], { changed: dates([tue, thu]).filter((d) => !dates([tue]).includes(d)) }), ms: 2400, caption: 'Add Thursday. It copies Tuesday’s time and length.', pointer: { target: startTarget(THURSDAY) } },
     { state: state([tue, thu]), ms: 400, caption: 'Thursdays are in the evening, so change the start.', pointer: { target: startTarget(THURSDAY), press: true } },

@@ -19,7 +19,19 @@ export function AttendanceDemo() {
 
 /** A repeating pattern filling its next meetings: `<PatternDemo />`. */
 export function PatternDemo() {
-  return <DemoPlayer script={MEETING_DEMOS['repeating-pattern']} render={(state) => <PatternPicture state={state} />} />;
+  const script = MEETING_DEMOS['repeating-pattern'];
+  // Every day the demo adds, so each row is drawn from the start and can unfold when its day is chosen.
+  const days = script.frames.at(-1)!.state.slots;
+  // The dialog at its tallest, with every day open, sizes the picture. The dialog stays centred in it
+  // and grows from the middle as days are added.
+  const tallest: PatternDemoState = { ...script.frames.at(-1)!.state, saved: false, changed: [] };
+  return <DemoPlayer script={script} render={(state) => (
+    <div className="grid">
+      {/* The real picture comes first, so the pointer finds its targets rather than the sizer's. */}
+      <div className="grid [grid-area:1/1]"><PatternPicture state={state} days={days} /></div>
+      <div aria-hidden className="pointer-events-none opacity-0 [grid-area:1/1]"><PatternPicture state={tallest} days={days} /></div>
+    </div>
+  )} />;
 }
 
 const ROUND_BUTTON = 'inline-flex size-9 items-center justify-center rounded-card';
@@ -82,12 +94,12 @@ function Field({ label, children, target }: { label: string; children: ReactNode
  * Part of the Set up repeating meetings dialog: the cycle, days, each day's start and length, and the
  * Next meetings list. After saving, the client's Meetings card fades in over it with the new pattern.
  */
-function PatternPicture({ state }: { state: PatternDemoState }) {
+function PatternPicture({ state, days }: { state: PatternDemoState; days: PatternDemoState['slots'] }) {
   const changed = new Set(state.changed ?? []);
   const summary = describePattern({ cycleWeeks: 1, slots: state.slots.map((slot) => ({ ...slot, cycleWeek: 1 })) }).summary;
   return (
     <div className="grid w-[34rem] text-left text-sm text-text">
-      <div className={`rounded-card border border-line bg-surface shadow-popover transition-opacity duration-300 [grid-area:1/1] ${state.saved ? 'opacity-0' : 'opacity-100'}`}>
+      <div className={`self-center rounded-card border border-line bg-surface shadow-popover transition-opacity duration-300 [grid-area:1/1] ${state.saved ? 'opacity-0' : 'opacity-100'}`}>
         <p className="border-b border-line px-5 py-3 text-base font-semibold">Set up repeating meetings</p>
         <div className="grid gap-4 p-5">
           <div className="grid grid-cols-2 gap-4">
@@ -103,15 +115,22 @@ function PatternPicture({ state }: { state: PatternDemoState }) {
                 </span>
               ))}
             </span>
-            {/* Two lines kept for the days, so the list below doesn't jump. */}
-            <ul className="mt-3 grid min-h-[9.25rem] content-start gap-2">
-              {state.slots.map((slot) => (
-                <li key={slot.weekday} className="row-fade-in grid grid-cols-[5.5rem_minmax(0,1fr)_minmax(0,1fr)] items-end gap-3">
-                  <span className="pb-3 font-medium">{weekdayName(slot.weekday)}</span>
-                  <Field label="Start" target={startTarget(slot.weekday)}>{formatClock(slot.startTime)}</Field>
-                  <Field label="Minutes">{slot.durationMinutes} min</Field>
-                </li>
-              ))}
+            {/* Each chosen day's row unfolds, so the dialog grows smoothly instead of jumping. */}
+            <ul className="mt-1 grid">
+              {days.map((day) => {
+                const slot = state.slots.find((s) => s.weekday === day.weekday) ?? day;
+                return (
+                  <li key={day.weekday} data-open={state.slots.some((s) => s.weekday === day.weekday)} className="animated-disclosure-content help-demo-unfold">
+                    <div className="min-h-0 overflow-hidden">
+                      <div className="grid grid-cols-[5.5rem_minmax(0,1fr)_minmax(0,1fr)] items-end gap-3 pt-2">
+                        <span className="pb-3 font-medium">{weekdayName(slot.weekday)}</span>
+                        <Field label="Start" target={startTarget(slot.weekday)}>{formatClock(slot.startTime)}</Field>
+                        <Field label="Minutes">{slot.durationMinutes} min</Field>
+                      </div>
+                    </div>
+                  </li>
+                );
+              })}
             </ul>
           </div>
           <section className="min-h-[11.5rem] rounded-card border border-line bg-ink p-3">
