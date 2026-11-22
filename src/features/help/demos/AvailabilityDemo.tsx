@@ -1,17 +1,28 @@
 import type { ReactNode } from 'react';
 import { Chip } from '@/components/controls';
 import {
-  AVAILABILITY_DEMOS, OPEN_TIMES_DAY, PICKER_TARGET, TIMELINE, laneTarget, type AvailabilityDemoName, type OpenTimesDemoState, type OpenTimesLane, type Span,
+  AVAILABILITY_DEMOS, OPEN_TIMES_DAY, dayOpenTimes, PICKER_TARGET, TIMELINE, laneTarget, type AvailabilityDemoName, type OpenTimesDemoState, type OpenTimesLane, type Span,
 } from '@/domain/help/availabilityDemos';
 import { formatClock } from '@/domain/scheduling/pattern';
 import { DemoPlayer } from './DemoPlayer';
 
 /** An availability demo by name, for Help pages: `<AvailabilityDemo name="open-times" />`. */
 export function AvailabilityDemo({ name }: { name: AvailabilityDemoName }) {
-  return <DemoPlayer script={AVAILABILITY_DEMOS[name]} render={(state) => <OpenTimesPicture state={state} />} />;
+  const script = AVAILABILITY_DEMOS[name];
+  // The picture at its tallest, with the client's picker open, sizes the frame. The real picture stays
+  // centred in it, so it grows from the middle when the picker unfolds.
+  const tallest = script.frames.at(-1)!.state;
+  return <DemoPlayer script={script} render={(state) => (
+    <div className="grid">
+      {/* The real picture comes first, so the pointer finds its targets rather than the sizer's. */}
+      <div className="self-center [grid-area:1/1]"><OpenTimesPicture state={state} /></div>
+      <div aria-hidden className="pointer-events-none opacity-0 [grid-area:1/1]"><OpenTimesPicture state={tallest} /></div>
+    </div>
+  )} />;
 }
 
 /** One pixel per minute: 8 AM to 6 PM is 600px. */
+const OPEN_TIMES = dayOpenTimes(OPEN_TIMES_DAY);
 const width = (minutes: number) => `${minutes}px`;
 const left = (minute: number) => `${minute - TIMELINE.from}px`;
 const clock = (minute: number) => formatClock(`${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`);
@@ -27,7 +38,7 @@ const LANES: { lane: OpenTimesLane; label: string }[] = [
 
 function Bar({ span, className, children }: { span: Span; className: string; children?: ReactNode }) {
   return (
-    <span className={`absolute inset-y-1.5 flex items-center overflow-hidden rounded-[4px] border px-1.5 text-xs ${className}`} style={{ left: left(span.from), width: width(span.to - span.from) }}>
+    <span className={`absolute inset-y-1.5 flex items-center overflow-hidden whitespace-nowrap rounded-[4px] border px-1.5 text-xs ${className}`} style={{ left: left(span.from), width: width(span.to - span.from) }}>
       {children}
     </span>
   );
@@ -50,7 +61,7 @@ function OpenTimesPicture({ state }: { state: OpenTimesDemoState }) {
         <span key={m.from}>
           {/* The gap on either side, then the meeting itself. */}
           <Bar span={{ from: m.from - day.gap, to: m.to + day.gap }} className="border-dashed border-muted/60 bg-transparent" />
-          <Bar span={m} className="border-gold bg-gold/35 font-medium">{m.label}</Bar>
+          <Bar span={m} className="border-gold bg-gold/35 font-medium">{m.label.split(' ')[0]}</Bar>
         </span>
       ));
       case 'notice': return <Bar span={{ from: TIMELINE.from, to: day.earliest }} className="calendar-unavailable border-line text-muted">Too soon</Bar>;
@@ -58,7 +69,7 @@ function OpenTimesPicture({ state }: { state: OpenTimesDemoState }) {
   };
 
   return (
-    <div className="w-[44rem] rounded-card border border-line bg-surface p-4 text-left text-sm text-text shadow-popover">
+    <div className="w-[47rem] rounded-card border border-line bg-surface p-4 text-left text-sm text-text shadow-popover">
       <div className="mb-2 flex items-baseline justify-between">
         <span className="font-semibold">Tuesday, November 24</span>
         <span className="text-xs text-muted">Notice 12 hours · Gap 15 minutes · 60 minute session</span>
@@ -83,16 +94,22 @@ function OpenTimesPicture({ state }: { state: OpenTimesDemoState }) {
         </span>
       </div>
 
-      <div data-demo-target={PICKER_TARGET} className={`mt-4 rounded-card border border-line bg-ink p-3 transition-opacity duration-300 ${state.picker ? 'opacity-100' : 'opacity-0'}`}>
-        <p className="text-xs font-medium text-muted">In the client’s app</p>
-        <p className="mt-2 text-sm font-medium">Pick a day</p>
-        <span className="mt-1.5 flex gap-1.5">
-          <Chip pressed={false}>Mon, Nov 23</Chip><Chip pressed>Tue, Nov 24</Chip><Chip pressed={false}>Wed, Nov 25</Chip>
-        </span>
-        <p className="mt-3 text-sm font-medium">Time (60 min)</p>
-        <span className="mt-1.5 flex flex-wrap gap-1.5">
-          {(state.picker ?? []).map((s) => <span key={s} className="rounded-card border border-line bg-surface px-2 py-1 text-xs tabular-nums">{clock(s)}</span>)}
-        </span>
+      {/* Folded away until the last step, so the window has no empty space below the timeline. */}
+      <div data-open={!!state.picker} className="animated-disclosure-content help-demo-unfold">
+        <div className="min-h-0 overflow-hidden">
+          <div data-demo-target={PICKER_TARGET} className="mt-4 rounded-card border border-line bg-ink p-3">
+            <p className="text-xs font-medium text-muted">In the client’s app</p>
+            <p className="mt-2 text-sm font-medium">Pick a day</p>
+            <span className="mt-1.5 flex gap-1.5">
+              <Chip pressed={false}>Mon, Nov 23</Chip><Chip pressed>Tue, Nov 24</Chip><Chip pressed={false}>Wed, Nov 25</Chip>
+            </span>
+            <p className="mt-3 text-sm font-medium">Time (60 min)</p>
+            {/* Always the day's times, so the picker doesn't empty while it folds away. */}
+            <span className="mt-1.5 flex flex-wrap gap-1.5">
+              {OPEN_TIMES.map((s) => <span key={s} className="rounded-card border border-line bg-surface px-2 py-1 text-xs tabular-nums">{clock(s)}</span>)}
+            </span>
+          </div>
+        </div>
       </div>
     </div>
   );
