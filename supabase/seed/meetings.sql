@@ -130,6 +130,29 @@ begin
     (demo_on - 2 + time '14:05') at time zone coach_tz)
   on conflict do nothing;
 
+  -- Three more one-offs later today, timed from when the seed runs so they are always still ahead
+  -- (Upcoming today, the client's next meeting and Meetings page). Each starts at its offset, or at
+  -- its share of what is left of the day (Toronto) if that comes sooner, so a late reset still
+  -- puts all three before midnight. Grace's is PT, so a change request shows the short-notice warning.
+  for pattern in
+    select * from (values
+      ('maya-today', maya, '{mesocycle,nutrition}'::public.service_kind[], interval '30 minutes', 0.1, 25),
+      ('daniel-today', daniel, '{personal_training}', interval '2 hours', 0.4, 60),
+      ('grace-today', grace, '{personal_training}', interval '4 hours', 0.7, 40)
+    ) as v(key, client_id, services, starts_in, share, duration)
+  loop
+    select primary_coach_id into coach from public.clients where id = pattern.client_id;
+    -- Rounded up to five minutes.
+    starts_at := now() + least(pattern.starts_in,
+      ((((now() at time zone coach_tz)::date + 1)::timestamp at time zone coach_tz) - now()) * pattern.share);
+    starts_at := to_timestamp(ceil(extract(epoch from starts_at) / 300) * 300);
+    insert into public.meetings (id, client_id, coach_id, starts_at, duration_minutes, timezone, services,
+      status, created_by, updated_by, created_at, updated_at)
+    values (md5('mps-demo/meeting/' || pattern.key)::uuid, pattern.client_id, coach, starts_at, pattern.duration, coach_tz,
+      pattern.services, 'scheduled', coach, coach, now() - interval '1 day', now() - interval '1 day')
+    on conflict (id) do nothing;
+  end loop;
+
   -- A one-off call four days ago that nobody marked as attended.
   select primary_coach_id into coach from public.clients where id = maya;
   starts_at := (demo_on - 4 + time '19:00') at time zone coach_tz;
