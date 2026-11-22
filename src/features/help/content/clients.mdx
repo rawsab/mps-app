@@ -1,5 +1,5 @@
 import { Callout, Example } from '../blocks';
-import { Button } from '@/components/ui';
+import { Button, Kbd } from '@/components/ui';
 import { statusBadge } from '@/features/clients/ClientsTable';
 
 The Clients page lists everyone you coach. You see the clients assigned to you. Administrators see every client.
@@ -9,11 +9,12 @@ The Clients page lists everyone you coach. You see the clients assigned to you. 
 The top of the page shows what needs attention:
 
 - **To review**: the latest unread workouts and logs. Select **View all** to open Activity.
-- **Upcoming today**: your remaining meetings today. Select one to open it.
-- **Follow up**: clients who haven't been invited or haven't accepted their invitation yet.
-- **Service requests**: clients asking to add or change a service.
+- **Upcoming today**: your remaining meetings today. Select one to open it, or select **View calendar**.
+- **Services** and **Status**: how many clients have each service and each status.
+- **Follow up**: clients who haven't been invited, and clients who haven't accepted their invitation yet.
+- **Service requests**: clients asking for a new service. This row only shows while there are requests waiting.
 
-Below that is the table of clients. Search by name or email, filter by service or status, and select a column heading to sort.
+Below that is the table of clients.
 
 ## Client statuses
 
@@ -31,44 +32,107 @@ Below that is the table of clients. Search by name or email, filter by service o
 | {statusBadge('active')} | The client has signed in and can see their published programs. |
 | {statusBadge('disabled')} | The client can't see any data, even if they are signed in. Their records are kept. |
 
-## Adding a client
+## Onboarding a new client
 
-Administrators add clients with **New client**. Enter the full name, email and time zone. Notes are optional and private to staff.
+Steps 1 and 2 are for administrators. Any coach assigned to the client can do the rest.
 
-Adding a client doesn't send an email. You can prepare their programs first and invite them when you are ready.
+1. On the Clients page, select **New client**.
+2. Enter the **Full name**, **Email** and **Time zone**, and tick the client's **Services**. Add **Notes** if you like. Then select **Create client**. No email is sent yet, and the client shows as Not invited.
+3. Build their programs. Clients only see a program after you publish it.
+4. When you are ready, an administrator sends the invitation. Open **Follow up**, select the not invited line and select **Send invite**. You can also open the client's page and use **Send invitation** under **Client settings**.
+5. The client gets an email with a link. They choose a password, and their status changes to Active.
+6. Schedule their meetings from the Meetings card on the client's page.
 
-## Inviting a client
+The client's time zone decides which day their logs belong to. Choose the one they live in.
 
-Send the invitation from **Follow up** on the Clients page, or from **Client settings** on the client's page. If a client hasn't signed in yet, **Resend invite** sends them a fresh link.
+### When a client hasn't signed in
+
+Clients who were invited but haven't signed in are listed under **Follow up**. Open the list and select **Resend invite** to send a fresh link. **Copy emails** copies every address in the list, so you can write to them yourself.
 
 <Callout tone="note">
-Only administrators can send invitations, add clients and change services.
+Only administrators can add clients, send invitations and change services.
 </Callout>
+
+## Finding a client
+
+- **Search** finds clients by name or email.
+- **Status** shows clients with any of the statuses you tick.
+- **Services** shows clients with all of the services you tick. Ticking Mesocycle and Nutrition shows only clients who have both.
+- Select a column heading to sort by it. Select it again to reverse the order. The table starts with the most recently edited clients first.
+- Drag the edge of a column heading to make it wider or narrower. Double-click the edge to put it back.
+
+Your filters are kept in the page address, so you can bookmark them or go back to them.
+
+Disabled clients are in **Disabled accounts** below the table. Search and filters apply there too.
+
+To jump straight to an active client, you can also use the clients listed under Clients in the sidebar, or open search with <Kbd>⌘</Kbd> <Kbd>K</Kbd><span className="sr-only">Command K</span> or <Kbd>Ctrl</Kbd> <Kbd>K</Kbd><span className="sr-only">Control K</span>.
+
+## Row actions
+
+Right-click a row in the table to open its menu. With a keyboard, move to the client's name and press the menu key.
+
+- **View client** opens their page.
+- **See recent updates** opens their activity history.
+- **Transfer client** moves them to another coach. Administrators only. See [Roles and permissions](/coach/help/roles-and-permissions).
+- **Disable** or **Reactivate** changes their access. Administrators only.
+
+Disabling a client blocks their access straight away, even if they are signed in. Their records are kept. Reactivating restores access to their published programs and history.
 
 ## The client page
 
 Select a client to open their page. It has:
 
+- **Recent updates**: their latest workouts, logs and requests. **View full history** shows everything.
+- **Meetings**: their upcoming and past meetings.
 - **Programs**: their mesocycle, personal training and nutritional programs. Each has its own page in Help.
-- **Services**: what they are signed up for. Administrators can add a service, pause, resume or end it, and archive an ended one.
-- **Notes**: private notes about the client. The client never sees these.
-- **Recent updates**: their latest workouts, logs and requests.
-- **Meetings**: their upcoming and past sessions.
-- **Billing**: their balance, charges and payments.
+- **Billing**: their balance, statements and payments. See [Billing](/coach/help/billing).
+- **Services**: what they are signed up for, and the current program for each.
+- **Notes**: private notes about the client.
+- **Client settings** (administrators only): their email, time zone, invitation and access.
+
+## Managing services
+
+Each service has a status: **Active**, **Paused** or **Ended**. Administrators change it from the ⋯ menu beside the service.
+
+- **Pause** stops the service for now. The client can still read their programs, but can't log new entries. Repeating personal training sessions stop being added while it's paused.
+- **Resume** makes a paused service active again. Sessions that would have been added while it was paused aren't added afterwards.
+- **End** finishes the service. Its programs and history are kept.
+
+To add a service, choose it under **Add service** and select **Add service**. A client can only have one live service of each kind.
+
+How pausing and ending affect charges is explained in [Billing](/coach/help/billing).
+
+### Archiving and deleting a service
+
+1. End the service first.
+2. Select the archive button beside its **Ended** badge. The service moves out of the list.
+3. To see archived services, select **Show archived services**.
+4. To remove one for good, select its trash button. If it has no programs, select **Delete service**.
+
+If the archived service still has programs, you can keep it archived, or tick **Also delete its programs**. That also deletes every version of those programs and the client's logged workouts and Stimulus & Fatigue answers for them. Daily nutrition logs are kept. Type the service's name to confirm, then select **Delete service and programs**.
+
+<Callout tone="warning" title="Deleting can't be undone">
+Archive a service if you might need its history later. Only delete it when you are sure.
+</Callout>
 
 ## Service requests
 
-When a client asks for a new service, it appears under **Service requests**. Select **Accept** to add the service, or **Reject** to turn it down. You can add a reply, which the client sees.
+Clients can ask for a service they don't have yet. Requests appear under **Service requests** on the Clients page, in Services on the client's page, and in Activity. Any coach assigned to the client can answer.
+
+1. Select the request to open it. It shows the service, the client's current services and their note.
+2. Select **Accept** to add the service from today as an active service.
+3. Or select **Reject**, add a reply if you like, and select **Reject request**. The client sees your reply.
 
 <Example caption="The two choices for a service request." interactive>
   <Button variant="secondary">Reject</Button>
   <Button>Accept</Button>
 </Example>
 
-## Row actions
+## Notes
 
-The menu at the end of each row in the table lets you view the client, see their recent updates, transfer them to another coach, or disable and reactivate their access.
+Notes are private to staff. The client never sees them. Every coach who can see the client can read and add notes.
 
-Disabling a client blocks their access straight away. Reactivating restores access to their published programs and history.
+1. On the client's page, type in **Add a note**.
+2. Select **Save note**. The newest notes are at the top. The three latest show at first. Select **Show all** to see the rest.
 
-Disabled clients move to **Disabled accounts** below the table. Open it to see them.
+You can delete notes you wrote yourself with the trash button beside them. Notes written by other staff can't be deleted by you.

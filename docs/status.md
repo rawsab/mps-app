@@ -713,3 +713,16 @@ Decision 0055, "Owner follow-ups".
   - How open times are worked out (`availabilityDemos.ts`), one lane at a time.
 - Allocation and open times are worked out only in SQL. The billing and availability demo files each hold a small copy of that rule (`applyCredit`, `dayWindows`, `dayOpenTimes`), with a comment saying to change both together. Tests check the demos against these copies.
 - **Verification.** `pnpm verify` passes (444 tests). No browser checks; manual checks are in decision 0057.
+
+## Help phase 2, step 5: remaining pages and an accuracy pass (2026-11-21)
+
+- Decision 0057. Clients, Activity, Nutrition, Profile settings and Getting started now have step-by-step guides, each checked against the code:
+  - Clients: onboarding, follow-ups, filters, the row menu, service changes, archiving and deleting, service requests and notes.
+  - Activity: filters, where items open, read state, labels and Trends.
+  - Nutrition: starting values, the spreadsheet, corrections, Trends and the weight unit.
+  - Profile settings: a first-time setup list.
+  - Getting started: a First steps list.
+- "See … in Help" references on every page are now links.
+- Accuracy fixes: the client row menu is a right-click menu. The starting weight change is worked out, not typed. Correction history includes client corrections. Only clients see **Missing** highlights; the coach's spreadsheet leaves the cells blank. The Nutrition page and its correction demo now match, and a test pins it.
+- **Open question for the owner:** should coaches see Missing highlights too? The app has hidden them from coaches since decision 0029. Help now describes the app as it is.
+- **Verification.** `pnpm verify` passes (444 tests). No browser checks; manual checks are in decision 0057.

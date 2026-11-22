@@ -1,24 +1,36 @@
 import { Callout, Example } from '../blocks';
-import { Badge } from '@/components/ui';
+import { Badge, Kbd } from '@/components/ui';
 import { NutritionDemo } from '../demos/NutritionDemo';
 
 A nutritional program sets a client's calorie targets over a number of weeks. The client logs their weight and calories each day, and you follow along in a spreadsheet.
 
 ## Creating a nutritional program
 
-On the client's page, find **Programs** and choose **New Nutritional Program**. The client needs the Nutrition service first.
+1. On the client's page, find **Programs** and choose **New Nutritional Program**. The client needs the Nutrition service first.
+2. Fill in the program details below. They save on their own as you type.
+3. Select **Publish**, check the summary, then select **Publish program**.
+
+**Publish** stays greyed out until the program has a Program Style, a Start Date and both starting calorie values.
 
 ## Program details
 
-- **Start Date** and **Weeks**: when the program runs. The spreadsheet's dates follow the Start Date.
-- **Weight unit**: kilograms or pounds for this program.
-- **Starting Predicted Maintenance Calories**, **Starting Predicted Daily Caloric Goal** and **Starting Predicted Weight Change Per Week**: your starting targets.
+- **Program Style**: the program's name, such as "Lean bulk". The client sees it.
+- **Start Date** and **Weeks**: when the program runs, from 1 to 52 weeks. The spreadsheet's dates follow the Start Date.
+- **Weight unit**: lb or kg. See Changing the weight unit below.
 - **Program notes**: shown to the client.
 
-Program details stay private until you publish. Select **Publish program** to share them with the client. Publishing again later keeps every daily entry saved against its date.
+### The starting values
+
+- **Starting Predicted Maintenance Calories**: how many calories a day you expect keeps the client's weight steady.
+- **Starting Predicted Daily Caloric Goal**: how many calories a day you want them to eat.
+- **Starting Predicted Weight Change Per Week**: worked out for you from the two values above. You can't type in it.
+
+The weight change is (goal − maintenance) × 7 ÷ 3,500, in pounds, then converted to the program's unit. For example, a goal of 2,300 with a maintenance of 2,800 gives −1 lb a week. It's an estimate.
+
+Program details stay private until you publish. Publishing again later keeps every daily entry saved against its date. A program in draft shows **Draft · staff only**. A published one shows **Live**.
 
 <Callout tone="note">
-Programs can overlap in dates. You'll see a notice, and publishing is still allowed.
+Programs can overlap in dates. You'll see a notice, and publishing is still allowed. Overlapping programs share the client's daily entries for the same dates.
 </Callout>
 
 ## What clients log
@@ -39,19 +51,23 @@ A value of 0 is a real zero. A blank means the client hasn't answered.
 
 ## The client spreadsheet
 
-Each week is its own table, one row per day. Next to the client's entries are columns the app works out:
+Open **Client spreadsheet** from a published program to see what the client has logged. Each week is its own table, one row per day. Next to the client's entries are columns the app works out:
 
 - **Daily Caloric Balance**: calories consumed minus caloric output.
 - **Average Weight**: the average of the last seven days' weigh-ins. It appears once there are at least three.
 
-Each week also shows its weekly caloric balance, average output and predicted and actual weight change. Calculated cells and future dates can't be edited.
+Beside each week are its **Weekly Caloric Values** and **Weekly Weight Values**: the average and weekly caloric balance, average output, and the predicted and average weight change. At the top, three totals sum up the whole program: predicted, actual and average weight change per week.
 
-Highlighted cells marked **Missing** are days up to today with no weight or calorie entry.
+Calculated cells and future dates are greyed out and can't be edited.
+
+## Missing entries
+
+A blank cell on a day up to today means the client didn't log that value. The client's own spreadsheet highlights these cells and marks them **Missing**, so they can fill them in. Your spreadsheet shows them as blank cells.
 
 ## Correcting an entry
 
-1. Select the cell and type the right number.
-2. Press Enter. Your change saves straight to the client's record and is marked as a coach correction.
+1. Select the cell and type the right number. To change the number that's there, double-click the cell, or press Enter or F2.
+2. Press Enter or Tab. Your change saves straight to the client's record and is marked as a coach correction.
 
 Corrected cells have a light gold tint.
 
@@ -61,7 +77,35 @@ Corrected cells have a light gold tint.
   <Badge>Edited by coach</Badge>
 </Example>
 
-Open **Correction history** to see the latest 100 changes, with the value before and after each one. Calorie changes are listed by the day the calories were eaten.
+You can only correct entries while the client's Nutrition service is active. If it's paused or ended, the spreadsheet is read-only.
+
+## Working in the spreadsheet
+
+- **Select**: click a cell, or move with the arrow keys. Hold Shift and click, drag, or use the arrow keys to select a block of cells. <Kbd>Ctrl</Kbd> <Kbd>A</Kbd> or <Kbd>⌘</Kbd> <Kbd>A</Kbd> selects the whole week.
+- **Copy, cut and paste**: use the usual keyboard shortcuts, or right-click for the cell menu. Pasting opens **Review pasted values**, which lists each cell before and after. Select **Apply paste** to save it. Only the client's input cells change. Dates and calculated cells are kept.
+- **Clear**: press Delete or Backspace, or choose **Clear input cells** from the cell menu.
+- **Undo and redo**: use **Undo** and **Redo** above each week, the cell menu, or <Kbd>Ctrl</Kbd> <Kbd>Z</Kbd> and <Kbd>Ctrl</Kbd> <Kbd>Y</Kbd> (<Kbd>⌘</Kbd> <Kbd>Z</Kbd> and <Kbd>⌘</Kbd> <Kbd>Shift</Kbd> <Kbd>Z</Kbd> on a Mac). Undo saves the earlier value back to the client's record.
+- **Escape** cancels what you're typing in a cell.
+
+If an entry couldn't be saved, you'll see **Entries not saved**. Select **Retry save** to try again, or **Discard unsaved edits** to drop it. Leaving the page with unsaved entries asks you first.
+
+If the client changed the same cells since you opened the page, Undo stops and asks you to reload.
+
+## Correction history
+
+Open **Correction history** below the spreadsheet to see the latest 100 changes to saved entries, with the value before and after each one. Each change is marked **Coach correction** or **Client correction**. Calorie changes are listed by the day the calories were eaten.
+
+## Trends
+
+The **Trends** chart shows one value over the **Last 7 Days** or **Last 30 Days**. Choose it under **Data**: Weight, Calories consumed, Caloric output or Daily caloric balance. Hover over or move to a point to see its value.
+
+Days without an entry are left out, never counted as zero. The chart needs at least two entries in the range. Clients see the same chart.
+
+## Changing the weight unit
+
+Change **Weight unit** in the program details. Weights in the spreadsheet, averages, weekly values and predictions switch to the new unit straight away. The client sees the new unit once you publish.
+
+The client's saved weigh-ins aren't rewritten. Each one keeps the unit it was entered in, and is converted for display. Changing the unit clears the spreadsheet's Undo history.
 
 ## Archived programs
 

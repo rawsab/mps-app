@@ -44,16 +44,17 @@ The test checks that the manifest and files match and that section ids are uniqu
 - [ ] ⌘K: "help", "docs" and "billing" show the Help pages under a Help group.
 - [ ] Programs in Help lists Mesocycle, Personal training and Nutrition. Both training pages include the editor sections (Drafts and publishing through Current and archived programs) between their own sections, and their topic lists and search results show those headings.
 - [ ] Demos (Mesocycle or Personal training page): each plays when scrolled into view and stops when scrolled away. The pointer moves to each cell, the caption under it follows along, and Pause and Play work. With reduced motion turned on in your system settings, each opens on its last frame, paused. On a phone the picture shrinks to fit, and the pointer still lands on the right cells.
-- [ ] Nutrition demos: the client's log card types three values and saves, and Tuesday's row fills in with the gold flash. The "Calories for Nov 2" note appears under Tuesday's calorie cell. Average Weight appears on Wednesday. In the second demo, the Missing cells, the corrected cell's tint, and Correction history opening below the table all read clearly.
+- [ ] Nutrition demos: the client's log card types three values and saves, and Tuesday's row fills in with the gold flash. The "Calories for Nov 2" note appears under Tuesday's calorie cell. Average Weight appears on Wednesday. In the second demo, Wednesday's blank calorie cell (no Missing label, as in your spreadsheet), the corrected cell's tint, and Correction history opening below the table all read clearly.
 - [ ] New pages: Roles and permissions and What clients see sit under Start here, and Availability and open times between Meetings and Billing. Each has a thumbnail (an admin row menu, the client's Home, a week of open times).
 - [ ] Meetings demos: the attendance rows leave one at a time, the notice shows with Undo, and the undone meeting fades back in. In the pattern demo, Tuesday then Thursday light up, the day rows appear, and Next meetings fills in with the new dates flashing gold. It ends on the Meetings card.
 - [ ] Open times demo: each lane fades in with its caption, the Open lane shrinks to match, the gold ticks mark the start times, and the client's picker appears last. The time off and Too soon stripes read clearly in light and dark mode.
 - [ ] Billing demo: the dialog dims the panel while 750 is typed. October turns Paid, then November, the balance changes to "$50 in credit", and a new session charge shows "$50 paid · $50 left".
+- [ ] Step 5 pages: Clients, Activity, Nutrition, Profile settings and Getting started have their step-by-step guides. The links between pages (such as "See [Billing]" or the First steps list) open the right page in the same tab.
 - [ ] Read each page once for accuracy and tone.
 
 ## Phase 2 plan: detail, step-by-step guides and animated demos (owner choices, 2026-11-21)
 
-Status: **steps 1 to 4 built 2026-11-21** (the demo player, demos 1 to 10, the fuller editor text, the new Roles and permissions, What clients see, and Availability and open times pages, and the rewritten Meetings and Billing pages); step 5 planned. The first pages explain what each area is for but rarely how to do things.
+Status: **steps 1 to 5 built 2026-11-21** (the demo player, demos 1 to 10, the fuller editor text, the new Roles and permissions, What clients see, and Availability and open times pages, and the rewritten Meetings and Billing pages); and step 5 (the remaining pages and an accuracy pass). The first pages explain what each area is for but rarely how to do things.
 
 **Step 1 as built:**
 - `src/domain/help/demo.ts`: the frame and script types, `demoProblems` (captions, frame lengths, a 30 s loop limit, no dashes) and `typing`.
@@ -86,6 +87,18 @@ Status: **steps 1 to 4 built 2026-11-21** (the demo player, demos 1 to 10, the f
 - `src/domain/help/availabilityDemos.ts` and `AvailabilityDemo.tsx`: one day's open times (demo 10). `dayWindows` and `dayOpenTimes` copy `private.availability_windows` and `private.open_slots`: hours plus extra hours, minus time off, then every quarter hour where the meeting fits, from the notice on, clear of meetings and held times by the gap. Time off stripes reuse `.calendar-unavailable`.
 - These SQL copies exist only for the demos. If the database rule changes, change the copy too; the tests pin the results.
 - Accuracy fixes found on the way: a meeting's attendance is a Status dropdown (Attended, No-show, Not recorded), and a pattern ends from **End** on the pattern.
+
+**Step 5 as built:**
+- **Clients**: onboarding from New client to first sign-in, Follow up with Resend invite and Copy emails, the filters (Status matches any, Services needs all), sorting and column widths, the right-click row menu, pause, resume, end, archive and delete a service, service requests, and notes (you can delete only your own).
+- **Activity**: what Focused holds, where each item opens, read state, every label, and Trends (Day, Week, Month; the five busiest clients plus one line for the rest).
+- **Nutrition**: creating and publishing, what each starting value means and how the weekly prediction is worked out, the spreadsheet's keys, cell menu, paste review, Retry save, Correction history, Trends, and changing the weight unit.
+- **Profile settings**: a first-time setup list and each section's own Save button. Availability now points to its own page instead of repeating it.
+- **Getting started**: a First steps list linking each page. Cross-references on every page are now links.
+- **Accuracy fixes:**
+  - The client row menu opens with a right-click, not from a button at the end of the row.
+  - Starting Predicted Weight Change Per Week is worked out, not typed in. Program Style is required to publish.
+  - Only the client's own spreadsheet highlights **Missing** cells (`showMissingEntries={!coach}`, there since decision 0029). The coach's leaves them blank. The Nutrition page and the correction demo said the coach's highlighted them; both now match the app.
+  - Correction history lists client corrections too, not only coach ones.
 
 **Pages (13).** Each page gets numbered step-by-step guides for its common jobs, with short explanations around them.
 

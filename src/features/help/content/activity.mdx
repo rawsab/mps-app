@@ -2,7 +2,7 @@ import { Callout, Example } from '../blocks';
 import { Chip } from '@/components/controls';
 import { Badge } from '@/components/ui';
 
-Activity shows what your clients do, newest first: workouts, nutrition logs, meeting requests, service requests and payment notices.
+Activity shows what your clients do, newest first: workouts, nutrition logs, meeting requests, service requests and payment notices. Items are grouped by day.
 
 ## Filters
 
@@ -15,12 +15,26 @@ Activity shows what your clients do, newest first: workouts, nutrition logs, mee
 </Example>
 
 - **All**: everything.
-- **Focused**: requests that need an answer from you.
+- **Focused**: meeting requests, service requests and payment notices. These are the items you may need to act on. Answered ones stay here with their status.
 - **Unread**: items you haven't opened yet.
+
+## Opening an item
+
+Select an item to open it where you can act on it:
+
+- A **workout** opens the client's log on that week and day.
+- A **nutrition log** opens the client's spreadsheet on that day.
+- A **meeting request** opens the meeting on the client's page, with the request.
+- A **service request** opens the client's page, where you can accept or reject it.
+- A **payment notice** opens Billing, with Record payment ready for that notice.
+
+Requests and payment notices also appear on the Meetings, Clients and Billing pages. You can answer them from there too.
 
 ## Unread items
 
-The number beside Activity in the sidebar is how many unread items you have. Opening an item marks it as read. **Mark all as read** clears the whole list at once.
+The number beside Activity in the sidebar is how many unread items you have. Opening an item marks it as read. **Mark all as read** clears the whole list at once. Each staff member has their own read state.
+
+Answered requests are no longer unread for anyone. Once one coach accepts or declines a request, it drops out of Unread for everyone.
 
 ## Labels
 
@@ -33,18 +47,33 @@ Labels on each item tell you what it is and what happened to it.
   <Badge tone="gold">Payment</Badge>
   <Badge tone="gold">Short notice</Badge>
   <Badge tone="danger">Late cancellation</Badge>
+  <Badge>Edited by coach</Badge>
 </Example>
 
-**Short notice** means a reschedule request came in close to the session. **Late cancellation** means a cancellation came in after the late cancellation window you set in Profile settings.
+- **Short notice** and **Late cancellation** only apply to personal training meetings. They mean the request came in with less notice than the late cancellation window in Profile settings. If you accept a late cancellation, it is charged the session price. See [Billing](/coach/help/billing).
+- **Edited by coach** marks a nutrition entry a coach corrected.
+- Workouts show **Completed**, **In progress** or **Skipped**. A nutrition log with a value missing shows **Partial entry**.
+- Requests show **Accepted**, **Declined**, **Withdrawn** or **Expired** once they are settled. An expired reschedule request was left unanswered until the meeting started.
+- Payment notices show **Recorded**, **Dismissed** or **Paid** once you've dealt with them.
 
 ## Trends
 
-**Trends** shows how many updates you received over a period you choose, split by type and by client.
+**Trends** sits beside the list on a wide screen. It counts everything your clients sent, read or unread, over the range you choose:
+
+- **Day**: today, by hour.
+- **Week**: the last 7 days, by day.
+- **Month**: the last 30 days, by day.
+
+It has three parts:
+
+- **Notifications received**: a column for each hour or day.
+- **By type**: how many of each kind, such as completed workouts or nutrition logs.
+- **By client**: the five busiest clients, with everyone else added together on one line. Select a name to open that client.
 
 ## One client's history
 
-On a client's page, **Recent updates** shows their latest items. Select **View full history** to see everything for that client.
+On a client's page, **Recent updates** shows their latest items. Select **View full history** to see everything for that client. You can also right-click their row on the Clients page and select **See recent updates**.
 
 <Callout tone="tip">
-Requests and payment notices also appear on the Meetings and Billing pages, where you can act on them.
+On the Clients page, **To review** shows your latest unread items without opening Activity.
 </Callout>

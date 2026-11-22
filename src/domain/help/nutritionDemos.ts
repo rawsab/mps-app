@@ -20,7 +20,7 @@ export type NutritionDemoState = {
   today: string;
   weights: WeighIn[];
   entries: NutritionEntry[];
-  /** Highlights missing entries, as the coach's spreadsheet does. */
+  /** Highlights missing entries, as the client's own spreadsheet does. The coach's leaves them blank. */
   showMissing: boolean;
   selection?: NutritionDemoCell | null;
   editing?: (NutritionDemoCell & { text: string }) | null;
@@ -80,13 +80,13 @@ function weekFillingIn(): DemoScript<NutritionDemoState> {
   return { id: 'nutrition-week', description: 'A client logs each morning. Each log fills one row: that morning’s weight and the previous day’s calories, with the balance and average weight worked out.', frames };
 }
 
-/** Spotting a missing entry, correcting a wrong one, and seeing it in Correction history. */
+/** Spotting a missing entry, correcting a wrong one, and seeing it in Correction history, as the coach sees them. */
 function missingAndCorrection(): DemoScript<NutritionDemoState> {
   const base = logsThrough(FRI);
   // Wednesday's log has no calories, and Thursday's has a typo: 28100 instead of 2810.
   const typo = calories(THU, 28100, LOGS[THU]![2]);
   const entries = base.entries.filter((e) => e.activity_on !== shiftDate(WED, -1)).map((e) => (e.activity_on === typo.activity_on ? typo : e));
-  const start: NutritionDemoState = { today: FRI, showMissing: true, weights: base.weights, entries };
+  const start: NutritionDemoState = { today: FRI, showMissing: false, weights: base.weights, entries };
   const cell: NutritionDemoCell = { date: THU, column: 'intake' };
   // Planned as the spreadsheet plans a coach's edit; a refused edit is a broken script.
   const [plan] = planNutritionCells(nutritionWeeks(NUTRITION_DEMO_PROGRAM, start.weights, start.entries, FRI), [{ ...cell, column: 'intake', text: '2810' }], FRI);
@@ -97,7 +97,7 @@ function missingAndCorrection(): DemoScript<NutritionDemoState> {
   const history = [{ activityDate: typo.activity_on, before: typo, after: fixed }];
   const fix = 'Select it and type the right number.';
   const frames: Frame[] = [
-    { state: start, ms: 2000, caption: 'Highlighted cells are missing an entry.', pointer: { target: nutritionCellTarget({ date: WED, column: 'intake' }) } },
+    { state: start, ms: 2000, caption: 'A blank cell means the client didn’t log it.', pointer: { target: nutritionCellTarget({ date: WED, column: 'intake' }) } },
     { state: start, ms: 1600, caption: 'This one looks wrong: 28,100 calories.', pointer: { target: nutritionCellTarget(cell) } },
     { state: { ...start, selection: cell }, ms: 500, caption: fix, pointer: { target: nutritionCellTarget(cell), press: true } },
     ...typing<NutritionDemoState>('2810', 130, (text) => ({ state: { ...start, editing: { ...cell, text } }, caption: fix, pointer: { target: nutritionCellTarget(cell) } })),
@@ -107,7 +107,7 @@ function missingAndCorrection(): DemoScript<NutritionDemoState> {
     { state: corrected, ms: 400, caption: 'Correction history shows what changed.', pointer: { target: HISTORY_TARGET, press: true } },
     { state: { ...corrected, history }, ms: 3200, caption: 'Each correction is listed by the day the calories were eaten, before and after.', pointer: { target: HISTORY_TARGET } },
   ];
-  return { id: 'nutrition-correction', description: 'A missing calorie entry is highlighted. A wrong entry of 28,100 is corrected to 2,810, which tints the cell and adds a coach correction to Correction history.', frames };
+  return { id: 'nutrition-correction', description: 'A missing calorie entry shows as a blank cell. A wrong entry of 28,100 is corrected to 2,810, which tints the cell and adds a coach correction to Correction history.', frames };
 }
 
 export const NUTRITION_DEMOS = {
