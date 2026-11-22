@@ -33,7 +33,7 @@ pnpm only (npm 10.9 crashes resolving vitest peers). Docker must be running for 
 
 Build pages from `src/components/` before writing styles (decision 0049). A call-site `className` should only add layout (margin, width, grid placement). Tailwind doesn't let it reliably override a component's own size or padding, so add a variant instead.
 
-- Buttons: `Button` (text), `IconButton` (icon only; `label` is required), `Chip` (filter pills), `ToggleButton` (gold on/off), `SegmentedControl`, `Tabs` (with a tabpanel).
+- Buttons: `Button` (text), `ButtonLink` (an in-app link drawn as a `Button`), `IconButton` (icon only; `label` is required), `Chip` (filter pills), `ToggleButton` (gold on/off), `SegmentedControl`, `Tabs` (with a tabpanel).
 - Forms: `TextField`, `TextAreaField`, `SelectField`, `ComboboxField`, `Checkbox`. For a custom control, use `FieldShell` and `controlClass`.
 - Overlays: `Dialog` (`bare` for the command palette), `ConfirmDialog` and `DialogBody`; `ActionsMenu` with `ActionItem`; `PopupMenu` for context menus; `InfoTip`; `ChartTooltip`.
 - Charts: `ColumnTrend` (columns over time slots, with a screen-reader table).

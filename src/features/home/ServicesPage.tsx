@@ -1,8 +1,7 @@
 import type { ReactNode } from 'react';
-import { Link } from 'react-router';
 import { useViewer } from '@/app/auth';
-import { MesocycleIcon, NutritionIcon, TrainingIcon } from '@/components/icons';
-import { Alert, PageHeader, SectionHeading } from '@/components/ui';
+import { ArrowUpRightIcon, MesocycleIcon, NutritionIcon, TrainingIcon } from '@/components/icons';
+import { Alert, ButtonLink, PageHeader, SectionHeading } from '@/components/ui';
 import { LoadingRegion, SkeletonRows } from '@/components/Skeleton';
 import type { ServiceKind } from '@/domain/programs/contract';
 import { NutritionProgramRow } from '@/features/nutrition/NutritionPages';
@@ -35,11 +34,9 @@ export function ServicesPage() {
       {services.map((service) => {
         const id = `services-${service}`;
         const heading = (
-          <div className="mb-2 flex items-center justify-between gap-3">
+          <div className="mb-3 flex items-center justify-between gap-3">
             <SectionHeading id={id} icon={ICONS[service]}>{SERVICE_LABELS[service]}</SectionHeading>
-            <Link to={clientProgramPath(service)} className="-my-3 inline-flex min-h-11 shrink-0 items-center text-sm text-gold-fg">
-              <span className="link">Open {SERVICE_SHORT_LABELS[service]}</span>
-            </Link>
+            <ButtonLink to={clientProgramPath(service)} className="shrink-0">Open {SERVICE_SHORT_LABELS[service]}<ArrowUpRightIcon /></ButtonLink>
           </div>
         );
         if (service === 'nutrition') {

@@ -1,24 +1,34 @@
 import type { ComponentPropsWithRef, InputHTMLAttributes, ReactNode, Ref, SelectHTMLAttributes, TextareaHTMLAttributes } from 'react';
 import { useId } from 'react';
+import { Link } from 'react-router';
 import { CloseIcon, InfoIcon } from './icons';
 import { NoticePresence } from './NoticePresence';
 
-type ButtonProps = ComponentPropsWithRef<'button'> & { variant?: 'primary' | 'secondary' | 'ghost' | 'ghost-danger' | 'ghost-gold' | 'danger'; busy?: boolean };
+type ButtonVariant = 'primary' | 'secondary' | 'ghost' | 'ghost-danger' | 'ghost-gold' | 'danger';
+type ButtonProps = ComponentPropsWithRef<'button'> & { variant?: ButtonVariant; busy?: boolean };
+
+const BUTTON_STYLES: Record<ButtonVariant, string> = {
+  primary: 'bg-gold text-on-gold font-semibold hover:bg-gold-hover',
+  secondary: 'border border-line bg-surface-raised text-text hover:border-muted/70',
+  ghost: 'text-muted hover:bg-surface-raised hover:text-text',
+  // Text only, for a destructive action beside ghost buttons.
+  'ghost-danger': 'text-danger hover:bg-danger/10',
+  // Text only, for an action inside a gold-tinted panel.
+  'ghost-gold': 'text-gold-fg hover:bg-gold/10',
+  danger: 'border border-danger/50 bg-surface-raised text-danger hover:border-danger',
+};
+const buttonBase = 'btn-motion inline-flex min-h-11 items-center justify-center gap-2 rounded-card px-4 text-sm font-medium';
+
+/** A link that goes somewhere in the app, drawn as a Button. */
+export function ButtonLink({ variant = 'secondary', className = '', ...rest }: ComponentPropsWithRef<typeof Link> & { variant?: ButtonVariant }) {
+  return <Link className={`${buttonBase} ${BUTTON_STYLES[variant]} ${className}`} {...rest} />;
+}
 
 export function Button({ variant = 'primary', busy, className = '', children, disabled, ...rest }: ButtonProps) {
-  const styles = {
-    primary: 'bg-gold text-on-gold font-semibold hover:bg-gold-hover',
-    secondary: 'border border-line bg-surface-raised text-text hover:border-muted/70',
-    ghost: 'text-muted hover:bg-surface-raised hover:text-text',
-    // Text only, for a destructive action beside ghost buttons.
-    'ghost-danger': 'text-danger hover:bg-danger/10',
-    // Text only, for an action inside a gold-tinted panel.
-    'ghost-gold': 'text-gold-fg hover:bg-gold/10',
-    danger: 'border border-danger/50 bg-surface-raised text-danger hover:border-danger',
-  }[variant];
+  const styles = BUTTON_STYLES[variant];
   return (
     <button
-      className={`btn-motion inline-flex min-h-11 items-center justify-center gap-2 rounded-card px-4 text-sm font-medium disabled:cursor-not-allowed disabled:opacity-50 ${styles} ${className}`}
+      className={`${buttonBase} disabled:cursor-not-allowed disabled:opacity-50 ${styles} ${className}`}
       disabled={disabled || busy}
       aria-busy={busy || undefined}
       {...rest}
