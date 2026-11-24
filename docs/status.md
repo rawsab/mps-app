@@ -803,4 +803,9 @@ Decision 0055, "Owner follow-ups".
 ## Help: calendar meetings and conflicts (2026-11-24)
 
 - Meetings Help page: an animated demo of adding a meeting from the calendar by dragging (decision 0066), and a Conflicts example drawn with the page's own `ConflictCard` (decision 0063). Fictional clients only. Tests check both against the app's rules.
-- **Verification.** `pnpm verify` passes (472 tests). No browser checks.
+- Follow-up fixes from the owner's review:
+  - The demo's dialog sits above the calendar, and its hour labels stay on one line.
+  - The demo uses the real `SegmentedControl` for One meeting / Repeating, and the Personal training toggle has the form's padding.
+  - `ComboboxField` shows the picked option's label, not its value (the calendar's client picker showed ids; time zones now read without underscores).
+  - Conflict cards fit three to a row from `xl`.
+- **Verification.** `pnpm verify` passes (472 tests). The owner approved screenshots for the demo fixes, taken headless with a temporary `playwright-core` in the scratchpad (nothing added to the repo).

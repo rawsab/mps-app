@@ -1,5 +1,11 @@
 # To-do
 
+## Next up (2026-11-24)
+
+- [ ] **Owner's manual UI checks** for decisions 0059 to 0066 (each record has a checklist).
+- [ ] **Owner's answers** needed: day notes for PT programs (decision 0061) and the seven Google Calendar questions (decision 0064, which also needs authorization for a Google Cloud project).
+- [ ] Optional follow-ups: availability and time-off notes inside the calendar's New meeting dialog (0066); archiving a replaced program only when its copy is first published (0061); restoring a program from its .json file (0062).
+
 ## Next up (handoff, 2026-11-20)
 
 Development is moving from Claude Code to Codex. Agent instructions now live in `AGENTS.md` (`CLAUDE.md` just imports it). In priority order:
