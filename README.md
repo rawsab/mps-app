@@ -13,52 +13,107 @@
   <img alt="Supabase" src="https://img.shields.io/badge/Supabase-Postgres-3ecf8e?logo=supabase&logoColor=white">
 </p>
 
----
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/coach-clients-dark.webp">
+    <img src="docs/screenshots/coach-clients.webp" alt="The coach workspace: clients waiting for review, today's meetings, service and status summaries, and open service requests" width="900">
+  </picture>
+</p>
 
 ## About
 
-[Modern Physique Systems](https://www.modernphysiquesystems.com/) (MPS) is a coaching business run by Matt Lizmore. It offers three services: Mesocycle Programming, Nutritional Programming and Personal Training. Its programs and client results currently live in spreadsheets and documents. This application replaces them with a single branded, mobile-friendly platform:
+[Modern Physique Systems](https://www.modernphysiquesystems.com/) (MPS) is a coaching business run by Matt Lizmore. It offers three services: Mesocycle Programming, Nutritional Programming and Personal Training. Its programs and client results currently live in spreadsheets and documents. This application replaces them with one branded, mobile-friendly platform:
 
-- **Coaches** manage clients, build and publish programs, review logged activity, schedule sessions and track billing.
+- **Coaches** manage clients, build and publish programs, review logged activity, schedule meetings and track billing.
 - **Clients** sign in to see what to do next, log workouts and nutrition from their phone, and follow their progress over time.
 
-> **Work in progress.** The application is under active development and this is not the final version. Features are still being built and refined, and the interface, data model and workflows may change before release.
+> [!NOTE]
+> **Work in progress.** The application is under active development and this is not the final version. The interface, data model and workflows may change before release.
 
-## Ownership and intellectual property
+## Screenshots
 
-The **Mesocycle Programming**, **Nutritional Programming** and **Personal Training** services, including their programs, templates, training and nutrition methodologies, program content, and coaching workflows, are the intellectual property of **Modern Physique Systems**. The same applies to the Modern Physique Systems name, logo and branding.
+All people and data shown are fictional, from the local development seed.
 
-They appear in this repository with the owner's permission, for portfolio purposes only. Nothing here grants a licence to use, copy or redistribute that material. All people and data in the local development seed are fictional.
+### Coach workspace
+
+<table>
+  <tr>
+    <td width="33%"><a href="docs/screenshots/coach-grid.webp"><img src="docs/screenshots/coach-grid.webp" alt="Program editor, Spreadsheet view"></a></td>
+    <td width="33%"><a href="docs/screenshots/coach-list.webp"><img src="docs/screenshots/coach-list.webp" alt="Program editor, List View"></a></td>
+    <td width="33%"><a href="docs/screenshots/coach-client-detail.webp"><img src="docs/screenshots/coach-client-detail.webp" alt="Client page"></a></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>Spreadsheet editor.</b> Keyboard navigation, range selection, drag to reorder, copy and paste.</sub></td>
+    <td align="center"><sub><b>List View.</b> The same program, edited one day at a time.</sub></td>
+    <td align="center"><sub><b>Client page.</b> Recent updates, meetings, services and private staff notes.</sub></td>
+  </tr>
+  <tr>
+    <td width="33%"><a href="docs/screenshots/coach-calendar.webp"><img src="docs/screenshots/coach-calendar.webp" alt="Meetings calendar"></a></td>
+    <td width="33%"><a href="docs/screenshots/coach-activity.webp"><img src="docs/screenshots/coach-activity.webp" alt="Activity feed"></a></td>
+    <td width="33%"><a href="docs/screenshots/coach-billing.webp"><img src="docs/screenshots/coach-billing.webp" alt="Billing"></a></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>Meetings.</b> A calendar with availability, drag-to-create and conflict checks.</sub></td>
+    <td align="center"><sub><b>Activity.</b> Workouts, nutrition logs and requests, with weekly trends.</sub></td>
+    <td align="center"><sub><b>Billing.</b> Balances, statements and payments clients report sending.</sub></td>
+  </tr>
+</table>
+
+### Client app
+
+<table>
+  <tr>
+    <td width="33%"><a href="docs/screenshots/client-home.webp"><img src="docs/screenshots/client-home.webp" alt="Client home"></a></td>
+    <td width="33%"><a href="docs/screenshots/client-workout.webp"><img src="docs/screenshots/client-workout.webp" alt="Workout logging"></a></td>
+    <td width="33%"><a href="docs/screenshots/client-nutrition.webp"><img src="docs/screenshots/client-nutrition.webp" alt="Daily nutrition entry"></a></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>Home.</b> What's due, the next meeting and the current balance.</sub></td>
+    <td align="center"><sub><b>Workout logging.</b> Set by set, against the prescribed targets.</sub></td>
+    <td align="center"><sub><b>Nutrition.</b> A daily weigh-in and the previous day's calories.</sub></td>
+  </tr>
+  <tr>
+    <td width="33%"><a href="docs/screenshots/client-progress.webp"><img src="docs/screenshots/client-progress.webp" alt="Progress charts"></a></td>
+    <td width="33%"><a href="docs/screenshots/client-pt.webp"><img src="docs/screenshots/client-pt.webp" alt="Personal training dashboard"></a></td>
+    <td width="33%"><a href="docs/screenshots/client-billing.webp"><img src="docs/screenshots/client-billing.webp" alt="Client billing"></a></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>Progress.</b> Weight trends and predicted versus actual change.</sub></td>
+    <td align="center"><sub><b>Personal training.</b> The current program and next session.</sub></td>
+    <td align="center"><sub><b>Billing.</b> Monthly statements and an e-Transfer flow.</sub></td>
+  </tr>
+</table>
 
 ## Features
 
 ### For coaches
 
-- **Client management.** Invite clients, enroll them in one or more services, transfer them between coaches, and archive ended services while keeping their history.
-- **Two program editors over one model.** A structured *Program* view and a spreadsheet-style *Grid* view edit the same canonical program. The grid supports keyboard navigation, range selection, drag-to-reorder, copy and paste, context menus, and undo/redo shared across both views.
-- **Draft, publish and revise.** Drafts autosave. Publishing creates an immutable revision, so a client's completed history is never rewritten when their program changes.
+- **Clients.** Invite clients, enroll them in one or more services, transfer them between coaches, and archive ended services while keeping their history. A ⌘K / Ctrl+K command palette jumps to any client or page.
+- **Two program editors over one model.** A spreadsheet-style view and a structured List View edit the same canonical program, with undo and redo shared across both.
+- **Draft, publish and revise.** Drafts autosave. Publishing creates an immutable revision, so a client's completed history is never rewritten when their program changes. Programs can be duplicated for the next block and downloaded as .xlsx or .json.
 - **Nutritional programming.** Targets with effective dates, a coach-editable daily log, weekly averages and calorie balances, and weight-trend charts.
-- **Reviews and activity.** A feed of client workouts, nutrition entries and feedback, with read state and summary trends.
-- **Scheduling.** Personal-training sessions, recurring meetings, coach availability, attendance records, and client requests to book, move or cancel sessions.
-- **Billing.** Monthly programming charges, per-session PT pricing and recorded payments, all handled in integer cents.
+- **Activity.** A feed of client workouts, nutrition entries, feedback and requests, with read state and summary trends.
+- **Meetings.** One-off and repeating meetings, coach availability and time off, attendance records, conflict detection, and client requests to book, move or cancel.
+- **Billing.** Monthly programming charges, per-session pricing and recorded payments, all in integer cents.
+- **Built-in Help.** Searchable Help pages with live examples and animated demos.
 
 ### For clients
 
 - A home screen centred on the next action, with navigation filtered to the services they're enrolled in.
 - Set-by-set workout logging against the prescribed targets (weights, reps, RIR/RPE ranges), plus muscle-group totals and optional session feedback.
-- Daily weigh-ins and nutrition logging, with weekly summaries.
-- A Personal Training dashboard with upcoming sessions and requests.
-- Profile settings and light and dark themes.
+- Daily weigh-ins and nutrition logging, with weekly summaries and progress charts.
+- A Personal Training dashboard with upcoming sessions, requests and past programs.
+- Billing statements, profile settings, and light and dark themes.
 
 ### Spreadsheet importer
 
-A migration pipeline, currently in development, turns MPS's existing Excel and Word templates into structured program data. It parses the files directly and never evaluates formulas or macros. Every source item ends up *mapped*, *excluded* (with a reason) or *unresolved* (with an issue for the coach to review), and nothing is applied without the coach's confirmation. The importer has no DOM dependencies, so the same code runs in Node tests and can run in a browser Web Worker.
+A migration pipeline, still in development, turns MPS's existing Excel and Word templates into structured program data. It parses the files directly and never evaluates formulas or macros. Every source item ends up *mapped*, *excluded* (with a reason) or *unresolved* (with an issue for the coach to review), and nothing is applied without the coach's confirmation. The importer has no DOM dependencies, so the same code runs in Node tests and can run in a browser Web Worker.
 
 ## Tech stack
 
 | Layer | Tools |
 |---|---|
-| Front end | React 19, TypeScript, Vite, React Router 7, TanStack Query, Tailwind CSS 4 |
+| Front end | React 19, TypeScript, Vite, React Router 7, TanStack Query, Tailwind CSS 4, MDX |
 | Validation | Zod 4 at every boundary (forms, API responses, import contracts) |
 | Back end | Supabase: Postgres with row-level security, Auth, Storage, Edge Functions (Deno) |
 | Testing | Vitest (domain and importer unit tests, HTTP isolation tests), pgTAP (database policy tests) |
@@ -70,8 +125,8 @@ A migration pipeline, currently in development, turns MPS's existing Excel and W
 - **Immutability enforced at the data layer.** Published program revisions and session target snapshots can't be modified, and the database enforces this rather than application code.
 - **Domain correctness.** Prescribed targets and actual results are stored separately. An RIR of `1-2` is a numeric range, not a date that Excel misread. A null value means "not answered" and is never treated as zero. Money is stored as integer cents.
 - **Server-side identity binding.** Client accounts are linked to client records only by an Edge Function during the invitation flow, never by browser input or a matching email address.
-- **Shared component library.** Pages are built from a shared set of accessible components (dialogs, menus, form fields, tabs, charts with screen-reader tables) and theme tokens, so light and dark modes stay consistent.
-- **Recorded decisions.** Over 50 short architecture decision records in [`docs/decisions/`](docs/decisions/) explain the reasoning behind significant design choices.
+- **Shared component library.** Pages are built from one set of accessible components (dialogs, menus, form fields, tabs, charts with screen-reader tables, loading skeletons) and theme tokens, so light and dark modes stay consistent.
+- **Recorded decisions.** More than 60 short decision records in [`docs/decisions/`](docs/decisions/) explain the reasoning behind significant design choices.
 
 ## Project structure
 
@@ -80,8 +135,8 @@ src/
   app/          Routing, auth context, route guards and layouts
   components/   Shared UI component library
   domain/       Framework-free business logic (programs, training, nutrition, scheduling, billing, importer)
-  features/     Feature modules (clients, programs, training, nutrition, scheduling, billing, ...)
-  lib/          Supabase client and environment validation
+  features/     Feature modules (clients, programs, training, nutrition, scheduling, billing, help, ...)
+  lib/          Supabase client, environment validation and theme
 supabase/
   migrations/   Schema, RLS policies and database functions
   functions/    Edge Functions (client invitations)
@@ -107,7 +162,7 @@ pnpm test:db      # database policy tests (pgTAP)
 pnpm test:api     # HTTP isolation tests against the local stack
 ```
 
-See [`docs/setup.md`](docs/setup.md) for environment configuration, the local seed accounts and Edge Function setup.
+See [`docs/setup.md`](docs/setup.md) for environment configuration, the local seed accounts, a demo walkthrough and Edge Function setup.
 
 ## Documentation
 
@@ -115,6 +170,12 @@ See [`docs/setup.md`](docs/setup.md) for environment configuration, the local se
 - [Implementation roadmap](docs/modern-physique-systems-implementation-roadmap.md)
 - [Development status](docs/status.md)
 - [Decision records](docs/decisions/)
+
+## Ownership and intellectual property
+
+The **Mesocycle Programming**, **Nutritional Programming** and **Personal Training** services, including their programs, templates, training and nutrition methodologies, program content, and coaching workflows, are the intellectual property of **Modern Physique Systems**. The same applies to the Modern Physique Systems name, logo and branding.
+
+They appear in this repository with the owner's permission, for portfolio purposes only. Nothing here grants a licence to use, copy or redistribute that material. All people and data in the local development seed and the screenshots are fictional.
 
 ---
 
