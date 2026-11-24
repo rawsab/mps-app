@@ -72,7 +72,7 @@ export function ClientDetailPage() {
             <MeetingsCard clientId={c.id} heading={<span className="flex items-center gap-2"><SectionTitle icon={<CalendarIcon />}>Meetings</SectionTitle></span>}
               focusMeetingId={focusSession} onFocusClosed={() => setParams((p) => { p.delete('session'); return p; }, { replace: true })} />
           ) : null}
-          <ProgramsCard clientId={c.id} enrollments={c.service_enrollments} />
+          <ProgramsCard clientId={c.id} clientName={c.full_name} enrollments={c.service_enrollments} />
           <ClientBillingPanel clientId={c.id} clientName={c.full_name} heading={<span className="flex items-center gap-2"><SectionTitle icon={<BillingIcon />}>Billing</SectionTitle></span>} />
         </div>
         <div className="grid min-w-0 gap-8 lg:border-l lg:border-line lg:pl-6">

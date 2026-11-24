@@ -12,6 +12,7 @@ import { programErrorMessage, useClientPrograms, useCreateProgram, type ProgramR
 import { ActionItem, ActionsMenu } from '@/components/ActionsMenu';
 import { DeleteArchivedProgramDialog, RemoveProgramDialog } from './RemoveProgramDialog';
 import { DuplicateProgramDialog } from './DuplicateProgramDialog';
+import { downloadSavedProgram, type BackupFormat } from './download';
 import type { ServiceKind } from '@/domain/programs/contract';
 import { useCreateNutritionProgram } from '@/features/nutrition/programApi';
 import { currentProgramId, programCandidates } from '@/domain/programs/current';
@@ -27,7 +28,7 @@ const programFilters: { value: ProgramFilter; label: string }[] = [
 ];
 
 /** All client programs share one list; nutrition keeps its dedicated revision and logging model. */
-export function ProgramsCard({ clientId, enrollments }: { clientId: string; enrollments: EnrollmentRow[] }) {
+export function ProgramsCard({ clientId, clientName, enrollments }: { clientId: string; clientName: string; enrollments: EnrollmentRow[] }) {
   const programs = useClientPrograms(clientId);
   const create = useCreateProgram();
   const createNutrition = useCreateNutritionProgram();
@@ -39,6 +40,15 @@ export function ProgramsCard({ clientId, enrollments }: { clientId: string; enro
   const restore = useRestoreProgram();
   const [deleting, setDeleting] = useState<ProgramRow | null>(null);
   const [duplicating, setDuplicating] = useState<ProgramRow | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
+  const download = (p: ProgramRow, format: BackupFormat) => {
+    setDownloadError(null);
+    downloadSavedProgram(p.id, clientName, format).catch((error: unknown) => setDownloadError(programErrorMessage(error)));
+  };
+  const downloadItems = (p: ProgramRow) => p.service === 'nutrition' ? null : <>
+    <ActionItem onClick={() => download(p, 'xlsx')}>Download spreadsheet</ActionItem>
+    <ActionItem onClick={() => download(p, 'json')}>Download program file</ActionItem>
+  </>;
   const isAdmin = useViewer().data?.staffRole === 'admin';
   // Current program per live service (decision 0039), and services with a choice to make.
   const currentIds = new Set(enrollments.map((e) => currentProgramId(e, programs.data ?? [])).filter(Boolean));
@@ -59,6 +69,7 @@ export function ProgramsCard({ clientId, enrollments }: { clientId: string; enro
       </div>
       {programs.isPending ? <LoadingRegion label="Loading programs" className="mb-4"><SkeletonRows count={2} leading="avatar" divided /></LoadingRegion> : null}
       <Alert visible={!!setCurrent.error} className="mb-3" title="Current program not changed">{programErrorMessage(setCurrent.error)}</Alert>
+      <Alert visible={!!downloadError} className="mb-3" title="Program not downloaded">{downloadError}</Alert>
       <Alert visible={!!restore.error} className="mb-3" title="Program not restored">{programErrorMessage(restore.error)}</Alert>
       <Alert visible={!!programs.error} title="Could not load programs">{programErrorMessage(programs.error)}</Alert>
       {programs.data && visiblePrograms.length > 0 ? (
@@ -85,13 +96,14 @@ export function ProgramsCard({ clientId, enrollments }: { clientId: string; enro
               </Link>
               {p.archived_at ? <ActionsMenu label={`Options for ${programTitle(p)}`}>
                 {p.service !== 'nutrition' && restorable(p) ? <ActionItem onClick={() => setDuplicating(p)}>Duplicate…</ActionItem> : null}
+                {downloadItems(p)}
                 <ActionItem disabled={restore.isPending || !restorable(p)} title={restorable(p) ? undefined : 'Its service has ended'}
                   onClick={() => restore.mutate(p.id)}>{restorable(p) ? 'Restore' : 'Restore (service ended)'}</ActionItem>
                 {isAdmin ? <ActionItem danger onClick={() => setDeleting(p)}>Delete permanently</ActionItem> : null}
               </ActionsMenu> : null}
               {!p.archived_at ? <ActionsMenu label={`Options for ${programTitle(p)}`}>{!currentIds.has(p.id) && enrollmentOf(p) && programCandidates(p.enrollment_id, programs.data ?? []).length > 1 ? (
                 <ActionItem disabled={setCurrent.isPending} onClick={() => setCurrent.mutate({ enrollmentId: p.enrollment_id, programId: p.id })}>Make current</ActionItem>
-              ) : null}{p.service !== 'nutrition' ? <ActionItem onClick={() => setDuplicating(p)}>Duplicate…</ActionItem> : null}<ActionItem danger onClick={() => setRemoval(p)}>{p.program_revisions.some((r) => r.status === 'published') ? 'Archive' : 'Delete'} program</ActionItem></ActionsMenu> : null}
+              ) : null}{p.service !== 'nutrition' ? <ActionItem onClick={() => setDuplicating(p)}>Duplicate…</ActionItem> : null}{downloadItems(p)}<ActionItem danger onClick={() => setRemoval(p)}>{p.program_revisions.some((r) => r.status === 'published') ? 'Archive' : 'Delete'} program</ActionItem></ActionsMenu> : null}
             </li>
           ))}
         </ul>

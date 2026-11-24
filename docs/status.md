@@ -770,3 +770,9 @@ Decision 0055, "Owner follow-ups".
 - Help: a new "Duplicating a program for the next session" guide on Personal training, and the shared editor text.
 - Open: day notes (needs the owner's answer, see the decision).
 - **Verification.** `pnpm verify` (452), `pnpm test:db` and `pnpm test:api` pass. No browser checks; manual checks are in decision 0061.
+
+## Program downloads (2026-11-24)
+
+- Decision 0062 (owner meeting, item 6). Download a training program as a spreadsheet (.xlsx) or program file (.json), from the editor's ⋯ menu or the client page's program menu.
+- `writeXlsx` in `src/lib/xlsx.ts` (inline strings only, no new dependency) and `programBackupSheets` in `src/domain/programs/backup.ts`. Tests read the file back through the importer.
+- **Verification.** `pnpm verify` passes (457 tests). No browser checks; manual checks are in decision 0062.

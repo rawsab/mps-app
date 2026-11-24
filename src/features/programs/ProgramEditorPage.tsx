@@ -9,6 +9,8 @@ import { Tabs } from '@/components/controls';
 import { Alert, Badge, Button, EmptyState, PageHeader } from '@/components/ui';
 import { EditableText } from '@/components/EditableText';
 import { DuplicateProgramDialog } from './DuplicateProgramDialog';
+import { downloadProgram } from './download';
+import { ActionItem, ActionsMenu } from '@/components/ActionsMenu';
 import { LoadingRegion, SkeletonText, SkeletonHeader, SkeletonTable } from '@/components/Skeleton';
 import { gridRows } from '@/domain/programs/grid';
 import { validateForPublish } from '@/domain/programs/contract';
@@ -174,6 +176,11 @@ function Editor({ program, clientName }: { program: NonNullable<ReturnType<typeo
               {/* The copy is made from what's saved, so unsaved edits must land first. */}
               <Button variant="ghost" disabled={editor.hasUnsavedWork || state.publishing} title={editor.hasUnsavedWork ? 'Wait for your changes to save' : undefined}
                 onClick={() => setDuplicating(true)}><CopyIcon /> Duplicate</Button>
+              {/* Downloads what's on screen, unsaved edits included. */}
+              <ActionsMenu label="Download program">
+                <ActionItem onClick={() => downloadProgram(state.draft!, clientName, 'xlsx')}>Download spreadsheet (.xlsx)</ActionItem>
+                <ActionItem onClick={() => downloadProgram(state.draft!, clientName, 'json')}>Download program file (.json)</ActionItem>
+              </ActionsMenu>
               <Button variant="ghost" onClick={() => setReviewing(true)}>{reviewProblems.length > 0 ? <CautionIcon /> : null}{reviewProblems.length > 0 ? `${reviewProblems.length} publish ${reviewProblems.length === 1 ? 'issue' : 'issues'}` : 'Ready to publish'}</Button>
               <Button onClick={() => { if (reviewProblems.length > 0) setReviewing(true); else void editor.publish(); }} busy={state.publishing} disabled={archived || state.saveState === 'conflict'}>
                 Publish

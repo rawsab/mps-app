@@ -39,7 +39,7 @@ Owner requests, not yet ordered. Each needs a decision record when built.
 - [x] **One-off PT programs, built a day at a time** (duplicating built 2026-11-24, decision 0061). Open question for the owner: separate notes for each day needs a new day notes field; see decision 0061. Days can be duplicated, and each day has its own notes. The most important part is **duplicating a PT program**. The coach's routine: build a program and go through it with the client, adding notes. Then duplicate it; the old one is archived and the copy becomes current (perhaps a dialog with buttons for this). Change the copy (values, add or remove exercises), go through it with the client, and repeat.
 - [x] **Clients can see their archived programs** (built 2026-11-24, decision 0060).
 - [x] **Help search results hidden behind page content** (fixed 2026-11-24): the sticky sidebar and the animated page each had their own layer, and the page was drawn on top.
-- [ ] **Back up programs.** Download a single program, perhaps as a spreadsheet.
+- [x] **Back up programs** (built 2026-11-24, decision 0062): spreadsheet (.xlsx) and program file (.json). Restoring from a file is not built.
 - [ ] **Plan two-way Google Calendar sync** (important). Covers one-off and repeating meetings, descriptions and meeting links, rescheduling, cancelling, and inviting and notifying clients. Plan only for now; any hosted Google project needs explicit authorization.
 - [ ] **Meeting conflicts.** A section that lists overlapping meetings for the same coach.
 
