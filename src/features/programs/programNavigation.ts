@@ -1,4 +1,4 @@
-import { dayHeading, weekName } from '@/domain/programs/labels';
+import { dayHeading, weekTitle } from '@/domain/programs/labels';
 import type { ProgramDraft } from '@/domain/programs/contract';
 
 export function programDestinations(draft: ProgramDraft) {
@@ -6,8 +6,8 @@ export function programDestinations(draft: ProgramDraft) {
     { id: 'details', label: 'Program details' },
     { id: 'shared', label: 'Every-workout preparation' },
     ...draft.weeks.flatMap((week, w) => [
-      { id: week.id, label: weekName(w) },
-      ...week.days.map((day, d) => ({ id: day.id, label: `${weekName(w)} / ${dayHeading(day, d)}` })),
+      { id: week.id, label: weekTitle(draft, week, w) },
+      ...week.days.map((day, d) => ({ id: day.id, label: `${weekTitle(draft, week, w)} / ${dayHeading(day, d)}` })),
     ]),
     { id: 'resources', label: 'Resources' },
   ];

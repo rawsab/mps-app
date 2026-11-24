@@ -5,7 +5,8 @@ import {
   planPaste, toClipboard, type GridColumnKey, type GridRow,
 } from '@/domain/programs/grid';
 import { PlusIcon } from '@/components/icons';
-import { dayHeading, dayName, weekName } from '@/domain/programs/labels';
+import { dayHeading, dayName, weekTitle } from '@/domain/programs/labels';
+import { EditableText } from '@/components/EditableText';
 import { planDuplicateWeek, planInsertGridRow } from '@/domain/programs/gridStructureActions';
 import { useWeekMotion, scrollBehavior } from './useWeekMotion';
 import { WeekGridMenu, type WeekAction } from './WeekGridMenu';
@@ -109,6 +110,9 @@ export function GridView({ readOnly = false }: { readOnly?: boolean }) {
         headerActions={sheet.weekId ? <WeekGridMenu sectionsEnabled={editor.draft.weeks.find((week) => week.id === sheet.weekId)!.useSections} label={sheet.label} first={editor.draft.weeks[0]?.id === sheet.weekId}
           last={editor.draft.weeks.at(-1)?.id === sheet.weekId} disabled={readOnly || removing} onAction={(action) => weekAction(sheet.weekId!, action)} /> : null}
         rowDrag={rowDrag} dayNumberChanges={dayNumberChanges} movedItem={movedItem} onMoved={setMovedItem}
+        onRename={sheet.weekId && editor.draft.service === 'personal_training' ? (name) => {
+          setWeekError(editor.dispatch([{ type: 'updateWeek', id: sheet.weekId!, patch: { label: name } }])?.message ?? null);
+        } : undefined}
         onWeekAction={weekAction} addedId={addedId} onAdded={setAddedId} onMove={setMoving}
         onAddStructure={(row, kind) => setAdding({ row, weekId: sheet.weekId, kind })} />
     </section>)}
@@ -117,7 +121,7 @@ export function GridView({ readOnly = false }: { readOnly?: boolean }) {
       const week = newWeek(`Week ${editor.draft.weeks.length + 1}`);
       editor.dispatch([{ type: 'insert', parentId: null, node: week }]);
     }}><PlusIcon /> Add week</Button></div>
-    {deleting ? <Dialog title={`Delete ${weekName(editor.draft.weeks.findIndex((week) => week.id === deleting))}?`}
+    {deleting ? <Dialog title={`Delete ${weekTitle(editor.draft, editor.draft.weeks.find((week) => week.id === deleting)!, editor.draft.weeks.findIndex((week) => week.id === deleting))}?`}
       description="This removes the week and all its days, sections and exercises from this draft. You can undo this change. Published history is kept."
       onClose={() => { if (!removing) setDeleting(null); }} footer={<>
         <Button variant="secondary" disabled={removing} onClick={() => setDeleting(null)}>Keep week</Button>
@@ -136,9 +140,11 @@ export function GridView({ readOnly = false }: { readOnly?: boolean }) {
   </div>;
 }
 
-function WeekGrid({ rows, weekId, label, readOnly, addedId, onAdded, onMove, onAddStructure, headerActions, onWeekAction, rowDrag, useSections, dayNumberChanges, movedItem, onMoved }: {
+function WeekGrid({ rows, weekId, label, readOnly, addedId, onAdded, onMove, onAddStructure, headerActions, onWeekAction, onRename, rowDrag, useSections, dayNumberChanges, movedItem, onMoved }: {
   useSections: boolean; rowDrag: GridRowDrag; dayNumberChanges: Record<string, string>; movedItem: GridDragSource | null; onMoved: (item: GridDragSource | null) => void;
   headerActions: ReactNode; onWeekAction: (id: string, action: WeekAction) => void;
+  /** Set when the week can be renamed (personal training). */
+  onRename?: (name: string) => void;
   rows: GridRow[]; weekId: string | null; label: string; readOnly: boolean;
   addedId: string | null; onAdded: (id: string | null) => void;
   onMove: (target: GridMoveTarget) => void; onAddStructure: (row?: GridRow, kind?: 'day' | 'section') => void;
@@ -339,7 +345,7 @@ function WeekGrid({ rows, weekId, label, readOnly, addedId, onAdded, onMove, onA
       if (error) setMessage(error.message);
     } else {
       const week = editor.draft.weeks.find((w) => w.id === menuRow.weekId);
-      const label = action === 'removeDay' ? menuRow.dayLabel : weekName(editor.draft.weeks.findIndex((candidate) => candidate.id === week?.id));
+      const label = action === 'removeDay' ? menuRow.dayLabel : weekTitle(editor.draft, week!, editor.draft.weeks.findIndex((candidate) => candidate.id === week?.id));
       setRemoval({ id, label });
     }
   };
@@ -362,7 +368,9 @@ function WeekGrid({ rows, weekId, label, readOnly, addedId, onAdded, onMove, onA
     <div className="grid min-w-0 gap-3">
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
-          <h3 tabIndex={-1} className="text-xl font-semibold outline-none sm:text-2xl">{label}</h3>
+          <h3 tabIndex={-1} className="text-xl font-semibold outline-none sm:text-2xl">
+            {onRename ? <EditableText value={label} label={`${label} name`} disabled={readOnly} onSave={onRename} /> : label}
+          </h3>
         </div>
         {headerActions}
       </div>

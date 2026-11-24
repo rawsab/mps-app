@@ -2,7 +2,7 @@ import { useId, useState, type FormEvent } from 'react';
 import { Dialog } from '@/components/Dialog';
 import { Alert, Button, SelectField } from '@/components/ui';
 import { gridRows, planMoveGridExercise } from '@/domain/programs/grid';
-import { dayHeading, weekName } from '@/domain/programs/labels';
+import { dayHeading, weekTitle } from '@/domain/programs/labels';
 import { capitalize } from '@/lib/format';
 import { useEditor } from './useDraftEditor';
 
@@ -62,7 +62,7 @@ export function MoveGridItemDialog({ target, onClose }: { target: GridMoveTarget
         setError(null);
       }}>
         {target.kind === 'exercise' ? <option value="shared">Every-workout preparation</option> : null}
-        {editor.draft.weeks.map((week, index) => <option key={week.id} value={week.id}>{weekName(index)}</option>)}
+        {editor.draft.weeks.map((week, index) => <option key={week.id} value={week.id}>{weekTitle(editor.draft, week, index)}</option>)}
       </SelectField>
       {target.kind === 'exercise' ? <>
         {weekId !== 'shared' ? <SelectField label="Destination day" value={dayId} onChange={(event) => {

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { dayFocus, dayHeading, dayName, weekName } from '@/domain/programs/labels';
+import { customWeekName, dayFocus, dayHeading, dayName, weekName, weekTitle } from '@/domain/programs/labels';
 import { applyCommands } from '@/domain/programs/commands';
 import { gridRows, gridSheets, planSetDayFocus, planClear } from '@/domain/programs/grid';
 import { validateForPublish, type ProgramDraft } from '@/domain/programs/contract';
@@ -64,5 +64,27 @@ describe('automatic numbering and day Focus (FR-05, FR-06)', () => {
     doc = apply(doc, planClear(doc, [{ exerciseId: 'e1', column: 'day' }]).commands);
     expect(gridRows(doc)[0]).toMatchObject({ dayLabel: 'Day 1', focus: '' });
     expect(validateForPublish(doc)).toEqual([]);
+  });
+});
+
+describe('renaming personal training weeks (owner request, 2026-11-24)', () => {
+  it('treats blank and default "Week N" labels as unnamed', () => {
+    for (const label of ['', '  ', 'Week 3', 'week12', ' WEEK 2 ']) expect(customWeekName(label)).toBeNull();
+    expect(customWeekName(' Deload ')).toBe('Deload');
+    expect(customWeekName('Week 3 heavy')).toBe('Week 3 heavy');
+  });
+
+  it('shows a PT week\'s own name and keeps mesocycle weeks numbered', () => {
+    expect(weekTitle({ service: 'personal_training' }, { label: 'Intro block' }, 0)).toBe('Intro block');
+    expect(weekTitle({ service: 'personal_training' }, { label: 'Week 5' }, 1)).toBe('Week 2');
+    expect(weekTitle({ service: 'mesocycle' }, { label: 'Intro block' }, 0)).toBe('Week 1');
+  });
+
+  it('renames through updateWeek, and clearing the name brings the number back', () => {
+    let doc: ProgramDraft = { ...draft(), service: 'personal_training' };
+    doc = apply(doc, [{ type: 'updateWeek', id: 'w2', patch: { label: 'Deload' } }]);
+    expect(gridSheets(doc).map((sheet) => sheet.label)).toEqual(['Custom old week', 'Deload']);
+    doc = apply(doc, [{ type: 'updateWeek', id: 'w2', patch: { label: '' } }]);
+    expect(gridSheets(doc).map((sheet) => sheet.label)).toEqual(['Custom old week', 'Week 2']);
   });
 });

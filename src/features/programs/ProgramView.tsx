@@ -8,7 +8,7 @@ import { DisclosureSummary } from '@/components/DisclosureSummary';
 import { Dialog } from '@/components/Dialog';
 import { Badge, Button, RequiredNote } from '@/components/ui';
 import { newDay, newExercise, newResource, newSection, newWeek, type DraftCommand } from '@/domain/programs/commands';
-import { dayFocus, dayHeading, dayName, weekName } from '@/domain/programs/labels';
+import { dayFocus, dayHeading, dayName, weekTitle } from '@/domain/programs/labels';
 import type { Exercise, ProgramWeek, Section, WorkoutDay } from '@/domain/programs/contract';
 import { cellText, gridRows, LOAD_MODE_OPTIONS, type GridColumnKey, type GridRow } from '@/domain/programs/grid';
 import {
@@ -26,6 +26,7 @@ import { useEditor } from './useDraftEditor';
 import { weekMuscles } from '@/domain/programs/muscles';
 import { planGridRowMove, type GridRowDrop } from '@/domain/programs/gridRowMoves';
 import { InfoTip } from '@/components/Tooltip';
+import { EditableText } from '@/components/EditableText';
 
 /**
  * Matt's Program view (FR-05): an outline and one focused workout workspace. It edits
@@ -108,10 +109,10 @@ export function ProgramView({ readOnly = false }: { readOnly?: boolean }) {
           {outlineButton('shared', 'Every-workout prep', draft.sharedSections.reduce((n, section) => n + section.exercises.length, 0), issueCount(draft.sharedSections.flatMap((section) => [section.id, ...section.exercises.map((exercise) => exercise.id)])))}
           <ul className="my-4 grid gap-3">
             {draft.weeks.map((week, w) => <li key={week.id}>
-              {outlineButton(week.id, weekName(w), week.days.length, issueCount([week.id]))}
+              {outlineButton(week.id, weekTitle(draft, week, w), week.days.length, issueCount([week.id]))}
               <ul className="ml-3 border-l border-line pl-1">
                 {week.days.map((day, d) => <li key={day.id}>{outlineButton(day.id, <span className="flex min-w-0 flex-col gap-0.5"><span>{dayName(d)}</span>{dayFocus(day) ? <span className="text-xs font-normal text-muted/85">{dayFocus(day)}</span> : null}</span>, day.sections.reduce((n, section) => n + section.exercises.length, 0), issueCount([day.id, ...day.sections.flatMap((section) => [section.id, ...section.exercises.map((exercise) => exercise.id)])]))}</li>)}
-                <li><button type="button" disabled={readOnly} className="outline-add" aria-label={`Add day to ${weekName(w)}`} onClick={() => addDay(week)}><PlusIcon /> Add day</button></li>
+                <li><button type="button" disabled={readOnly} className="outline-add" aria-label={`Add day to ${weekTitle(draft, week, w)}`} onClick={() => addDay(week)}><PlusIcon /> Add day</button></li>
               </ul>
             </li>)}
             <li><button type="button" disabled={readOnly} className="outline-add" onClick={addWeek}><PlusIcon /> Add week</button></li>
@@ -139,7 +140,7 @@ export function ProgramView({ readOnly = false }: { readOnly?: boolean }) {
 
       {selectedWeek && !selectedDay ? <WeekEditor key={selectedWeek.id} week={selectedWeek} index={draft.weeks.indexOf(selectedWeek)} count={draft.weeks.length} onRemove={setRemoval} onNavigate={navigate} /> : null}
       {selectedWeek && selectedDay ? <div key={selectedDay.id}>
-        <button type="button" onClick={() => navigate(selectedWeek.id)} className="mb-2 inline-flex min-h-11 items-center text-sm text-muted hover:text-text">{weekName(draft.weeks.indexOf(selectedWeek))} / Week settings</button>
+        <button type="button" onClick={() => navigate(selectedWeek.id)} className="mb-2 inline-flex min-h-11 items-center text-sm text-muted hover:text-text">{weekTitle(draft, selectedWeek, draft.weeks.indexOf(selectedWeek))} / Week settings</button>
         <h2 className="mb-5 flex flex-wrap items-center gap-x-3 gap-y-1 text-xl font-semibold">
           <span className="inline-flex shrink-0 items-center gap-2"><DayIcon />{dayName(selectedWeek.days.indexOf(selectedDay))}</span>
           {dayFocus(selectedDay) ? <span className="min-w-0 break-words text-sm font-normal text-muted/85">{dayFocus(selectedDay)}</span> : null}
@@ -206,7 +207,7 @@ function commitUrl(text: string, apply: (url: string | null) => string | null): 
   return apply(t);
 }
 
-function Panel({ title, description, children, footer }: { title: string; description?: string; children: ReactNode; footer?: ReactNode }) {
+function Panel({ title, description, children, footer }: { title: ReactNode; description?: string; children: ReactNode; footer?: ReactNode }) {
   return (
     <section className="min-w-0">
       <h2 className="text-xl font-semibold">{title}</h2>
@@ -248,9 +249,13 @@ function NodeActions({
 
 function WeekEditor({ week, index, count, onRemove, onNavigate }: { week: ProgramWeek; index: number; count: number; onRemove: (r: Removal) => void; onNavigate: (id: string) => void }) {
   const commit = useCommandCommit();
-  const name = weekName(index);
+  const { draft } = useEditor();
+  const name = weekTitle(draft, week, index);
+  const title = draft.service === 'personal_training'
+    ? <EditableText value={name} label={`${name} name`} onSave={(label) => commit({ type: 'updateWeek', id: week.id, patch: { label } })} />
+    : name;
   return (
-    <Panel title={name} description="Week settings and workout days.">
+    <Panel title={title} description="Week settings and workout days.">
       <div className="mb-6 flex flex-wrap items-end gap-3">
 
         <CommitField label="Starts" type="date" value={week.startDate ?? ''} rejectKey={`${week.id}:startDate`} className="w-full sm:w-44" onCommit={(t) => commit({ type: 'updateWeek', id: week.id, patch: { startDate: t || null } })} />

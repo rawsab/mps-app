@@ -1,7 +1,7 @@
 import { shiftDate, type NutritionData } from './nutrition';
 import type { NutritionProgramSummary } from './nutritionProgram';
 import type { ProgramDraft } from './programs/contract';
-import { dayHeading, weekName } from './programs/labels';
+import { dayHeading, weekTitle } from './programs/labels';
 import { isExerciseLogged, type TrainingSession } from './training/volume';
 
 // Client Home to-dos and progress (FR-03, decision 0042). Pure, so Home and tests share one rule.
@@ -45,7 +45,7 @@ export function nextWorkout(program: ProgramDraft, sessions: readonly TrainingSe
     const logged = exercises.filter((e) => isExerciseLogged(e, session?.sets ?? [])).length;
     return {
       session,
-      located: { weekId: week.id, dayId: day.id, weekIndex: w, label: `${weekName(w)} · ${dayHeading(day, d)}`, exercises: exercises.length, logged },
+      located: { weekId: week.id, dayId: day.id, weekIndex: w, label: `${weekTitle(program, week, w)} · ${dayHeading(day, d)}`, exercises: exercises.length, logged },
     };
   }));
   if (days.length === 0) return null;

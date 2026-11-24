@@ -1,5 +1,5 @@
 import type { Exercise, ProgramDraft, WorkoutDay } from '../programs/contract';
-import { dayFocus, dayName, weekName } from '../programs/labels';
+import { dayFocus, dayName, weekTitle } from '../programs/labels';
 import { muscleKey } from '../programs/muscles';
 
 /**
@@ -117,7 +117,7 @@ function orderedDays(program: ProgramDraft, sessions: readonly TrainingSession[]
   return program.weeks.flatMap((week, w) => week.days.map((day, d) => {
     const session = byDay.get(day.id) ?? null;
     const focus = dayFocus(day);
-    return { id: day.id, label: `${weekName(w)} · ${dayName(d)}${focus ? ` · ${focus}` : ''}`, day: session?.day ?? day, session };
+    return { id: day.id, label: `${weekTitle(program, week, w)} · ${dayName(d)}${focus ? ` · ${focus}` : ''}`, day: session?.day ?? day, session };
   }));
 }
 

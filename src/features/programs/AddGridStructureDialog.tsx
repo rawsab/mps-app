@@ -1,7 +1,7 @@
 import { useId, useState, type FormEvent } from 'react';
 import { Dialog } from '@/components/Dialog';
 import { Alert, Button } from '@/components/ui';
-import { dayHeading, weekName } from '@/domain/programs/labels';
+import { dayHeading, weekName, weekTitle } from '@/domain/programs/labels';
 import { planAddGridStructure, type GridRow, type GridStructureRequest } from '@/domain/programs/grid';
 import { useEditor } from './useDraftEditor';
 
@@ -52,7 +52,7 @@ export function AddGridStructureDialog({ currentRow, initialWeekId, initialKind 
         Week
         <select value={weekId} onChange={(e) => setWeekId(e.target.value)} className={inputClass}>
           {editor.draft.weeks.length === 0 ? <option value="">New week</option> : null}
-          {editor.draft.weeks.map((w, index) => <option key={w.id} value={w.id}>{weekName(index)}</option>)}
+          {editor.draft.weeks.map((w, index) => <option key={w.id} value={w.id}>{weekTitle(editor.draft, w, index)}</option>)}
         </select>
       </label> : null}
       {kind === 'section' ? <>
@@ -60,8 +60,8 @@ export function AddGridStructureDialog({ currentRow, initialWeekId, initialKind 
           Day
           <select value={dayId} onChange={(e) => setDayId(e.target.value)} className={inputClass}>
             <option value="">All days (shared)</option>
-            {newDayOption && defaultWeek ? <option value={newDayOption}>{weekName(editor.draft.weeks.indexOf(defaultWeek))} / Day 1 (new)</option> : null}
-            {editor.draft.weeks.map((w, index) => <optgroup key={w.id} label={weekName(index)}>
+            {newDayOption && defaultWeek ? <option value={newDayOption}>{weekTitle(editor.draft, defaultWeek, editor.draft.weeks.indexOf(defaultWeek))} / Day 1 (new)</option> : null}
+            {editor.draft.weeks.map((w, index) => <optgroup key={w.id} label={weekTitle(editor.draft, w, index)}>
               {w.days.map((d, index) => <option key={d.id} value={d.id}>{dayHeading(d, index)}</option>)}
             </optgroup>)}
           </select>

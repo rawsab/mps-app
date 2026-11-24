@@ -206,7 +206,7 @@ export function EmptyState({ title, children, action }: { title: string; childre
   );
 }
 
-export function PageHeader({ title, subtitle, actions, leading }: { title: string; subtitle?: ReactNode; actions?: ReactNode; leading?: ReactNode }) {
+export function PageHeader({ title, subtitle, actions, leading }: { title: ReactNode; subtitle?: ReactNode; actions?: ReactNode; leading?: ReactNode }) {
   return (
     // min-h-11 matches a header button, so the title doesn't shift when an action hides.
     <header className="mb-6 flex min-h-11 flex-wrap items-end justify-between gap-3">

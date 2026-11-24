@@ -1,7 +1,7 @@
 import { formatRange, parseRangeText, type NumericRange } from '../measurements/range';
 import type { Effort, Load, WeightUnit } from '../measurements/load';
 import { applyCommands, newDay, newExercise, newSection, newWeek, type DraftCommand } from './commands';
-import { dayFocus, dayName, weekName } from './labels';
+import { dayFocus, dayName, weekTitle } from './labels';
 import { formatMuscles, parseMuscles, weekMuscles } from './muscles';
 import { ExercisePrescription, type Exercise, type ProgramDraft, type Section, type SetTarget, type ServiceKind } from './contract';
 
@@ -105,7 +105,7 @@ export function gridSheets(draft: ProgramDraft) {
   const rows = gridRows(draft);
   return [
     ...(draft.sharedSections.length ? [{ weekId: null, label: 'Every-workout preparation', rows: rows.filter((row) => row.weekId === null) }] : []),
-    ...draft.weeks.map((week, index) => ({ weekId: week.id, label: weekName(index), rows: rows.filter((row) => row.weekId === week.id) })),
+    ...draft.weeks.map((week, index) => ({ weekId: week.id, label: weekTitle(draft, week, index), rows: rows.filter((row) => row.weekId === week.id) })),
   ];
 }
 

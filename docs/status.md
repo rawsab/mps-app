@@ -745,3 +745,12 @@ Decision 0055, "Owner follow-ups".
 - Owner meeting, item 5. On wide screens the Help search results were drawn behind the page's text and thumbnails. The page's entrance animation gives it its own layer, painted after the sticky sidebar. The sidebar is now `z-10` and the search box `z-20`.
 - The other owner requests from the 2026-11-24 meeting are listed in `docs/todo.md`.
 - **Verification.** `pnpm verify` passes. No browser checks.
+
+## Delete row, rename in place, PT week names (2026-11-24)
+
+- Decision 0059 (owner meeting, items 1 and 2).
+  - The Spreadsheet's cell menu has **Delete row** for one exercise, undoable.
+  - A faint pencil renames the program title in place at the top of the editor (`EditableText`).
+  - Personal training weeks can be named, in the Spreadsheet and in List View's week settings. Blank or "Week N" labels still show the number. Mesocycle weeks stay numbered.
+- Help pages updated: the shared editor text, Personal training (new Week names section) and Mesocycle.
+- **Verification.** `pnpm verify` passes (449 tests). No browser checks; manual checks are in decision 0059.

@@ -7,6 +7,7 @@ import { scrollBehavior } from './useWeekMotion';
 import { Dialog } from '@/components/Dialog';
 import { Tabs } from '@/components/controls';
 import { Alert, Badge, Button, EmptyState, PageHeader } from '@/components/ui';
+import { EditableText } from '@/components/EditableText';
 import { LoadingRegion, SkeletonText, SkeletonHeader, SkeletonTable } from '@/components/Skeleton';
 import { gridRows } from '@/domain/programs/grid';
 import { validateForPublish } from '@/domain/programs/contract';
@@ -133,7 +134,9 @@ function Editor({ program, clientName }: { program: NonNullable<ReturnType<typeo
       }}>
         <div>{back}</div>
         <PageHeader
-          title={state.draft.title.trim() || (program.service === 'mesocycle' ? 'Untitled program style' : 'Untitled program')}
+          title={<EditableText value={state.draft.title.trim() || (program.service === 'mesocycle' ? 'Untitled program style' : 'Untitled program')}
+            initial={state.draft.title} label="program name" disabled={archived || state.publishing}
+            onSave={(title) => editor.dispatch([{ type: 'updateProgram', patch: { title } }])} />}
           subtitle={
             <span className="flex flex-col gap-2">
               {program.service === 'mesocycle' ? <span className="break-words text-base">{state.draft.programTheme?.trim() || 'Program Theme'}</span> : null}

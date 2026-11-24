@@ -34,8 +34,8 @@ Development is moving from Claude Code to Codex. Agent instructions now live in 
 
 Owner requests, not yet ordered. Each needs a decision record when built.
 
-- [ ] **Delete exercise rows in Spreadsheet view** (mesocycle and PT).
-- [ ] **Rename in place.** A faint pencil next to each PT week name, and next to the program title on program pages, to edit the name where it is.
+- [x] **Delete exercise rows in Spreadsheet view** (mesocycle and PT). Built 2026-11-24, decision 0059.
+- [x] **Rename in place** (built 2026-11-24, decision 0059). A faint pencil next to each PT week name, and next to the program title on program pages, to edit the name where it is.
 - [ ] **One-off PT programs, built a day at a time.** Days can be duplicated, and each day has its own notes. The most important part is **duplicating a PT program**. The coach's routine: build a program and go through it with the client, adding notes. Then duplicate it; the old one is archived and the copy becomes current (perhaps a dialog with buttons for this). Change the copy (values, add or remove exercises), go through it with the client, and repeat.
 - [ ] **Clients can see their archived programs.** Today the client lists show current published programs only (`TrainingPages.tsx`).
 - [x] **Help search results hidden behind page content** (fixed 2026-11-24): the sticky sidebar and the animated page each had their own layer, and the page was drawn on top.

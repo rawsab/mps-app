@@ -2,7 +2,7 @@ import type { Effort, Load } from '../measurements/load';
 import type { NumericRange } from '../measurements/range';
 import { addDays } from '../scheduling/pattern';
 import type { Exercise, ExercisePrescription, ProgramDraft, ProgramWeek, Section, SetTarget, WorkoutDay } from './contract';
-import { dayFocus, dayName, weekName } from './labels';
+import { dayFocus, dayName, weekTitle } from './labels';
 
 /**
  * Read-only presentation of a published revision for the client Training view (M3 step 5) and,
@@ -126,7 +126,7 @@ export type WeekSummary = { id: string; name: string; startDate: string | null; 
 export function weekSummaries(program: ProgramDraft): WeekSummary[] {
   return program.weeks.map((week, w) => ({
     id: week.id,
-    name: weekName(w),
+    name: weekTitle(program, week, w),
     startDate: week.startDate,
     days: week.days.map((day, d) => ({ id: day.id, name: dayName(d), focus: dayFocus(day) })),
   }));
