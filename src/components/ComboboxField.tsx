@@ -81,6 +81,8 @@ export function ComboboxField({ label, name, options, defaultValue = '', onValue
 
   const describedBy = fieldDescription(id, error, hint);
   const activeOption = open ? filtered[active] : undefined;
+  // The box shows the picked option's label; the value (an id, say) is only submitted.
+  const shown = options.find((o) => o.value === value)?.label ?? value;
 
   return (
     <FieldShell ref={root} id={id} label={label} hint={hint} error={error}>
@@ -97,8 +99,8 @@ export function ComboboxField({ label, name, options, defaultValue = '', onValue
           aria-describedby={describedBy}
           autoComplete="off"
           spellCheck={false}
-          value={open ? query : value}
-          placeholder={open ? value || 'Search' : undefined}
+          value={open ? query : shown}
+          placeholder={open ? shown || 'Search' : undefined}
           onFocus={openList}
           onClick={() => !open && openList()}
           onBlur={(e) => {
