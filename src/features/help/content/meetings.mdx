@@ -1,5 +1,6 @@
 import { Callout, Example } from '../blocks';
-import { AttendanceDemo, PatternDemo } from '../demos/MeetingDemo';
+import { AttendanceDemo, CalendarCreateDemo, PatternDemo } from '../demos/MeetingDemo';
+import { ConflictsExample } from '../demos/ConflictsExample';
 import { ToggleButton } from '@/components/controls';
 import { Badge } from '@/components/ui';
 
@@ -38,6 +39,8 @@ You can also add a meeting straight from the calendar on the Meetings page.
 2. Choose the **Client**. Administrators see the coach's name beside clients who aren't theirs.
 3. Choose **One meeting** or **Repeating**. Then fill in the same fields as on the client's page: time, length, what it's about, the program and notes. Repeating starts on the day you clicked, at that time.
 4. Select **Add meeting** or **Set up meetings**.
+
+<CalendarCreateDemo />
 
 A meeting always belongs to the client's primary coach. If that isn't you, the dialog says who it's with and shows times in their time zone.
 
@@ -112,6 +115,10 @@ The Meetings page shows meetings for all your clients.
 ### Conflicts
 
 **Conflicts** shows when two or more meetings with the same coach overlap in the next 100 days. Each card shows the day and the time they cover, then each meeting. Select a meeting to open it, then move or cancel it. The card goes away once nothing overlaps.
+
+<Example caption="Jordan's and Sam's meetings overlap from 5:30 to 6:00 PM. Alex's meeting starts after Sam's ends, so it isn't listed.">
+  <ConflictsExample />
+</Example>
 
 - Cancelled meetings don't count.
 - A meeting that ends as the next one starts is not a conflict.

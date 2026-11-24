@@ -12,3 +12,5 @@ Date: 2026-11-24 · Status: accepted (owner request, 2026-11-24 meeting) · Buil
   - Back-to-back meetings (10:00–11:00 and 11:00–11:30) show no conflict. Cancelling one of an overlapping pair clears it.
   - As an administrator, overlapping meetings for two coaches show the coach's name on each card.
   - With no conflicts, the section isn't there and the calendar sits where it did.
+
+**Help (2026-11-24).** The card is now `ConflictCard` (`src/features/scheduling/ConflictCard.tsx`), shared by the Meetings page and a Help example (`ConflictsExample`). The example uses fictional meetings, including a back-to-back one that isn't listed, through `meetingConflicts`.

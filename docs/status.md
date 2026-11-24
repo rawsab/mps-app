@@ -799,3 +799,8 @@ Decision 0055, "Owner follow-ups".
 - Click or drag empty time in week or day view, click empty space in a month day, or use **New meeting**. One dialog: client, then One meeting or Repeating, using the client page's forms (`NewMeetingForm`, `PatternForm` through `FormFrame`). The time carries across switches.
 - Help: a new "Adding a meeting from the calendar" guide on the Meetings page.
 - **Verification.** `pnpm verify` passes (469 tests). No browser checks; manual checks are in decision 0066.
+
+## Help: calendar meetings and conflicts (2026-11-24)
+
+- Meetings Help page: an animated demo of adding a meeting from the calendar by dragging (decision 0066), and a Conflicts example drawn with the page's own `ConflictCard` (decision 0063). Fictional clients only. Tests check both against the app's rules.
+- **Verification.** `pnpm verify` passes (472 tests). No browser checks.

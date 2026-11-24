@@ -63,3 +63,5 @@ One dialog (`CalendarMeetingDialog`) built from the existing parts, so creating 
 - As Matt (admin): clients whose primary coach is someone else show "(Priya Nair)", and Matt's own clients show just their name. Choosing one of Priya's clients says the meeting will be with Priya.
 - On a phone: tapping empty time opens the dialog, and swiping scrolls.
 - On a client's page, Add meeting and Repeat still work as before.
+
+**Help (2026-11-24).** The Meetings page's "Adding a meeting from the calendar" guide has an animated demo (`calendar-create`, `CalendarCreateDemo`): hover, drag from 9:00 to 10:30, choose a client, Add meeting. It uses the calendar's own `snapDown` and `dragRange`, and tests check it.

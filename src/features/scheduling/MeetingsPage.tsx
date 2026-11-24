@@ -25,6 +25,7 @@ import { MeetingCardSkeleton, MeetingRowsSkeleton } from './MeetingSkeletons';
 import { AvailabilityExceptions } from './AvailabilityExceptions';
 import { MeetingDialogHost } from './MeetingDialogHost';
 import { CalendarMeetingDialog } from './CalendarMeetingDialog';
+import { ConflictCard } from './ConflictCard';
 import type { MeetingStart } from './formFrame';
 import type { SavedOptions } from '@/components/Toast';
 import { RecordAttendance } from './RecordAttendance';
@@ -227,25 +228,8 @@ function MeetingConflicts({ timeZone }: { timeZone: string }) {
       <p className="mb-3 text-xs text-muted">Meetings with the same coach at the same time, in the next 100 days. Move or cancel one to clear it.</p>
       <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {conflicts.map((conflict) => (
-          <li key={conflict.meetings.map((m) => m.id).join(':')} className="min-w-0 rounded-card border border-danger/40 px-4 py-3">
-            <p className="text-sm font-medium">
-              {sessionDay(conflict.startsAt, timeZone)} · <span className="tabular-nums">{sessionRange(conflict.startsAt, (new Date(conflict.endsAt).getTime() - new Date(conflict.startsAt).getTime()) / 60_000, timeZone)}</span>
-            </p>
-            {coaches > 1 && conflict.coachName ? <p className="text-xs text-muted">With {conflict.coachName}</p> : null}
-            <ul className="mt-2">
-              {conflict.meetings.map((meeting) => (
-                <li key={meeting.id}>
-                  <Link to={meetingHref(meeting.id)} className="row-link group -mx-2 flex min-h-11 min-w-0 items-center gap-3 rounded-card px-2 py-1.5 hover:bg-surface-raised">
-                    <span className="w-28 shrink-0 text-sm tabular-nums text-muted">{sessionRange(meeting.startsAt, meeting.durationMinutes, timeZone)}</span>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-medium">{meeting.clientName}</span>
-                      <span className="block truncate text-xs text-muted">{meeting.durationMinutes} min · {topicLabel(meeting.services)}</span>
-                    </span>
-                    <span aria-hidden className="text-xs text-muted group-hover:text-text">→</span>
-                  </Link>
-                </li>
-              ))}
-            </ul>
+          <li key={conflict.meetings.map((m) => m.id).join(':')} className="min-w-0">
+            <ConflictCard conflict={conflict} timeZone={timeZone} showCoach={coaches > 1} meetingHref={meetingHref} />
           </li>
         ))}
       </ul>

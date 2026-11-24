@@ -7,7 +7,8 @@ import { nutritionGridCoachEdited, nutritionGridMissing, nutritionGridText } fro
 import { nutritionWeeks } from '@/domain/nutritionProgram';
 import { AVAILABILITY_DEMOS, OPEN_TIMES_DAY, dayOpenTimes, dayWindows } from '@/domain/help/availabilityDemos';
 import { BILLING_DEMOS, BILLING_DEMO_CHARGES, NEXT_SESSION, applyCredit, demoSummary } from '@/domain/help/billingDemos';
-import { ATTENDANCE_ROWS, DEMO_NOW, DEMO_TIME_ZONE, MEETING_DEMOS, UNDO_NOTICE_TARGET, patternPreview } from '@/domain/help/meetingDemos';
+import { ATTENDANCE_ROWS, CALENDAR_ADD_TARGET, CALENDAR_CLIENT_TARGET, CALENDAR_DEMO_POINTS, CONFLICT_DEMO_MEETINGS, DEMO_NOW, DEMO_TIME_ZONE, MEETING_DEMOS, UNDO_NOTICE_TARGET, patternPreview } from '@/domain/help/meetingDemos';
+import { meetingConflicts } from '@/domain/scheduling/conflicts';
 import { statements } from '@/domain/billing/billing';
 import { groupAttendanceByDay } from '@/domain/scheduling/attendance';
 import { zonedDateTime } from '@/domain/scheduling/pattern';
@@ -120,6 +121,7 @@ describe('meeting demo scripts', () => {
   it('are all valid', () => {
     expect(demoProblems(MEETING_DEMOS['attendance-undo'])).toEqual([]);
     expect(demoProblems(MEETING_DEMOS['repeating-pattern'])).toEqual([]);
+    expect(demoProblems(MEETING_DEMOS['calendar-create'])).toEqual([]);
   });
 
   it('only point at meetings still listed, or at Undo while a notice shows', () => {
@@ -217,5 +219,30 @@ describe('billing demo', () => {
     expect(last.charges.find((c) => c.id === NEXT_SESSION.id)).toMatchObject({ paidCents: 5000, status: 'part_paid' });
     // Each month's statement, from the panel's own grouping.
     expect(statements(last.charges).map((s) => `${s.period} ${s.status}`)).toEqual(['2026-11-01 part_paid', '2026-10-01 paid']);
+  });
+});
+
+describe('calendar and conflicts help (decisions 0063, 0066)', () => {
+  const frames = MEETING_DEMOS['calendar-create'].frames;
+
+  it('draws the click and drag with the calendar\'s own rounding', () => {
+    expect(frames[0]!.state.ghost).toMatchObject({ start: 9 * 60, minutes: 60, dragging: false });
+    expect(frames.find((f) => f.state.ghost?.dragging && f.pointer?.target.endsWith(`:${10 * 60 + 25}`))!.state.ghost).toMatchObject({ start: 9 * 60, minutes: 90 });
+    const last = frames.at(-1)!.state;
+    expect(last.meetings.find((m) => m.id === 'new')).toMatchObject({ start: 9 * 60, minutes: 90, clientName: 'Jordan Lee' });
+  });
+
+  it('only points at the dialog while it shows, and at calendar points it draws', () => {
+    for (const frame of frames) {
+      const target = frame.pointer?.target ?? '';
+      if (target === CALENDAR_CLIENT_TARGET || target === CALENDAR_ADD_TARGET || target.startsWith('calendar-option:')) expect(frame.state.dialog?.shown, target).toBe(true);
+      if (target.startsWith('calendar-point:')) expect(CALENDAR_DEMO_POINTS).toContain(Number(target.split(':').at(-1)));
+      if (target.startsWith('calendar-option:')) expect(frame.state.dialog?.listOpen, target).toBe(true);
+    }
+  });
+
+  it('shows one conflict of two, leaving out the back-to-back meeting', () => {
+    const conflicts = meetingConflicts(CONFLICT_DEMO_MEETINGS, DEMO_NOW.getTime());
+    expect(conflicts.map((c) => c.meetings.map((m) => m.clientName))).toEqual([['Jordan Lee', 'Sam Rivera']]);
   });
 });

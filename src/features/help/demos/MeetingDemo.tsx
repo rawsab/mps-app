@@ -3,11 +3,14 @@ import { ToggleButton } from '@/components/controls';
 import { CheckIcon, CrossIcon } from '@/components/icons';
 import { Badge, Button } from '@/components/ui';
 import {
-  ATTENDANCE_ROWS, DEMO_NOW, DEMO_TIME_ZONE, MEETING_DEMOS, PATTERN_ROW_TARGET, SET_UP_TARGET, UNDO_NOTICE_TARGET, attendanceTarget, dayToggleTarget, startTarget,
-  type AttendanceDemoState, type PatternDemoState,
+  ATTENDANCE_ROWS, CALENDAR_ADD_TARGET, CALENDAR_CLIENT_TARGET, CALENDAR_DEMO_CLIENTS, CALENDAR_DEMO_DAYS, CALENDAR_DEMO_HOURS, CALENDAR_DEMO_POINTS,
+  DEMO_NOW, DEMO_TIME_ZONE, MEETING_DEMOS, PATTERN_ROW_TARGET, SET_UP_TARGET, UNDO_NOTICE_TARGET, attendanceTarget, calendarDemoInstant,
+  calendarOptionTarget, calendarPointTarget, dayToggleTarget, startTarget,
+  type AttendanceDemoState, type CalendarCreateState, type PatternDemoState,
 } from '@/domain/help/meetingDemos';
+import { clockTime } from '@/domain/scheduling/calendarCreate';
 import { groupAttendanceByDay } from '@/domain/scheduling/attendance';
-import { WEEKDAYS, describePattern, formatClock, weekdayName, weekdayShort } from '@/domain/scheduling/pattern';
+import { WEEKDAYS, describePattern, formatClock, isoWeekday, weekdayName, weekdayShort } from '@/domain/scheduling/pattern';
 import { attendanceMessage, sessionDay, sessionMoment, sessionRange, sessionTime } from '@/features/scheduling/time';
 import { formatDate } from '@/lib/format';
 import { DemoPlayer } from './DemoPlayer';
@@ -192,6 +195,119 @@ function PatternPicture({ state, days, saved }: { state: PatternDemoState; days:
           ))}
         </ul>
       </div>
+    </div>
+  );
+}
+
+/** Adding a meeting from the calendar by dragging: `<CalendarCreateDemo />` (decision 0066). */
+export function CalendarCreateDemo() {
+  const script = MEETING_DEMOS['calendar-create'];
+  // The dialog filled in sizes the picture, so it never changes height as the client is chosen.
+  const full = script.frames.find((frame) => frame.state.dialog?.client)!.state;
+  return <DemoPlayer script={script} render={(state) => (
+    <div className="grid">
+      <div className="grid [grid-area:1/1]"><CalendarCreatePicture state={state} /></div>
+      <div aria-hidden className="pointer-events-none opacity-0 [grid-area:1/1]"><CalendarCreatePicture state={full} /></div>
+    </div>
+  )} />;
+}
+
+const DEMO_HOUR_PX = 44;
+const fromTop = (minutes: number) => ((minutes - CALENDAR_DEMO_HOURS.from * 60) / 60) * DEMO_HOUR_PX;
+const clock = (minutes: number) => formatClock(clockTime(minutes));
+
+/** Part of the Meetings page's week view, with the New meeting dialog over it once the drag ends. */
+function CalendarCreatePicture({ state }: { state: CalendarCreateState }) {
+  const hours = Array.from({ length: CALENDAR_DEMO_HOURS.to - CALENDAR_DEMO_HOURS.from }, (_, i) => CALENDAR_DEMO_HOURS.from + i);
+  const { dialog, ghost } = state;
+  const at = dialog ? calendarDemoInstant(dialog.day, dialog.start) : null;
+  return (
+    <div className="grid w-[36rem] text-left text-sm text-text">
+      <div className="self-center overflow-hidden rounded-card border border-line bg-surface shadow-popover [grid-area:1/1]">
+        <div className="grid grid-cols-[3.25rem_repeat(3,minmax(0,1fr))] border-b border-line">
+          <span />
+          {CALENDAR_DEMO_DAYS.map((day) => (
+            <span key={day} className="border-l border-line py-2 text-center">
+              <span className="block text-xs text-muted">{weekdayShort(isoWeekday(day))}</span>
+              <span className="block tabular-nums">{Number(day.slice(8))}</span>
+            </span>
+          ))}
+        </div>
+        <div className="grid grid-cols-[3.25rem_repeat(3,minmax(0,1fr))]" style={{ height: hours.length * DEMO_HOUR_PX }}>
+          <div className="relative">
+            {hours.slice(1).map((hour) => (
+              <span key={hour} className="absolute right-1.5 -translate-y-1/2 text-[11px] text-muted" style={{ top: fromTop(hour * 60) }}>{clock(hour * 60)}</span>
+            ))}
+          </div>
+          {CALENDAR_DEMO_DAYS.map((day) => (
+            <div key={day} className="relative border-l border-line">
+              {hours.slice(1).map((hour) => <div key={hour} className="absolute inset-x-0 border-t border-line/60" style={{ top: fromTop(hour * 60) }} />)}
+              {state.meetings.filter((m) => m.day === day).map((meeting) => (
+                <div key={meeting.id} className={`absolute inset-x-0.5 overflow-hidden rounded-inner border-l-[3px] border-gold bg-gold/15 px-1.5 py-0.5 text-[11px] leading-tight ${state.changed === meeting.id ? 'help-demo-changed' : ''}`}
+                  style={{ top: fromTop(meeting.start) + 1, height: (meeting.minutes / 60) * DEMO_HOUR_PX - 2 }}>
+                  <span className="block truncate font-medium">{meeting.clientName}</span>
+                  <span className="block truncate text-muted">{clock(meeting.start)} to {clock(meeting.start + meeting.minutes)}</span>
+                </div>
+              ))}
+              {ghost?.day === day ? (
+                <div className={`absolute inset-x-0.5 rounded-inner border border-dashed border-gold px-1.5 py-0.5 text-[11px] leading-tight text-gold-fg transition-[height] duration-200 ${ghost.dragging ? 'bg-gold/20' : 'bg-gold/10'}`}
+                  style={{ top: fromTop(ghost.start) + 1, height: (ghost.minutes / 60) * DEMO_HOUR_PX - 2 }}>
+                  <span className="tabular-nums">{clock(ghost.start)}</span>{ghost.dragging ? ` · ${ghost.minutes} min` : ''}
+                </div>
+              ) : null}
+              {/* Where the pointer rests and drags to. */}
+              {CALENDAR_DEMO_POINTS.map((minutes) => (
+                <span key={minutes} data-demo-target={calendarPointTarget(day, minutes)} className="absolute left-1/2 size-px" style={{ top: fromTop(minutes) }} />
+              ))}
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {dialog && at ? (
+        <div className={`self-center justify-self-center w-[32rem] rounded-card border border-line bg-surface shadow-popover transition-opacity duration-300 [grid-area:1/1] ${dialog.shown ? 'opacity-100' : 'opacity-0'}`}>
+          <div className="border-b border-line px-5 py-3">
+            <p className="text-base font-semibold">New meeting</p>
+            <p className="mt-0.5 text-xs text-muted">{sessionDay(at, DEMO_TIME_ZONE)}, {sessionRange(at, dialog.minutes, DEMO_TIME_ZONE)} ({dialog.minutes} min).</p>
+          </div>
+          <div className="grid gap-4 p-5">
+            <div className="relative grid gap-1.5">
+              <span className="text-sm font-medium">Client</span>
+              <span data-demo-target={CALENDAR_CLIENT_TARGET} className={`flex min-h-11 items-center rounded-card border bg-ink px-3 ${dialog.listOpen ? 'border-gold' : 'border-line'}`}>
+                {dialog.client ?? <span className="text-muted">{dialog.listOpen ? 'Search' : ''}</span>}
+              </span>
+              {dialog.listOpen ? (
+                <ul className="absolute inset-x-0 top-full z-10 mt-1.5 rounded-card border border-line bg-surface p-1.5 shadow-popover">
+                  {CALENDAR_DEMO_CLIENTS.map((name) => (
+                    <li key={name} data-demo-target={calendarOptionTarget(name)} className="flex min-h-9 items-center rounded-inner px-2.5">{name}</li>
+                  ))}
+                </ul>
+              ) : null}
+            </div>
+            <span className="flex rounded-card border border-line p-0.5 self-start">
+              <span className="min-h-10 rounded-inner bg-surface-raised px-3 py-2.5 font-medium leading-none">One meeting</span>
+              <span className="min-h-10 rounded-inner px-3 py-2.5 leading-none text-muted">Repeating</span>
+            </span>
+            {dialog.client ? (
+              <div className="grid gap-4">
+                <div className="grid grid-cols-3 gap-3">
+                  <Field label="Date">{formatDate(dialog.day)}</Field>
+                  <Field label="Start">{clock(dialog.start)}</Field>
+                  <Field label="Minutes">{dialog.minutes} min</Field>
+                </div>
+                <div>
+                  <p className="mb-2 text-sm font-medium">About</p>
+                  <ToggleButton pressed>Personal training</ToggleButton>
+                </div>
+              </div>
+            ) : <p className="text-muted">Choose a client to set the time, what it’s about, the program and notes.</p>}
+            <span className="flex justify-end gap-2">
+              <Button variant="secondary">Cancel</Button>
+              <span data-demo-target={CALENDAR_ADD_TARGET}><Button disabled={!dialog.client}>Add meeting</Button></span>
+            </span>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

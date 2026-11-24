@@ -1,5 +1,6 @@
 import { nextFocus } from '@/domain/scheduling/attendance';
 import { addDays, cycleWeekOf, isoWeekday, mondayOf, zonedToInstant, type PatternSlot } from '@/domain/scheduling/pattern';
+import { clockTime, DEFAULT_MINUTES, dragRange, snapDown } from '../scheduling/calendarCreate';
 import type { DemoFrame, DemoScript } from './demo';
 
 /*
@@ -166,9 +167,98 @@ function repeatingPattern(): DemoScript<PatternDemoState> {
   };
 }
 
+// ---------------------------------------------------------------------------------------------
+// Demo 11: adding a meeting from the calendar (decision 0066)
+
+/** A meeting block on the demo calendar. Minutes are from midnight in the demo time zone. */
+export type CalendarDemoMeeting = { id: string; day: string; start: number; minutes: number; clientName: string };
+
+export type CalendarCreateState = {
+  /** The faint block under the pointer, or the stretched one while dragging. */
+  ghost: { day: string; start: number; minutes: number; dragging: boolean } | null;
+  /** The New meeting dialog. Kept while hidden (`shown: false`), so it fades out filled in. */
+  dialog: { day: string; start: number; minutes: number; client: string | null; listOpen: boolean; shown: boolean } | null;
+  /** Meetings drawn on the calendar. */
+  meetings: CalendarDemoMeeting[];
+  changed?: string | null;
+};
+
+export const CALENDAR_DEMO_DAYS = ['2026-11-30', '2026-12-01', '2026-12-02'];
+/** The calendar shows 8:00 AM to noon. */
+export const CALENDAR_DEMO_HOURS = { from: 8, to: 12 } as const;
+export const CALENDAR_DEMO_CLIENTS = ['Alex Kim', 'Jordan Lee', 'Sam Rivera'];
+const CALENDAR_DEMO_MEETINGS: CalendarDemoMeeting[] = [
+  { id: 'sam', day: '2026-11-30', start: 9 * 60, minutes: 60, clientName: 'Sam Rivera' },
+  { id: 'alex', day: '2026-12-02', start: 10 * 60, minutes: 40, clientName: 'Alex Kim' },
+];
+export const calendarPointTarget = (day: string, minutes: number) => `calendar-point:${day}:${minutes}`;
+export const CALENDAR_CLIENT_TARGET = 'calendar-client';
+export const calendarOptionTarget = (name: string) => `calendar-option:${name}`;
+export const CALENDAR_ADD_TARGET = 'calendar-add';
+/** Where the pointer goes in the demo, so the picture can place an anchor at each. */
+export const CALENDAR_DEMO_POINTS = [9 * 60 + 5, 9 * 60 + 50, 10 * 60 + 25];
+
+/** "Tue, Dec 1, 9:00 to 10:30 AM": a demo meeting's instant, for the dialog's heading. */
+export const calendarDemoInstant = (day: string, minutes: number) => instant(day, clockTime(minutes));
+
+function calendarCreate(): DemoScript<CalendarCreateState> {
+  const day = CALENDAR_DEMO_DAYS[1]!;
+  const [hover, middle, end] = CALENDAR_DEMO_POINTS as [number, number, number];
+  const client = 'Jordan Lee';
+  const base: CalendarCreateState = { ghost: null, dialog: null, meetings: CALENDAR_DEMO_MEETINGS };
+  // The same rounding the calendar uses: a click starts at the mark before it, a drag runs mark to mark.
+  const click = { day, start: snapDown(hover), minutes: DEFAULT_MINUTES, dragging: false };
+  const dragTo = (to: number) => ({ day, ...dragRange(hover, to), dragging: true });
+  const range = dragRange(hover, end);
+  const dialog = (patch: Partial<NonNullable<CalendarCreateState['dialog']>> = {}) => ({ day, ...range, client: null, listOpen: false, shown: true, ...patch });
+  const point = (minutes: number, press = false) => ({ target: calendarPointTarget(day, minutes), press });
+  // Drawn hidden until the drag ends, so it fades in rather than popping.
+  base.dialog = dialog({ shown: false });
+  const added: CalendarDemoMeeting = { id: 'new', day, ...range, clientName: client };
+  const drag = 'Press and drag down to set the length.';
+  const pick = 'Choose the client.';
+  const fill = 'Their form fills in with that time and length. Choose what it’s about, the program and notes as usual.';
+  const done = 'Select Add meeting. It’s on the calendar.';
+  type Frame = DemoFrame<CalendarCreateState>;
+  const frames: Frame[] = [
+    { state: { ...base, ghost: click }, ms: 1400, caption: 'Point at an empty time. A faint block shows where a 60 minute meeting would go.', pointer: point(hover) },
+    { state: { ...base, ghost: click }, ms: 300, caption: drag, pointer: point(hover, true) },
+    { state: { ...base, ghost: dragTo(middle) }, ms: 450, caption: drag, pointer: point(middle, true) },
+    { state: { ...base, ghost: dragTo(end) }, ms: 1100, caption: drag, pointer: point(end, true) },
+    { state: { ...base, dialog: dialog() }, ms: 1400, caption: 'Let go. New meeting opens with that time and length.', pointer: { target: CALENDAR_CLIENT_TARGET } },
+    { state: { ...base, dialog: dialog() }, ms: 250, caption: pick, pointer: { target: CALENDAR_CLIENT_TARGET, press: true } },
+    { state: { ...base, dialog: dialog({ listOpen: true }) }, ms: 800, caption: pick, pointer: { target: calendarOptionTarget(client) } },
+    { state: { ...base, dialog: dialog({ listOpen: true }) }, ms: 250, caption: pick, pointer: { target: calendarOptionTarget(client), press: true } },
+    { state: { ...base, dialog: dialog({ client }) }, ms: 1900, caption: fill, pointer: { target: CALENDAR_ADD_TARGET } },
+    { state: { ...base, dialog: dialog({ client }) }, ms: 250, caption: done, pointer: { target: CALENDAR_ADD_TARGET, press: true } },
+    { state: { ...base, dialog: dialog({ client, shown: false }), meetings: [...CALENDAR_DEMO_MEETINGS, added], changed: added.id }, ms: 2400, caption: done, pointer: null },
+  ];
+  return {
+    id: 'calendar-create',
+    description: 'Adding a meeting from the calendar: in week view, the pointer rests on Tuesday at 9:00 AM and a faint 60 minute block appears. Dragging down to 10:30 AM stretches it to 90 minutes. Letting go opens New meeting with that time. Jordan Lee is chosen as the client, the form fills in, and after Add meeting the 90 minute meeting shows on the calendar.',
+    frames,
+  };
+}
+
+// ---------------------------------------------------------------------------------------------
+// Conflicts example (decision 0063): fictional meetings for one coach, two of them overlapping.
+
+const conflictMeeting = (id: string, clientName: string, date: string, time: string, durationMinutes: number) => ({
+  id, clientName, startsAt: instant(date, time), durationMinutes, status: 'scheduled',
+  coachId: 'demo-coach', coachName: 'Matt', services: ['personal_training' as const],
+});
+
+export const CONFLICT_DEMO_MEETINGS = [
+  conflictMeeting('c1', 'Jordan Lee', '2026-12-03', '17:00', 60),
+  conflictMeeting('c2', 'Sam Rivera', '2026-12-03', '17:30', 40),
+  // Back to back with Sam: not a conflict.
+  conflictMeeting('c3', 'Alex Kim', '2026-12-03', '18:10', 60),
+];
+
 export const MEETING_DEMOS = {
   'attendance-undo': attendanceWithUndo(),
   'repeating-pattern': repeatingPattern(),
+  'calendar-create': calendarCreate(),
 } as const;
 
 export type MeetingDemoName = keyof typeof MEETING_DEMOS;
