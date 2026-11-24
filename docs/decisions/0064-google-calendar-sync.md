@@ -2,7 +2,7 @@
 
 Date: 2026-11-24 · Status: **proposed plan, not built** (owner request, 2026-11-24 meeting; open questions below) · Builds on 0037, 0039, 0047, 0050
 
-- **Scope change, recorded rather than resolved silently.** The PRD has no calendar integration, and PRD §3 already lists live Google sync (for Drive) as out of scope. Scheduling itself was added by decision 0037. This plan specifies syncing meetings with Google Calendar. The PRD has not been edited.
+- **Scope change, recorded rather than resolved silently.** The PRD has no calendar integration, and the PRD's "Excluded from MVP" list (§5 Scope) already rules out live Google Drive sync. Scheduling itself was added by decision 0037. This plan specifies syncing meetings with Google Calendar. The PRD has not been edited.
 - **Not authorized yet.** Building this needs hosted resources: a Google Cloud project, an OAuth client, a consent screen and possibly Google's app verification. AGENTS.md requires explicit authorization for each. Nothing below has been created.
 
 ## What the owner asked for
