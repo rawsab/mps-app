@@ -225,7 +225,7 @@ function MeetingConflicts({ timeZone }: { timeZone: string }) {
         <span className="text-danger">{conflicts.length} {conflicts.length === 1 ? 'overlap' : 'overlaps'}</span>
       </h2>
       <p className="mb-3 text-xs text-muted">Meetings with the same coach at the same time, in the next 100 days. Move or cancel one to clear it.</p>
-      <ul className="grid gap-3 md:grid-cols-2">
+      <ul className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
         {conflicts.map((conflict) => (
           <li key={conflict.meetings.map((m) => m.id).join(':')} className="min-w-0 rounded-card border border-danger/40 px-4 py-3">
             <p className="text-sm font-medium">
