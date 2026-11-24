@@ -14,7 +14,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/coach-clients.webp" alt="The coach workspace: clients waiting for review, today's meetings, service and status summaries, and open service requests" width="900">
+  <img src="docs/screenshots/coach-clients-dark.webp" alt="The coach workspace: clients waiting for review, today's meetings, service and status summaries, and open service requests" width="900">
 </p>
 
 ## About
@@ -35,9 +35,9 @@ All people and data shown are fictional, from the local development seed.
 
 <table>
   <tr>
-    <td width="33%"><a href="docs/screenshots/coach-grid.webp"><img src="docs/screenshots/coach-grid.webp" alt="Program editor, Spreadsheet view"></a></td>
-    <td width="33%"><a href="docs/screenshots/coach-list.webp"><img src="docs/screenshots/coach-list.webp" alt="Program editor, List View"></a></td>
-    <td width="33%"><a href="docs/screenshots/coach-client-detail.webp"><img src="docs/screenshots/coach-client-detail.webp" alt="Client page"></a></td>
+    <td width="33%"><a href="docs/screenshots/coach-grid-dark.webp"><img src="docs/screenshots/coach-grid-dark.webp" alt="Program editor, Spreadsheet view"></a></td>
+    <td width="33%"><a href="docs/screenshots/coach-list-dark.webp"><img src="docs/screenshots/coach-list-dark.webp" alt="Program editor, List View"></a></td>
+    <td width="33%"><a href="docs/screenshots/coach-client-detail-dark.webp"><img src="docs/screenshots/coach-client-detail-dark.webp" alt="Client page"></a></td>
   </tr>
   <tr>
     <td align="center"><sub><b>Spreadsheet editor.</b> Keyboard navigation, range selection, drag to reorder, copy and paste.</sub></td>
@@ -45,9 +45,9 @@ All people and data shown are fictional, from the local development seed.
     <td align="center"><sub><b>Client page.</b> Recent updates, meetings, services and private staff notes.</sub></td>
   </tr>
   <tr>
-    <td width="33%"><a href="docs/screenshots/coach-calendar.webp"><img src="docs/screenshots/coach-calendar.webp" alt="Meetings calendar"></a></td>
-    <td width="33%"><a href="docs/screenshots/coach-activity.webp"><img src="docs/screenshots/coach-activity.webp" alt="Activity feed"></a></td>
-    <td width="33%"><a href="docs/screenshots/coach-billing.webp"><img src="docs/screenshots/coach-billing.webp" alt="Billing"></a></td>
+    <td width="33%"><a href="docs/screenshots/coach-calendar-dark.webp"><img src="docs/screenshots/coach-calendar-dark.webp" alt="Meetings calendar"></a></td>
+    <td width="33%"><a href="docs/screenshots/coach-activity-dark.webp"><img src="docs/screenshots/coach-activity-dark.webp" alt="Activity feed"></a></td>
+    <td width="33%"><a href="docs/screenshots/coach-billing-dark.webp"><img src="docs/screenshots/coach-billing-dark.webp" alt="Billing"></a></td>
   </tr>
   <tr>
     <td align="center"><sub><b>Meetings.</b> A calendar with availability, drag-to-create and conflict checks.</sub></td>
@@ -153,7 +153,7 @@ Coaches also get Help pages inside the app.
 
 <table>
   <tr>
-    <td><a href="docs/screenshots/coach-help.webp"><img src="docs/screenshots/coach-help.webp" alt="The in-app Help overview, with a thumbnail for each page"></a></td>
+    <td><a href="docs/screenshots/coach-help-dark.webp"><img src="docs/screenshots/coach-help-dark.webp" alt="The in-app Help overview, with a thumbnail for each page"></a></td>
   </tr>
   <tr>
     <td align="center"><sub><b>In-app Help.</b> Searchable pages for every part of the coach workspace, with live examples and animated demos.</sub></td>
