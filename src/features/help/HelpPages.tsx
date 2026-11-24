@@ -201,8 +201,9 @@ export function HelpLayout() {
   return (
     <div className="mx-auto max-w-6xl lg:grid lg:grid-cols-[14rem_minmax(0,1fr)] lg:gap-12">
       <aside className="hidden lg:block">
-        {/* Fits the screen: a long topic list scrolls on its own, below the search. */}
-        <div className="sticky top-6 flex max-h-[calc(100dvh-3rem)] flex-col gap-5">
+        {/* Fits the screen: a long topic list scrolls on its own, below the search. z-10 keeps the search
+            results above the page beside it, whose entrance animation gives it its own layer. */}
+        <div className="sticky top-6 z-10 flex max-h-[calc(100dvh-3rem)] flex-col gap-5">
           <HelpSearch popupClassName="w-[26rem]" />
           <TopicScroller>
             <TopicNav current={slug ?? ''} />

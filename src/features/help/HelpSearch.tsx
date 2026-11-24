@@ -48,7 +48,8 @@ export function HelpSearch({ popupClassName = 'w-full' }: { popupClassName?: str
   }
 
   return (
-    <div className="relative">
+    // z-20 lifts the results above later content that has its own layer (thumbnails, examples).
+    <div className="relative z-20">
       <span aria-hidden className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-muted"><SearchIcon className="size-4 shrink-0" /></span>
       <input
         type="search"

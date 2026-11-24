@@ -30,6 +30,19 @@ Development is moving from Claude Code to Codex. Agent instructions now live in 
 - Never run browser automation or screenshots without the owner's explicit OK for that round.
 - The local stack may still have an unrelated Supabase project running (`mps-demo-verification`). Stop it with `pnpm exec supabase stop --project-id mps-demo-verification` if ports clash.
 
+## Owner meeting, 2026-11-24
+
+Owner requests, not yet ordered. Each needs a decision record when built.
+
+- [ ] **Delete exercise rows in Spreadsheet view** (mesocycle and PT).
+- [ ] **Rename in place.** A faint pencil next to each PT week name, and next to the program title on program pages, to edit the name where it is.
+- [ ] **One-off PT programs, built a day at a time.** Days can be duplicated, and each day has its own notes. The most important part is **duplicating a PT program**. The coach's routine: build a program and go through it with the client, adding notes. Then duplicate it; the old one is archived and the copy becomes current (perhaps a dialog with buttons for this). Change the copy (values, add or remove exercises), go through it with the client, and repeat.
+- [ ] **Clients can see their archived programs.** Today the client lists show current published programs only (`TrainingPages.tsx`).
+- [x] **Help search results hidden behind page content** (fixed 2026-11-24): the sticky sidebar and the animated page each had their own layer, and the page was drawn on top.
+- [ ] **Back up programs.** Download a single program, perhaps as a spreadsheet.
+- [ ] **Plan two-way Google Calendar sync** (important). Covers one-off and repeating meetings, descriptions and meeting links, rescheduling, cancelling, and inviting and notifying clients. Plan only for now; any hosted Google project needs explicit authorization.
+- [ ] **Meeting conflicts.** A section that lists overlapping meetings for the same coach.
+
 ## Planning session, 2026-11-20
 
 Open work from the 2026-11-20 planning session. Done so far: answered requests leave "To review" (decision 0043), required-field asterisks, mesocycle progress on the program page, and service request answers (decision 0044). See `docs/status.md`.

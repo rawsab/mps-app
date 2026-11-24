@@ -739,3 +739,9 @@ Decision 0055, "Owner follow-ups".
 - Client menu (decision 0058): Meetings and Billing are always in the menu. Two or more services share one Services item: a dropdown in the top bar, a panel above the phone tab bar.
 - On phones the Services tab opens a `/services` page: each service with its programs, the current one first and marked Current (decision 0058).
 - **Verification.** `pnpm verify` passes (446 tests). No browser checks; manual checks are in decisions 0050 and 0058.
+
+## Help search results above page content (2026-11-24)
+
+- Owner meeting, item 5. On wide screens the Help search results were drawn behind the page's text and thumbnails. The page's entrance animation gives it its own layer, painted after the sticky sidebar. The sidebar is now `z-10` and the search box `z-20`.
+- The other owner requests from the 2026-11-24 meeting are listed in `docs/todo.md`.
+- **Verification.** `pnpm verify` passes. No browser checks.
