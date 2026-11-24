@@ -224,7 +224,7 @@ function CalendarCreatePicture({ state }: { state: CalendarCreateState }) {
   return (
     <div className="grid w-[36rem] text-left text-sm text-text">
       <div className="self-center overflow-hidden rounded-card border border-line bg-surface shadow-popover [grid-area:1/1]">
-        <div className="grid grid-cols-[4.25rem_repeat(3,minmax(0,1fr))] border-b border-line">
+        <div className="grid grid-cols-[3.875rem_repeat(3,minmax(0,1fr))] border-b border-line">
           <span />
           {CALENDAR_DEMO_DAYS.map((day) => (
             <span key={day} className="border-l border-line py-2 text-center">
@@ -233,7 +233,7 @@ function CalendarCreatePicture({ state }: { state: CalendarCreateState }) {
             </span>
           ))}
         </div>
-        <div className="grid grid-cols-[4.25rem_repeat(3,minmax(0,1fr))]" style={{ height: hours.length * DEMO_HOUR_PX }}>
+        <div className="grid grid-cols-[3.875rem_repeat(3,minmax(0,1fr))]" style={{ height: hours.length * DEMO_HOUR_PX }}>
           <div className="relative">
             {hours.slice(1).map((hour) => (
               <span key={hour} className="absolute right-1.5 -translate-y-1/2 whitespace-nowrap text-[11px] tabular-nums text-muted" style={{ top: fromTop(hour * 60) }}>{clock(hour * 60)}</span>
