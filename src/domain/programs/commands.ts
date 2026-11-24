@@ -411,6 +411,19 @@ function placeAt(draft: ProgramDraft, container: Path, index: number | undefined
 }
 
 /**
+ * A whole program copied for a new program (decision 0061), with fresh ids throughout as Duplicate
+ * gives one week. Exercises keep `logicalKey`; week and day dates are cleared for the new slot.
+ */
+export function copyProgramDraft(draft: ProgramDraft, newId: () => string = defaultNewId): ProgramDraft {
+  return {
+    ...draft,
+    sharedSections: draft.sharedSections.map((value) => copyWithFreshIds({ kind: 'section', value }, newId).value as Section),
+    weeks: draft.weeks.map((value) => copyWithFreshIds({ kind: 'week', value }, newId).value as ProgramWeek),
+    resources: draft.resources.map((value) => copyWithFreshIds({ kind: 'resource', value }, newId).value as ResourceNode),
+  };
+}
+
+/**
  * Copies keep `logicalKey`, so the same movement in a duplicated week still shares its history.
  * Groups inside the copy get new group ids so they don't merge with the original's; a single
  * duplicated exercise stays in its group. Dates are cleared because the copy is a different slot.

@@ -761,3 +761,12 @@ Decision 0055, "Owner follow-ups".
 - Help: What clients see and the shared editor text mention it.
 - The local DB was reset. `pnpm test:db` passes (1067), so the earlier `023`, `026` and `030` failures were leftover state.
 - **Verification.** `pnpm verify` (449), `pnpm test:db` (1067) and `pnpm test:api` (27) pass. No browser checks; manual checks are in decision 0060.
+
+## Duplicate a program (2026-11-24)
+
+- Decision 0061 (owner meeting, item 3). **Duplicate** in the editor and **Duplicate…** in the client page's program menu. For a published program the dialog offers **Archive this one, use the copy** or **Keep both**.
+- `copyProgramDraft` copies with fresh ids. `duplicate_program` (migration 00057) creates, saves and optionally archives and switches current in one transaction, with grants and pgTAP tests.
+- The editor is now keyed by program id, so opening the copy starts a fresh editor.
+- Help: a new "Duplicating a program for the next session" guide on Personal training, and the shared editor text.
+- Open: day notes (needs the owner's answer, see the decision).
+- **Verification.** `pnpm verify` (452), `pnpm test:db` and `pnpm test:api` pass. No browser checks; manual checks are in decision 0061.

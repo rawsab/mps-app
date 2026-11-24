@@ -11,6 +11,7 @@ import { programErrorMessage, useClientPrograms, useCreateProgram, type ProgramR
 
 import { ActionItem, ActionsMenu } from '@/components/ActionsMenu';
 import { DeleteArchivedProgramDialog, RemoveProgramDialog } from './RemoveProgramDialog';
+import { DuplicateProgramDialog } from './DuplicateProgramDialog';
 import type { ServiceKind } from '@/domain/programs/contract';
 import { useCreateNutritionProgram } from '@/features/nutrition/programApi';
 import { currentProgramId, programCandidates } from '@/domain/programs/current';
@@ -37,6 +38,7 @@ export function ProgramsCard({ clientId, enrollments }: { clientId: string; enro
   const setCurrent = useSetCurrentProgram();
   const restore = useRestoreProgram();
   const [deleting, setDeleting] = useState<ProgramRow | null>(null);
+  const [duplicating, setDuplicating] = useState<ProgramRow | null>(null);
   const isAdmin = useViewer().data?.staffRole === 'admin';
   // Current program per live service (decision 0039), and services with a choice to make.
   const currentIds = new Set(enrollments.map((e) => currentProgramId(e, programs.data ?? [])).filter(Boolean));
@@ -82,13 +84,14 @@ export function ProgramsCard({ clientId, enrollments }: { clientId: string; enro
                 </span>
               </Link>
               {p.archived_at ? <ActionsMenu label={`Options for ${programTitle(p)}`}>
+                {p.service !== 'nutrition' && restorable(p) ? <ActionItem onClick={() => setDuplicating(p)}>Duplicate…</ActionItem> : null}
                 <ActionItem disabled={restore.isPending || !restorable(p)} title={restorable(p) ? undefined : 'Its service has ended'}
                   onClick={() => restore.mutate(p.id)}>{restorable(p) ? 'Restore' : 'Restore (service ended)'}</ActionItem>
                 {isAdmin ? <ActionItem danger onClick={() => setDeleting(p)}>Delete permanently</ActionItem> : null}
               </ActionsMenu> : null}
               {!p.archived_at ? <ActionsMenu label={`Options for ${programTitle(p)}`}>{!currentIds.has(p.id) && enrollmentOf(p) && programCandidates(p.enrollment_id, programs.data ?? []).length > 1 ? (
                 <ActionItem disabled={setCurrent.isPending} onClick={() => setCurrent.mutate({ enrollmentId: p.enrollment_id, programId: p.id })}>Make current</ActionItem>
-              ) : null}<ActionItem danger onClick={() => setRemoval(p)}>{p.program_revisions.some((r) => r.status === 'published') ? 'Archive' : 'Delete'} program</ActionItem></ActionsMenu> : null}
+              ) : null}{p.service !== 'nutrition' ? <ActionItem onClick={() => setDuplicating(p)}>Duplicate…</ActionItem> : null}<ActionItem danger onClick={() => setRemoval(p)}>{p.program_revisions.some((r) => r.status === 'published') ? 'Archive' : 'Delete'} program</ActionItem></ActionsMenu> : null}
             </li>
           ))}
         </ul>
@@ -116,6 +119,8 @@ export function ProgramsCard({ clientId, enrollments }: { clientId: string; enro
       <Alert visible={!!create.error} className="mt-3" title="Program not created">{programErrorMessage(create.error)}</Alert>
       <Alert visible={!!createNutrition.error} className="mt-3" title="Program not created">{programErrorMessage(createNutrition.error)}</Alert>
       {removal ? <RemoveProgramDialog program={removal} onClose={() => setRemoval(null)} /> : null}
+      {duplicating ? <DuplicateProgramDialog clientId={clientId} programId={duplicating.id} title={programTitle(duplicating)} onClose={() => setDuplicating(null)}
+        canReplace={!duplicating.archived_at && duplicating.program_revisions.some((r) => r.status === 'published')} /> : null}
       {deleting ? <DeleteArchivedProgramDialog program={deleting} title={programTitle(deleting)} onClose={() => setDeleting(null)} /> : null}
     </section>
   );

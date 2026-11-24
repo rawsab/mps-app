@@ -2,12 +2,13 @@ import { useEffect, useState, type ReactNode } from 'react';
 import { Link, useBlocker, useParams, useSearchParams } from 'react-router';
 import { DismissibleNotice } from '@/components/DismissibleNotice';
 import { DraftSaveIndicator as SaveIndicator } from '@/components/DraftSaveIndicator';
-import { CautionIcon, SectionIcon, SpreadsheetIcon } from '@/components/icons';
+import { CautionIcon, CopyIcon, SectionIcon, SpreadsheetIcon } from '@/components/icons';
 import { scrollBehavior } from './useWeekMotion';
 import { Dialog } from '@/components/Dialog';
 import { Tabs } from '@/components/controls';
 import { Alert, Badge, Button, EmptyState, PageHeader } from '@/components/ui';
 import { EditableText } from '@/components/EditableText';
+import { DuplicateProgramDialog } from './DuplicateProgramDialog';
 import { LoadingRegion, SkeletonText, SkeletonHeader, SkeletonTable } from '@/components/Skeleton';
 import { gridRows } from '@/domain/programs/grid';
 import { validateForPublish } from '@/domain/programs/contract';
@@ -35,7 +36,8 @@ export function ProgramEditorPage() {
       </EmptyState>
     );
   }
-  return <Editor program={program.data} clientName={program.data.clients?.full_name ?? 'Client'} />;
+  // Keyed so opening another program (e.g. a new copy) starts a fresh editor.
+  return <Editor key={program.data.id} program={program.data} clientName={program.data.clients?.full_name ?? 'Client'} />;
 }
 
 /** The editor's back link, header and spreadsheet while the program or its draft loads. */
@@ -68,6 +70,7 @@ function Editor({ program, clientName }: { program: NonNullable<ReturnType<typeo
   const view: View = params.get('view') === 'program' ? 'program' : 'grid';
   const { state } = editor;
   const [reviewing, setReviewing] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
   const focusKey = params.get('focus');
   const hasDraft = state.draft !== null;
   useEffect(() => {
@@ -168,6 +171,9 @@ function Editor({ program, clientName }: { program: NonNullable<ReturnType<typeo
               <SaveIndicator state={state.saveState} onRetry={() => void editor.save()} />
             </div>
             <div className="flex flex-wrap items-center gap-2">
+              {/* The copy is made from what's saved, so unsaved edits must land first. */}
+              <Button variant="ghost" disabled={editor.hasUnsavedWork || state.publishing} title={editor.hasUnsavedWork ? 'Wait for your changes to save' : undefined}
+                onClick={() => setDuplicating(true)}><CopyIcon /> Duplicate</Button>
               <Button variant="ghost" onClick={() => setReviewing(true)}>{reviewProblems.length > 0 ? <CautionIcon /> : null}{reviewProblems.length > 0 ? `${reviewProblems.length} publish ${reviewProblems.length === 1 ? 'issue' : 'issues'}` : 'Ready to publish'}</Button>
               <Button onClick={() => { if (reviewProblems.length > 0) setReviewing(true); else void editor.publish(); }} busy={state.publishing} disabled={archived || state.saveState === 'conflict'}>
                 Publish
@@ -197,6 +203,8 @@ function Editor({ program, clientName }: { program: NonNullable<ReturnType<typeo
           </>}
         </div>
 
+        {duplicating ? <DuplicateProgramDialog clientId={program.client_id} programId={program.id} onClose={() => setDuplicating(false)}
+          title={state.draft.title.trim() || 'Untitled program'} canReplace={!archived && program.current_revision_id !== null} /> : null}
         {reviewing ? <Dialog title="Publish readiness" onClose={() => setReviewing(false)} footer={<Button variant="secondary" onClick={() => setReviewing(false)}>Close review</Button>}>
           <ReadinessPanel problems={reviewProblems} fromServer={state.publishProblems !== null} onNavigate={(path) => {
             const problem = reviewProblems.find((problem) => problem.path === path);

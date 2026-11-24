@@ -1,4 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { copyProgramDraft } from '@/domain/programs/commands';
 import { ProgramDraft, type PublishProblem, type ServiceKind } from '@/domain/programs/contract';
 import { requireSupabase } from '@/lib/supabase';
 
@@ -215,6 +216,31 @@ export function useRemoveProgram() {
       return data as 'deleted' | 'archived';
     },
     onSuccess: async () => { await Promise.all([queryClient.invalidateQueries({ queryKey: ['programs'] }), queryClient.invalidateQueries({ queryKey: ['nutrition-programs'] })]); },
+  });
+}
+
+/**
+ * Copies a training program's latest content (its draft, else its published revision) into a new
+ * draft program (decision 0061). With `replace`, the original is archived and the copy becomes
+ * current, in one server transaction. Returns the copy's id.
+ */
+export function useDuplicateProgram() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ programId, replace }: { programId: string; replace: boolean }) => {
+      const snapshot = await fetchProgramDraft(programId);
+      if (!snapshot.draft) throw new Error('This program has nothing to copy yet.');
+      const { data, error } = await requireSupabase().rpc('duplicate_program', {
+        p_program_id: programId, p_draft: copyProgramDraft(snapshot.draft), p_replace: replace,
+      });
+      if (error) throw rpcError(error);
+      return data as string;
+    },
+    onSuccess: () => Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['programs'] }),
+      queryClient.invalidateQueries({ queryKey: ['clients'] }),
+      queryClient.invalidateQueries({ queryKey: ['meetings'] }),
+    ]),
   });
 }
 
