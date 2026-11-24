@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react';
-import { ToggleButton } from '@/components/controls';
+import { SegmentedControl, ToggleButton } from '@/components/controls';
 import { CheckIcon, CrossIcon } from '@/components/icons';
 import { Badge, Button } from '@/components/ui';
 import {
@@ -285,10 +285,10 @@ function CalendarCreatePicture({ state }: { state: CalendarCreateState }) {
                 </ul>
               ) : null}
             </div>
-            <span className="flex rounded-card border border-line p-0.5 self-start">
-              <span className="min-h-10 rounded-inner bg-surface-raised px-3 py-2.5 font-medium leading-none">One meeting</span>
-              <span className="min-h-10 rounded-inner px-3 py-2.5 leading-none text-muted">Repeating</span>
-            </span>
+            <div className="flex">
+              <SegmentedControl label="How often" size="md" value="once" onChange={() => undefined}
+                options={[{ value: 'once', label: 'One meeting' }, { value: 'repeating', label: 'Repeating' }]} />
+            </div>
             {dialog.client ? (
               <div className="grid gap-4">
                 <div className="grid grid-cols-3 gap-3">
