@@ -41,7 +41,7 @@ Owner requests, not yet ordered. Each needs a decision record when built.
 - [x] **Help search results hidden behind page content** (fixed 2026-11-24): the sticky sidebar and the animated page each had their own layer, and the page was drawn on top.
 - [x] **Back up programs** (built 2026-11-24, decision 0062): spreadsheet (.xlsx) and program file (.json). Restoring from a file is not built.
 - [ ] **Plan two-way Google Calendar sync** (important). Covers one-off and repeating meetings, descriptions and meeting links, rescheduling, cancelling, and inviting and notifying clients. Plan only for now; any hosted Google project needs explicit authorization.
-- [ ] **Meeting conflicts.** A section that lists overlapping meetings for the same coach.
+- [x] **Meeting conflicts** (built 2026-11-24, decision 0063): a Conflicts section on the coach Meetings page.
 
 ## Planning session, 2026-11-20
 

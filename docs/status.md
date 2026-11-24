@@ -776,3 +776,8 @@ Decision 0055, "Owner follow-ups".
 - Decision 0062 (owner meeting, item 6). Download a training program as a spreadsheet (.xlsx) or program file (.json), from the editor's ⋯ menu or the client page's program menu.
 - `writeXlsx` in `src/lib/xlsx.ts` (inline strings only, no new dependency) and `programBackupSheets` in `src/domain/programs/backup.ts`. Tests read the file back through the importer.
 - **Verification.** `pnpm verify` passes (457 tests). No browser checks; manual checks are in decision 0062.
+
+## Meeting conflicts (2026-11-24)
+
+- Decision 0063 (owner request during the 2026-11-24 handoff). A **Conflicts** section on the coach Meetings page lists overlapping scheduled meetings for the same coach in the next 100 days, one card per chain of overlaps. `meetingConflicts` in `src/domain/scheduling/conflicts.ts`, unit-tested. No server change.
+- **Verification.** `pnpm verify` passes (463 tests). No browser checks; manual checks are in decision 0063.
