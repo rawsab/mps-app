@@ -298,7 +298,7 @@ function CalendarCreatePicture({ state }: { state: CalendarCreateState }) {
                 </div>
                 <div>
                   <p className="mb-2 text-sm font-medium">About</p>
-                  <ToggleButton pressed>Personal training</ToggleButton>
+                  <ToggleButton pressed className="px-3">Personal training</ToggleButton>
                 </div>
               </div>
             ) : <p className="text-muted">Choose a client to set the time, what it’s about, the program and notes.</p>}
