@@ -792,3 +792,10 @@ Decision 0055, "Owner follow-ups".
 - Decision 0065: Publish is disabled when the draft matches the published program (`sameProgram`), including edits that were all undone. Archived programs' service icons are faded on the coach Programs card, the client's Archived programs list and the Nutrition list. Help updated.
 - Decision 0066 (plan): click empty calendar time to create a one-off or repeating meeting, with a client picker and the existing meeting and pattern fields.
 - **Verification.** `pnpm verify` passes (465 tests). No browser checks.
+
+## Create meetings from the calendar (2026-11-24)
+
+- Decision 0066, with the owner's answers: always 60 minutes, drag to set the length, and coach names for admins only on clients who aren't theirs.
+- Click or drag empty time in week or day view, click empty space in a month day, or use **New meeting**. One dialog: client, then One meeting or Repeating, using the client page's forms (`NewMeetingForm`, `PatternForm` through `FormFrame`). The time carries across switches.
+- Help: a new "Adding a meeting from the calendar" guide on the Meetings page.
+- **Verification.** `pnpm verify` passes (469 tests). No browser checks; manual checks are in decision 0066.

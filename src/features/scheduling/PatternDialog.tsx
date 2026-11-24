@@ -1,8 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { Dialog } from '@/components/Dialog';
 import { SegmentedControl, ToggleButton } from '@/components/controls';
 import { Alert, Button, SelectField, TextAreaField, TextField } from '@/components/ui';
-import { anchorFor, cycleWeekOf, weekdayName, weekdayShort, WEEKDAYS, type PatternSlot } from '@/domain/scheduling/pattern';
+import { anchorFor, cycleWeekOf, isoWeekday, weekdayName, weekdayShort, WEEKDAYS, zonedDateTime, zonedToInstant, type PatternSlot } from '@/domain/scheduling/pattern';
 import type { SessionFormat } from '@/domain/billing/billing';
 import { useSetScheduleFormat } from '@/features/billing/api';
 import type { ProgramRow } from '@/features/programs/api';
@@ -12,6 +11,7 @@ import { defaultTopic, MeetingTopicFields } from './MeetingTopic';
 import { MinutesField } from './MinutesField';
 import { sessionMoment, todayIn, zoneLabel } from './time';
 import type { SavedOptions } from '@/components/Toast';
+import { dialogFrame, type FormFrame, type MeetingStart } from './formFrame';
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -31,7 +31,7 @@ type SlotDraft = { cycleWeek: number; weekday: number; startTime: string; durati
  * Creates a repeating pattern, or changes one "from this date on" (`schedule` + `from`). Times are
  * the primary coach's wall clock; the server previews and generates the dates.
  */
-export function PatternDialog({ clientId, context, programs, schedule, from, onClose, onSaved }: {
+type PatternProps = {
   clientId: string;
   context: MeetingContext;
   programs: ProgramRow[];
@@ -39,18 +39,39 @@ export function PatternDialog({ clientId, context, programs, schedule, from, onC
   from?: string;
   onClose: () => void;
   onSaved: (message: ReactNode, options?: SavedOptions) => void;
+};
+
+export function PatternDialog(props: PatternProps) {
+  return <PatternForm {...props} frame={dialogFrame(props.onClose)} />;
+}
+
+/**
+ * The pattern form, framed by its caller. For a new pattern, `start` fills the first day, time,
+ * length and start date (the calendar's click, decision 0066); `onStartChange` reports edits.
+ */
+export function PatternForm({ clientId, context, programs, schedule, from, onClose, onSaved, frame, start, onStartChange }: PatternProps & {
+  frame: FormFrame; start?: MeetingStart; onStartChange?: (start: MeetingStart) => void;
 }) {
   const timeZone = context.timezone;
   const today = todayIn(timeZone);
+  const startAt = !schedule && start ? zonedDateTime(start.startsAt, timeZone) : null;
   const create = useCreatePattern(clientId);
   const change = useChangePattern();
   const setScheduleFormat = useSetScheduleFormat();
   const saving = create.isPending || change.isPending || setScheduleFormat.isPending;
   const [cycleWeeks, setCycleWeeks] = useState(schedule?.cycleWeeks ?? 1);
-  const [slots, setSlots] = useState<SlotDraft[]>(() => (schedule?.slots ?? []).map((slot) => ({
-    cycleWeek: slot.cycleWeek, weekday: slot.weekday, startTime: slot.startTime, duration: String(slot.durationMinutes),
-  })));
-  const [startsOn, setStartsOn] = useState(from ?? today);
+  const [slots, setSlots] = useState<SlotDraft[]>(() => startAt && start
+    ? [{ cycleWeek: 1, weekday: isoWeekday(startAt.date), startTime: startAt.time, duration: String(start.durationMinutes) }]
+    : (schedule?.slots ?? []).map((slot) => ({
+      cycleWeek: slot.cycleWeek, weekday: slot.weekday, startTime: slot.startTime, duration: String(slot.durationMinutes),
+    })));
+  const [startsOn, setStartsOn] = useState(from ?? startAt?.date ?? today);
+  // The first day's time on the start date, reported so the one-off form can pick it up.
+  const first = slots[0];
+  useEffect(() => {
+    if (!first || !TIME.test(first.startTime) || !/^\d{4}-\d{2}-\d{2}$/.test(startsOn) || !/^\d{1,3}$/.test(first.duration)) return;
+    onStartChange?.({ startsAt: zonedToInstant(startsOn, first.startTime, timeZone), durationMinutes: Number(first.duration) });
+  }, [startsOn, first?.startTime, first?.duration, timeZone]);
   const [endsOn, setEndsOn] = useState(schedule?.endsOn ?? '');
   // Which week of the cycle the start date falls in. A change keeps the old pattern's rhythm.
   const [startWeek, setStartWeek] = useState(() => (schedule ? cycleWeekOf(from ?? today, schedule.anchorOn, schedule.cycleWeeks) : 1));
@@ -126,14 +147,15 @@ export function PatternDialog({ clientId, context, programs, schedule, from, onC
 
   const error = create.error ?? change.error ?? setScheduleFormat.error;
 
-  return (
-    <Dialog wide title={schedule ? 'Change repeating meetings' : 'Set up repeating meetings'}
-      description={`Times are in ${zoneLabel(timeZone)}${context.coachName ? `, ${context.coachName}’s time zone` : ''}. Clients see them in their own.`}
-      onClose={() => { if (!saving) onClose(); }}
-      footer={<>
-        <Button variant="secondary" disabled={saving} onClick={onClose}>Cancel</Button>
-        <Button busy={saving} onClick={save}>{schedule ? 'Save changes' : 'Set up meetings'}</Button>
-      </>}>
+  return frame({
+    title: schedule ? 'Change repeating meetings' : 'Set up repeating meetings',
+    description: `Times are in ${zoneLabel(timeZone)}${context.coachName ? `, ${context.coachName}’s time zone` : ''}. Clients see them in their own.`,
+    busy: saving,
+    footer: <>
+      <Button variant="secondary" disabled={saving} onClick={onClose}>Cancel</Button>
+      <Button busy={saving} onClick={save}>{schedule ? 'Save changes' : 'Set up meetings'}</Button>
+    </>,
+    body: (
       <div className="grid gap-5 p-4 sm:p-5">
         <MeetingTopicFields context={context} programs={programs} value={topic} onChange={setTopic} />
         {billed ? (
@@ -220,6 +242,6 @@ export function PatternDialog({ clientId, context, programs, schedule, from, onC
         <Alert visible={showErrors && problems.length > 0} title="Check the pattern">{problems.join(' ')}</Alert>
         <Alert visible={!!error} title="Not saved">{schedulingError(error)}</Alert>
       </div>
-    </Dialog>
-  );
+    ),
+  });
 }

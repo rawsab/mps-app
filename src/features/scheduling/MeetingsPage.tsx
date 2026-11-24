@@ -4,7 +4,7 @@ import { useViewer } from '@/app/auth';
 import { Avatar } from '@/components/Avatar';
 import { Dialog } from '@/components/Dialog';
 import { STRIP_ITEM, ScrollStripButtons, ScrollStripList, useScrollStrip } from '@/components/ScrollStrip';
-import { ArrowUpRightIcon, CautionIcon, PencilIcon, StepIcon } from '@/components/icons';
+import { ArrowUpRightIcon, CautionIcon, PencilIcon, PlusIcon, StepIcon } from '@/components/icons';
 import { useClient, useClientPhoto } from '@/features/clients/api';
 import { programPath } from '@/features/programs/CurrentProgram';
 import { SERVICE_SHORT_LABELS } from '@/lib/services';
@@ -13,6 +13,7 @@ import { Alert, Badge, Card, Button, PageHeader } from '@/components/ui';
 import { LoadingRegion, SkeletonText, SkeletonHeader } from '@/components/Skeleton';
 import { timeOffOn } from '@/domain/scheduling/availability';
 import { meetingConflicts } from '@/domain/scheduling/conflicts';
+import { clockTime, DEFAULT_MINUTES, dragRange, monthDefaultStart, SNAP_MINUTES, snapDown } from '@/domain/scheduling/calendarCreate';
 import { CALENDAR_VIEWS, countdown, dayWindows, layoutDay, stepDate, viewDays, type CalendarView } from '@/domain/scheduling/calendar';
 import { addDays, isoWeekday, weekdayShort, zonedDateTime, zonedToInstant } from '@/domain/scheduling/pattern';
 import { capitalize } from '@/lib/format';
@@ -23,6 +24,9 @@ import {
 import { MeetingCardSkeleton, MeetingRowsSkeleton } from './MeetingSkeletons';
 import { AvailabilityExceptions } from './AvailabilityExceptions';
 import { MeetingDialogHost } from './MeetingDialogHost';
+import { CalendarMeetingDialog } from './CalendarMeetingDialog';
+import type { MeetingStart } from './formFrame';
+import type { SavedOptions } from '@/components/Toast';
 import { RecordAttendance } from './RecordAttendance';
 import { topicLabel } from './MeetingTopic';
 import { RequestBadge } from './RequestBadge';
@@ -93,7 +97,7 @@ function MeetingsPageBody({ timeZone }: { timeZone: string }) {
         <MeetingTodos timeZone={timeZone} />
         <MeetingConflicts timeZone={timeZone} />
       </div>
-      <MeetingCalendar timeZone={timeZone} />
+      <MeetingCalendar timeZone={timeZone} onSaved={(message, options) => toast.show(message, options)} />
       <AvailabilityExceptions timeZone={timeZone} onSaved={(message) => toast.show(message)} />
       {openMeeting ? (
         <MeetingDialogHost key={openMeeting} meetingId={openMeeting} onClose={closeMeeting}
@@ -419,7 +423,7 @@ function MeetingPreviewDialog({ meeting: snapshot, timeZone, onClose }: { meetin
   );
 }
 
-function MeetingCalendar({ timeZone }: { timeZone: string }) {
+function MeetingCalendar({ timeZone, onSaved }: { timeZone: string; onSaved: (message: ReactNode, options?: SavedOptions) => void }) {
   const now = useNow();
   const today = todayIn(timeZone);
   // View and date live in the URL so reloads and back/forward keep the place.
@@ -431,6 +435,10 @@ function MeetingCalendar({ timeZone }: { timeZone: string }) {
     setParams((p) => { p.set('view', next.view ?? view); p.set('date', next.date ?? date); return p; }, { replace: true });
   const [hideCancelled, setHideCancelled] = useHideCancelled();
   const [preview, setPreview] = useState<Meeting | null>(null);
+  // A new meeting from a click or drag on the calendar, or the New meeting button (decision 0066).
+  const [creating, setCreating] = useState<MeetingStart | null>(null);
+  const create = (day: string, minutes: number, durationMinutes = DEFAULT_MINUTES) =>
+    setCreating({ startsAt: zonedToInstant(day, clockTime(minutes), timeZone), durationMinutes });
 
   const days = viewDays(view, date);
   const range = useMemo(() => ({
@@ -467,6 +475,11 @@ function MeetingCalendar({ timeZone }: { timeZone: string }) {
       <h2 id="meeting-calendar" className="sr-only">Calendar</h2>
       <div className="mb-3 flex flex-wrap items-center gap-2">
         <Button variant="secondary" onClick={() => go({ date: today })}>Today</Button>
+        <Button variant="secondary" onClick={() => {
+          // The next 15-minute mark from now; any time can be chosen in the dialog.
+          const step = SNAP_MINUTES * 60_000;
+          setCreating({ startsAt: new Date(Math.ceil(Date.now() / step) * step), durationMinutes: DEFAULT_MINUTES });
+        }}><PlusIcon /> New meeting</Button>
         <div className="flex">
           <Button variant="ghost" aria-label={`Previous ${view}`} className="px-1.5!" onClick={() => go({ date: stepDate(view, date, -1) })}><StepIcon direction="previous" /></Button>
           <Button variant="ghost" aria-label={`Next ${view}`} className="px-1.5!" onClick={() => go({ date: stepDate(view, date, 1) })}><StepIcon direction="next" /></Button>
@@ -482,20 +495,26 @@ function MeetingCalendar({ timeZone }: { timeZone: string }) {
       </div>
       <Alert visible={!!meetings.error} className="mb-3" title="Could not load meetings">{schedulingError(meetings.error)}</Alert>
       {view === 'month'
-        ? <MonthGrid days={days} month={date.slice(0, 7)} today={today} byDay={byDay} timeOff={timeOff} timeZone={timeZone} onDay={(day) => go({ view: 'day', date: day })} onMeeting={setPreview} />
-        : <TimeGrid days={days} today={today} byDay={byDay} available={available} timeZone={timeZone} now={now} onDay={(day) => go({ view: 'day', date: day })} onMeeting={setPreview} />}
+        ? <MonthGrid days={days} month={date.slice(0, 7)} today={today} byDay={byDay} timeOff={timeOff} timeZone={timeZone} onDay={(day) => go({ view: 'day', date: day })} onMeeting={setPreview}
+          onCreate={(day) => create(day, monthDefaultStart(available?.get(day)))} />
+        : <TimeGrid days={days} today={today} byDay={byDay} available={available} timeZone={timeZone} now={now} onDay={(day) => go({ view: 'day', date: day })} onMeeting={setPreview}
+          onCreate={create} />}
       {available && view !== 'month' ? (
         <p className="mt-2 text-xs text-muted">Striped times are outside your availability. Change your week in <Link to="/coach/profile" className="text-gold-fg underline underline-offset-2">Profile settings</Link>.</p>
       ) : null}
       {preview ? <MeetingPreviewDialog meeting={preview} timeZone={timeZone} onClose={() => setPreview(null)} /> : null}
+      {creating ? <CalendarMeetingDialog start={creating} timeZone={timeZone} onClose={() => setCreating(null)}
+        onSaved={(message, options) => { setCreating(null); onSaved(message, options); }} /> : null}
       {/* The grid shows empty days while the first load runs; this only tells screen readers. */}
       {meetings.isFetching && !meetings.data ? <p role="status" className="sr-only">Loading meetings</p> : null}
     </section>
   );
 }
 
-function MonthGrid({ days, month, today, byDay, timeOff, timeZone, onDay, onMeeting }: {
+function MonthGrid({ days, month, today, byDay, timeOff, timeZone, onDay, onMeeting, onCreate }: {
   days: string[]; month: string; today: string; byDay: Map<string, Meeting[]>; timeOff: Set<string>; timeZone: string; onDay: (day: string) => void; onMeeting: (meeting: Meeting) => void;
+  /** Empty space in a day cell starts a new meeting that day; the day number still opens the day. */
+  onCreate: (day: string) => void;
 }) {
   return (
     <div className="overflow-hidden rounded-card border border-line">
@@ -507,7 +526,9 @@ function MonthGrid({ days, month, today, byDay, timeOff, timeZone, onDay, onMeet
           const items = byDay.get(day) ?? [];
           const outside = day.slice(0, 7) !== month;
           return (
-            <div key={day} className={`min-h-20 min-w-0 border-line p-1 sm:min-h-28 ${index % 7 ? 'border-l' : ''} ${index >= 7 ? 'border-t' : ''} ${outside ? 'bg-ink/40' : ''}`}>
+            <div key={day}
+              onClick={(event) => { if (!(event.target as HTMLElement).closest('button')) onCreate(day); }}
+              className={`min-h-20 min-w-0 cursor-cell border-line p-1 hover:bg-surface-raised/40 sm:min-h-28 ${index % 7 ? 'border-l' : ''} ${index >= 7 ? 'border-t' : ''} ${outside ? 'bg-ink/40' : ''}`}>
               <button type="button" onClick={() => onDay(day)} aria-label={`Open ${day}`}
                 className={`mb-1 grid size-7 place-items-center rounded-full text-xs tabular-nums hover:bg-surface-raised ${day === today ? 'bg-gold font-semibold text-on-gold hover:bg-gold-hover' : outside ? 'text-muted' : ''}`}>
                 {Number(day.slice(8))}
@@ -534,11 +555,70 @@ function MonthGrid({ days, month, today, byDay, timeOff, timeZone, onDay, onMeet
   );
 }
 
+const hourMinute = (minutes: number) => new Intl.DateTimeFormat(undefined, { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' })
+  .format(new Date(Date.UTC(2000, 0, 1, Math.floor(minutes / 60), minutes % 60)));
+
+type Ghost = { day: string; start: number; minutes: number; dragging: boolean };
+
+/**
+ * Click or drag on empty calendar time to start a meeting (decision 0066). With a mouse, a faint block
+ * shows where a click lands (60 minutes); dragging stretches it to the length wanted. A tap on touch
+ * screens makes a 60-minute meeting, and a swipe still scrolls. Meetings and headings keep their clicks.
+ */
+function useCreateGesture(onCreate: (day: string, start: number, minutes?: number) => void) {
+  const [ghost, setGhost] = useState<Ghost | null>(null);
+  const press = useRef<{ day: string; anchor: number; y: number; touch: boolean; moved: boolean } | null>(null);
+  const minutesAt = (event: React.PointerEvent<HTMLDivElement>) =>
+    ((event.clientY - event.currentTarget.getBoundingClientRect().top) / HOUR_PX) * 60;
+  const onMeetingBlock = (event: React.PointerEvent) => !!(event.target as HTMLElement).closest('button');
+
+  return {
+    ghost,
+    handlers: (day: string) => ({
+      onPointerDown: (event: React.PointerEvent<HTMLDivElement>) => {
+        if (event.button !== 0 || onMeetingBlock(event)) return;
+        const touch = event.pointerType === 'touch';
+        press.current = { day, anchor: minutesAt(event), y: event.clientY, touch, moved: false };
+        if (!touch) {
+          event.currentTarget.setPointerCapture(event.pointerId);
+          setGhost({ day, start: snapDown(press.current.anchor), minutes: DEFAULT_MINUTES, dragging: false });
+        }
+      },
+      onPointerMove: (event: React.PointerEvent<HTMLDivElement>) => {
+        const held = press.current;
+        if (held && !held.touch) {
+          if (Math.abs(event.clientY - held.y) > 4) held.moved = true;
+          if (held.moved) setGhost({ day, ...dragRange(held.anchor, minutesAt(event)), dragging: true });
+          return;
+        }
+        if (event.pointerType !== 'mouse' || held) return;
+        setGhost(onMeetingBlock(event) ? null : { day, start: snapDown(minutesAt(event)), minutes: DEFAULT_MINUTES, dragging: false });
+      },
+      onPointerUp: (event: React.PointerEvent<HTMLDivElement>) => {
+        const held = press.current;
+        press.current = null;
+        if (!held) return;
+        if (held.touch && Math.abs(event.clientY - held.y) > 8) return;
+        if (held.moved) {
+          const range = dragRange(held.anchor, minutesAt(event));
+          onCreate(held.day, range.start, range.minutes);
+        } else onCreate(held.day, snapDown(held.anchor));
+        setGhost(null);
+      },
+      onPointerCancel: () => { press.current = null; setGhost(null); },
+      onPointerLeave: () => { if (!press.current) setGhost(null); },
+    }),
+  };
+}
+
 /** Week and day views: a 24-hour grid, meetings placed by start and length, overlaps side by side. */
-function TimeGrid({ days, today, byDay, available, timeZone, now, onDay, onMeeting }: {
+function TimeGrid({ days, today, byDay, available, timeZone, now, onDay, onMeeting, onCreate }: {
   days: string[]; today: string; byDay: Map<string, Meeting[]>; available: Map<string, { start: number; end: number }[]> | null; timeZone: string; now: number; onDay: (day: string) => void; onMeeting: (meeting: Meeting) => void;
+  /** Empty time was clicked (60 minutes) or dragged (its length): minutes from midnight that day. */
+  onCreate: (day: string, start: number, minutes?: number) => void;
 }) {
   const scroller = useRef<HTMLDivElement>(null);
+  const create = useCreateGesture(onCreate);
   const nowAt = zonedDateTime(new Date(now), timeZone);
   const nowMinutes = Number(nowAt.time.slice(0, 2)) * 60 + Number(nowAt.time.slice(3, 5));
   const columns = `3.25rem repeat(${days.length}, minmax(0, 1fr))`;
@@ -577,7 +657,8 @@ function TimeGrid({ days, today, byDay, available, timeZone, now, onDay, onMeeti
             });
             const lanes = layoutDay(placed.map((p) => ({ id: p.meeting.id, start: p.start, end: p.end })));
             return (
-              <div key={day} className={`relative border-l border-line ${available ? 'calendar-unavailable' : ''}`} style={{ height: 24 * HOUR_PX }}>
+              <div key={day} className={`relative cursor-cell touch-pan-y select-none border-l border-line ${available ? 'calendar-unavailable' : ''}`} style={{ height: 24 * HOUR_PX }}
+                {...create.handlers(day)}>
                 {/* Open time shows the page background; the rest stays shaded. */}
                 {available?.get(day)?.map((window) => (
                   <div key={window.start} aria-hidden className="absolute inset-x-0 bg-ink"
@@ -607,6 +688,12 @@ function TimeGrid({ days, today, byDay, available, timeZone, now, onDay, onMeeti
                     </div>
                   );
                 })}
+                {create.ghost?.day === day ? (
+                  <div aria-hidden className={`pointer-events-none absolute inset-x-0.5 z-10 rounded-inner border border-dashed border-gold px-1.5 py-0.5 text-[11px] leading-tight text-gold-fg ${create.ghost.dragging ? 'bg-gold/20' : 'bg-gold/10'}`}
+                    style={{ top: (create.ghost.start / 60) * HOUR_PX + 1, height: Math.max((create.ghost.minutes / 60) * HOUR_PX - 2, 14) }}>
+                    <span className="tabular-nums">{hourMinute(create.ghost.start)}</span>{create.ghost.dragging ? ` · ${create.ghost.minutes} min` : ''}
+                  </div>
+                ) : null}
                 {day === today ? (
                   <div aria-hidden className="pointer-events-none absolute inset-x-0 z-20 border-t-2 border-danger" style={{ top: (nowMinutes / 60) * HOUR_PX }}>
                     <span className="absolute -left-1 -top-[5px] size-2 rounded-full bg-danger" />

@@ -1,4 +1,4 @@
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router';
 import { Dialog } from '@/components/Dialog';
 import { Alert, Badge, Button, TextAreaField, TextField } from '@/components/ui';
@@ -15,6 +15,7 @@ import { MinutesField } from './MinutesField';
 import { defaultTopic, MeetingTopicFields, topicLabel } from './MeetingTopic';
 import { sessionDay, sessionMoment, sessionRange, sessionTime, todayIn, zoneLabel } from './time';
 import type { SavedOptions } from '@/components/Toast';
+import { dialogFrame, type FormFrame, type MeetingStart } from './formFrame';
 
 const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 
@@ -45,13 +46,33 @@ function WhenFields({ when, onChange, pt }: { when: When; onChange: (when: When)
 
 const NOTES_HINT = 'The client never sees these.';
 
-/** Adds a one-off meeting. */
-export function NewMeetingDialog({ clientId, context, programs, onClose, onSaved }: {
+type NewMeetingProps = {
   clientId: string; context: MeetingContext; programs: ProgramRow[]; onClose: () => void; onSaved: (message: ReactNode, options?: SavedOptions) => void;
+};
+
+/** Adds a one-off meeting. */
+export function NewMeetingDialog(props: NewMeetingProps) {
+  return <NewMeetingForm {...props} frame={dialogFrame(props.onClose)} />;
+}
+
+/**
+ * The one-off meeting form, framed by its caller. `start` fills the date, time and length (the
+ * calendar's click, decision 0066), shown in the primary coach's zone; `onStartChange` reports edits.
+ */
+export function NewMeetingForm({ clientId, context, programs, onClose, onSaved, frame, start, onStartChange }: NewMeetingProps & {
+  frame: FormFrame; start?: MeetingStart; onStartChange?: (start: MeetingStart) => void;
 }) {
   const timeZone = context.timezone;
   const add = useAddMeeting(clientId);
-  const [when, setWhen] = useState<When>({ date: addDays(todayIn(timeZone), 1), time: '07:00', duration: '60' });
+  const [when, setWhen] = useState<When>(() => {
+    if (!start) return { date: addDays(todayIn(timeZone), 1), time: '07:00', duration: '60' };
+    const at = zonedDateTime(start.startsAt, timeZone);
+    return { date: at.date, time: at.time, duration: String(start.durationMinutes) };
+  });
+  useEffect(() => {
+    const parsed = parseWhen(when, timeZone);
+    if (typeof parsed !== 'string') onStartChange?.(parsed);
+  }, [when.date, when.time, when.duration, timeZone]);
   const [topic, setTopic] = useState<MeetingTopic>(() => defaultTopic(context));
   const [notes, setNotes] = useState('');
   const [problem, setProblem] = useState('');
@@ -64,13 +85,15 @@ export function NewMeetingDialog({ clientId, context, programs, onClose, onSaved
     add.mutate({ ...parsed, ...topic, notes }, { onSuccess: (meeting) => onSaved(`Meeting added for ${sessionMoment(meeting.startsAt, timeZone)}.${overlapNotice(meeting.overlaps, timeZone)}`) });
   }
 
-  return (
-    <Dialog wide title="Add a meeting" description={`A one-off meeting. Times are in ${zoneLabel(timeZone)}.`}
-      onClose={() => { if (!add.isPending) onClose(); }}
-      footer={<>
-        <Button variant="secondary" disabled={add.isPending} onClick={onClose}>Cancel</Button>
-        <Button busy={add.isPending} onClick={save}>Add meeting</Button>
-      </>}>
+  return frame({
+    title: 'Add a meeting',
+    description: `A one-off meeting. Times are in ${zoneLabel(timeZone)}.`,
+    busy: add.isPending,
+    footer: <>
+      <Button variant="secondary" disabled={add.isPending} onClick={onClose}>Cancel</Button>
+      <Button busy={add.isPending} onClick={save}>Add meeting</Button>
+    </>,
+    body: (
       <div className="grid gap-5 p-4 sm:p-5">
         <WhenFields when={when} onChange={setWhen} pt={topic.services.includes('personal_training')} />
         <MeetingTopicFields context={context} programs={programs} value={topic} onChange={setTopic} />
@@ -78,8 +101,8 @@ export function NewMeetingDialog({ clientId, context, programs, onClose, onSaved
         <Alert visible={!!problem}>{problem}</Alert>
         <Alert visible={!!add.error} title="Not added">{schedulingError(add.error)}</Alert>
       </div>
-    </Dialog>
-  );
+    ),
+  });
 }
 
 /**

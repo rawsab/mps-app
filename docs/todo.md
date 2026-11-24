@@ -47,7 +47,7 @@ Owner requests, not yet ordered. Each needs a decision record when built.
 
 - [x] **Publish only with changes** (built 2026-11-24, decision 0065). Includes changes that were all undone.
 - [x] **Faded icons for archived programs** (built 2026-11-24, decision 0065).
-- [ ] **Create meetings from the calendar** (planned 2026-11-24, decision 0066; three open questions).
+- [x] **Create meetings from the calendar** (built 2026-11-24, decision 0066): click, drag or New meeting.
 
 ## Planning session, 2026-11-20
 
