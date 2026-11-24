@@ -39,7 +39,7 @@ export function NutritionPage({ coach = false }: { coach?: boolean }) {
 export function NutritionProgramRow({ program: p }: { program: NutritionProgramSummary }) {
   return <li>
     <Link to={`/nutrition/${p.id}`} className="row-link group flex min-h-16 items-center gap-3 rounded-card px-2 py-3 hover:bg-surface-raised">
-      <span aria-hidden className="grid size-9 shrink-0 place-items-center rounded-full bg-success/10 text-success [&>svg]:size-4"><NutritionIcon /></span>
+      <span aria-hidden className={`grid size-9 shrink-0 place-items-center rounded-full bg-success/10 text-success [&>svg]:size-4 ${p.archived_at ? 'opacity-50' : ''}`}><NutritionIcon /></span>
       <div className="min-w-0 flex-1"><p className="break-words font-medium">{p.program_style}</p><p className="text-xs text-muted">Nutritional programming · {p.week_count} weeks · Start Date {formatDate(p.start_date)}</p></div>
       {p.is_current && !p.archived_at ? <Badge tone="gold">Current</Badge> : null}{p.archived_at ? <Badge>Archived</Badge> : null}<span aria-hidden className="text-muted group-hover:text-text">→</span>
     </Link>

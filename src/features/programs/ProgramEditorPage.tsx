@@ -17,6 +17,9 @@ import { validateForPublish } from '@/domain/programs/contract';
 import { formatDate } from '@/lib/format';
 import { SERVICE_SHORT_LABELS } from '@/lib/services';
 import { friendlyError } from '@/features/clients/api';
+import { useQueryClient } from '@tanstack/react-query';
+import { sameProgram } from '@/domain/programs/compare';
+import { usePublishedProgram } from '@/features/training/api';
 import { useProgram } from './api';
 import { GridView } from './GridView';
 import { publishDestination, rejectedDestination } from './programNavigation';
@@ -73,6 +76,9 @@ function Editor({ program, clientName }: { program: NonNullable<ReturnType<typeo
   const { state } = editor;
   const [reviewing, setReviewing] = useState(false);
   const [duplicating, setDuplicating] = useState(false);
+  const queryClient = useQueryClient();
+  // What the client sees now, so Publish waits for a real change (undoing every edit counts as none).
+  const published = usePublishedProgram(program.current_revision_id ? program.id : undefined);
   const focusKey = params.get('focus');
   const hasDraft = state.draft !== null;
   useEffect(() => {
@@ -117,6 +123,18 @@ function Editor({ program, clientName }: { program: NonNullable<ReturnType<typeo
   const rejectedCount = Object.keys(state.rejected).length;
   const reviewProblems = [...problems, ...Object.entries(state.rejected).map(([key, edit]) => ({ path: `rejected:${key}`, message: edit.message }))];
   const archived = program.archived_at !== null;
+  // Never published: anything saved or typed is new. Published: only a draft that differs from it.
+  // If the published version can't be loaded, Publish stays available rather than stuck.
+  const unchanged = program.current_revision_id
+    ? !published.error && (!published.data || sameProgram(state.draft, published.data.document))
+    : state.lockVersion === null && state.saveState === 'saved';
+  const publish = async () => {
+    await editor.publish();
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['programs', program.id] }),
+      queryClient.invalidateQueries({ queryKey: ['training', 'programs', program.id] }),
+    ]);
+  };
   const programStatus =
     state.baseStatus === 'draft'
       ? 'Draft · staff only'
@@ -182,7 +200,9 @@ function Editor({ program, clientName }: { program: NonNullable<ReturnType<typeo
                 <ActionItem onClick={() => downloadProgram(state.draft!, clientName, 'json')}>Download program file (.json)</ActionItem>
               </ActionsMenu>
               <Button variant="ghost" onClick={() => setReviewing(true)}>{reviewProblems.length > 0 ? <CautionIcon /> : null}{reviewProblems.length > 0 ? `${reviewProblems.length} publish ${reviewProblems.length === 1 ? 'issue' : 'issues'}` : 'Ready to publish'}</Button>
-              <Button onClick={() => { if (reviewProblems.length > 0) setReviewing(true); else void editor.publish(); }} busy={state.publishing} disabled={archived || state.saveState === 'conflict'}>
+              <Button onClick={() => { if (reviewProblems.length > 0) setReviewing(true); else void publish(); }} busy={state.publishing}
+                disabled={archived || state.saveState === 'conflict' || (unchanged && !state.publishing)}
+                title={unchanged && !archived ? (program.current_revision_id ? 'No changes since the last publish' : 'Make a change to publish') : undefined}>
                 Publish
               </Button>
             </div>

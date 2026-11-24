@@ -786,3 +786,9 @@ Decision 0055, "Owner follow-ups".
 
 - Decision 0064 (owner meeting, item 7), a plan only. The app stays the source of truth. A repeating pattern maps to one Google series per slot, so clients get one invitation per weekday. Outbound changes go through an outbox. Inbound changes (moves, cancels, descriptions) arrive by incremental sync and go through the same SQL rules as app edits. Tokens stay in Vault. Three phases.
 - Waiting on: seven owner questions (Google account type, dedicated calendar, invitations per slot, Meet links, declines, series edits in Google, email overlap) and authorization for the Google Cloud project.
+
+## Publish only with changes, faded archived icons, calendar creation plan (2026-11-24)
+
+- Decision 0065: Publish is disabled when the draft matches the published program (`sameProgram`), including edits that were all undone. Archived programs' service icons are faded on the coach Programs card, the client's Archived programs list and the Nutrition list. Help updated.
+- Decision 0066 (plan): click empty calendar time to create a one-off or repeating meeting, with a client picker and the existing meeting and pattern fields.
+- **Verification.** `pnpm verify` passes (465 tests). No browser checks.

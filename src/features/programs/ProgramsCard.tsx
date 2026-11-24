@@ -80,7 +80,7 @@ export function ProgramsCard({ clientId, clientName, enrollments }: { clientId: 
                 to={`/coach/clients/${clientId}/${p.service === 'nutrition' ? 'nutrition' : 'programs'}/${p.id}`}
                 className="row-link group flex min-h-14 min-w-0 flex-1 flex-wrap items-center justify-between gap-2 rounded-card py-3 pl-3 pr-2 hover:bg-surface-raised"
               >
-                <span aria-hidden className={`grid size-9 shrink-0 place-items-center rounded-full [&>svg]:size-4 ${programServiceIconStyle(p.service)}`}>{programServiceIcon(p.service)}</span>
+                <span aria-hidden className={`grid size-9 shrink-0 place-items-center rounded-full [&>svg]:size-4 ${programServiceIconStyle(p.service)} ${p.archived_at ? 'opacity-50' : ''}`}>{programServiceIcon(p.service)}</span>
                 <div className="min-w-0 flex-1">
                   <p className="truncate font-medium">{programTitle(p)}</p>
                   {p.service === 'mesocycle' && programTheme(p) ? <p className="mt-0.5 break-words text-sm text-muted">{programTheme(p)}</p> : null}

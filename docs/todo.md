@@ -43,6 +43,12 @@ Owner requests, not yet ordered. Each needs a decision record when built.
 - [x] **Plan two-way Google Calendar sync** (planned 2026-11-24, decision 0064; waiting on the owner's answers to its seven questions and on authorization for a Google Cloud project). Covers one-off and repeating meetings, descriptions and meeting links, rescheduling, cancelling, and inviting and notifying clients. Plan only for now; any hosted Google project needs explicit authorization.
 - [x] **Meeting conflicts** (built 2026-11-24, decision 0063): a Conflicts section on the coach Meetings page.
 
+## Owner requests, 2026-11-24 (second round)
+
+- [x] **Publish only with changes** (built 2026-11-24, decision 0065). Includes changes that were all undone.
+- [x] **Faded icons for archived programs** (built 2026-11-24, decision 0065).
+- [ ] **Create meetings from the calendar** (planned 2026-11-24, decision 0066; three open questions).
+
 ## Planning session, 2026-11-20
 
 Open work from the 2026-11-20 planning session. Done so far: answered requests leave "To review" (decision 0043), required-field asterisks, mesocycle progress on the program page, and service request answers (decision 0044). See `docs/status.md`.

@@ -73,7 +73,7 @@ export function PublishedProgramRow({ program: p }: { program: PublishedProgramS
   return (
     <li>
       <Link to={clientProgramPath(p.service, p.programId)} className="row-link group flex min-h-16 items-center gap-3 rounded-card px-2 py-3 hover:bg-surface-raised">
-        <span aria-hidden className={`grid size-9 shrink-0 place-items-center rounded-full [&>svg]:size-4 ${programServiceIconStyle(p.service)}`}>{programServiceIcon(p.service)}</span>
+        <span aria-hidden className={`grid size-9 shrink-0 place-items-center rounded-full [&>svg]:size-4 ${programServiceIconStyle(p.service)} ${p.archivedAt ? 'opacity-50' : ''}`}>{programServiceIcon(p.service)}</span>
         <div className="min-w-0 flex-1">
           <p className="break-words font-medium">{programName(p.title)}</p>
           {p.service === 'mesocycle' && p.programTheme.trim() ? <p className="mt-0.5 break-words text-sm text-muted">{p.programTheme}</p> : null}
