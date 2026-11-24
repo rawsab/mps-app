@@ -781,3 +781,8 @@ Decision 0055, "Owner follow-ups".
 
 - Decision 0063 (owner request during the 2026-11-24 handoff). A **Conflicts** section on the coach Meetings page lists overlapping scheduled meetings for the same coach in the next 100 days, one card per chain of overlaps. `meetingConflicts` in `src/domain/scheduling/conflicts.ts`, unit-tested. No server change.
 - **Verification.** `pnpm verify` passes (463 tests). No browser checks; manual checks are in decision 0063.
+
+## Google Calendar sync plan (2026-11-24)
+
+- Decision 0064 (owner meeting, item 7), a plan only. The app stays the source of truth. A repeating pattern maps to one Google series per slot, so clients get one invitation per weekday. Outbound changes go through an outbox. Inbound changes (moves, cancels, descriptions) arrive by incremental sync and go through the same SQL rules as app edits. Tokens stay in Vault. Three phases.
+- Waiting on: seven owner questions (Google account type, dedicated calendar, invitations per slot, Meet links, declines, series edits in Google, email overlap) and authorization for the Google Cloud project.
