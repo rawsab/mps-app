@@ -224,7 +224,7 @@ function CalendarCreatePicture({ state }: { state: CalendarCreateState }) {
   return (
     <div className="grid w-[36rem] text-left text-sm text-text">
       <div className="self-center overflow-hidden rounded-card border border-line bg-surface shadow-popover [grid-area:1/1]">
-        <div className="grid grid-cols-[3.25rem_repeat(3,minmax(0,1fr))] border-b border-line">
+        <div className="grid grid-cols-[4.25rem_repeat(3,minmax(0,1fr))] border-b border-line">
           <span />
           {CALENDAR_DEMO_DAYS.map((day) => (
             <span key={day} className="border-l border-line py-2 text-center">
@@ -233,10 +233,10 @@ function CalendarCreatePicture({ state }: { state: CalendarCreateState }) {
             </span>
           ))}
         </div>
-        <div className="grid grid-cols-[3.25rem_repeat(3,minmax(0,1fr))]" style={{ height: hours.length * DEMO_HOUR_PX }}>
+        <div className="grid grid-cols-[4.25rem_repeat(3,minmax(0,1fr))]" style={{ height: hours.length * DEMO_HOUR_PX }}>
           <div className="relative">
             {hours.slice(1).map((hour) => (
-              <span key={hour} className="absolute right-1.5 -translate-y-1/2 text-[11px] text-muted" style={{ top: fromTop(hour * 60) }}>{clock(hour * 60)}</span>
+              <span key={hour} className="absolute right-1.5 -translate-y-1/2 whitespace-nowrap text-[11px] tabular-nums text-muted" style={{ top: fromTop(hour * 60) }}>{clock(hour * 60)}</span>
             ))}
           </div>
           {CALENDAR_DEMO_DAYS.map((day) => (
@@ -265,7 +265,8 @@ function CalendarCreatePicture({ state }: { state: CalendarCreateState }) {
       </div>
 
       {dialog && at ? (
-        <div className={`self-center justify-self-center w-[32rem] rounded-card border border-line bg-surface shadow-popover transition-opacity duration-300 [grid-area:1/1] ${dialog.shown ? 'opacity-100' : 'opacity-0'}`}>
+        // Its own layer above the calendar, whose meetings and labels are positioned.
+        <div className={`relative z-10 self-center justify-self-center w-[32rem] rounded-card border border-line bg-surface shadow-popover transition-opacity duration-300 [grid-area:1/1] ${dialog.shown ? 'opacity-100' : 'opacity-0'}`}>
           <div className="border-b border-line px-5 py-3">
             <p className="text-base font-semibold">New meeting</p>
             <p className="mt-0.5 text-xs text-muted">{sessionDay(at, DEMO_TIME_ZONE)}, {sessionRange(at, dialog.minutes, DEMO_TIME_ZONE)} ({dialog.minutes} min).</p>
