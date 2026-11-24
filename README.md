@@ -14,18 +14,15 @@
 </p>
 
 <p align="center">
-  <picture>
-    <source media="(prefers-color-scheme: dark)" srcset="docs/screenshots/coach-clients-dark.webp">
-    <img src="docs/screenshots/coach-clients.webp" alt="The coach workspace: clients waiting for review, today's meetings, service and status summaries, and open service requests" width="900">
-  </picture>
+  <img src="docs/screenshots/coach-clients.webp" alt="The coach workspace: clients waiting for review, today's meetings, service and status summaries, and open service requests" width="900">
 </p>
 
 ## About
 
 [Modern Physique Systems](https://www.modernphysiquesystems.com/) (MPS) is a coaching business run by Matt Lizmore. It offers three services: Mesocycle Programming, Nutritional Programming and Personal Training. Its programs and client results currently live in spreadsheets and documents. This application replaces them with one branded, mobile-friendly platform:
 
-- **Coaches** manage clients, build and publish programs, review logged activity, schedule meetings and track billing.
-- **Clients** sign in to see what to do next, log workouts and nutrition from their phone, and follow their progress over time.
+- **Coaches** manage clients, publish programs, review activity, schedule meetings and track billing.
+- **Clients** see what to do next, log workouts and nutrition on their phone, and track progress.
 
 > [!NOTE]
 > **Work in progress.** The application is under active development and this is not the final version. The interface, data model and workflows may change before release.
@@ -61,34 +58,15 @@ All people and data shown are fictional, from the local development seed.
 
 ### Client app
 
-<table>
-  <tr>
-    <td width="33%"><a href="docs/screenshots/client-home.webp"><img src="docs/screenshots/client-home.webp" alt="Client home"></a></td>
-    <td width="33%"><a href="docs/screenshots/client-workout.webp"><img src="docs/screenshots/client-workout.webp" alt="Workout logging"></a></td>
-    <td width="33%"><a href="docs/screenshots/client-nutrition.webp"><img src="docs/screenshots/client-nutrition.webp" alt="Daily nutrition entry"></a></td>
-  </tr>
-  <tr>
-    <td align="center"><sub><b>Home.</b> What's due, the next meeting and the current balance.</sub></td>
-    <td align="center"><sub><b>Workout logging.</b> Set by set, against the prescribed targets.</sub></td>
-    <td align="center"><sub><b>Nutrition.</b> A daily weigh-in and the previous day's calories.</sub></td>
-  </tr>
-  <tr>
-    <td width="33%"><a href="docs/screenshots/client-progress.webp"><img src="docs/screenshots/client-progress.webp" alt="Progress charts"></a></td>
-    <td width="33%"><a href="docs/screenshots/client-pt.webp"><img src="docs/screenshots/client-pt.webp" alt="Personal training dashboard"></a></td>
-    <td width="33%"><a href="docs/screenshots/client-billing.webp"><img src="docs/screenshots/client-billing.webp" alt="Client billing"></a></td>
-  </tr>
-  <tr>
-    <td align="center"><sub><b>Progress.</b> Weight trends and predicted versus actual change.</sub></td>
-    <td align="center"><sub><b>Personal training.</b> The current program and next session.</sub></td>
-    <td align="center"><sub><b>Billing.</b> Monthly statements and an e-Transfer flow.</sub></td>
-  </tr>
-</table>
+<p align="center">
+  <img src="docs/screenshots/client-app.webp" alt="The client app on three phones: set-by-set workout logging, the home screen with billing and the next meeting, and weight-trend progress charts">
+</p>
 
 ## Features
 
 ### For coaches
 
-- **Clients.** Invite clients, enroll them in one or more services, transfer them between coaches, and archive ended services while keeping their history. A ⌘K / Ctrl+K command palette jumps to any client or page.
+- **Clients.** Invite clients, enroll them in one or more services, transfer them between coaches, and archive ended services while keeping their history. A `⌘K` / `Ctrl`+`K` command palette jumps to any client or page.
 - **Two program editors over one model.** A spreadsheet-style view and a structured List View edit the same canonical program, with undo and redo shared across both.
 - **Draft, publish and revise.** Drafts autosave. Publishing creates an immutable revision, so a client's completed history is never rewritten when their program changes. Programs can be duplicated for the next block and downloaded as .xlsx or .json.
 - **Nutritional programming.** Targets with effective dates, a coach-editable daily log, weekly averages and calorie balances, and weight-trend charts.
@@ -170,6 +148,17 @@ See [`docs/setup.md`](docs/setup.md) for environment configuration, the local se
 - [Implementation roadmap](docs/modern-physique-systems-implementation-roadmap.md)
 - [Development status](docs/status.md)
 - [Decision records](docs/decisions/)
+
+Coaches also get Help pages inside the app.
+
+<table>
+  <tr>
+    <td><a href="docs/screenshots/coach-help.webp"><img src="docs/screenshots/coach-help.webp" alt="The in-app Help overview, with a thumbnail for each page"></a></td>
+  </tr>
+  <tr>
+    <td align="center"><sub><b>In-app Help.</b> Searchable pages for every part of the coach workspace, with live examples and animated demos.</sub></td>
+  </tr>
+</table>
 
 ## Ownership and intellectual property
 
