@@ -16,6 +16,8 @@ export type PublishedProgramSummary = {
   weekCount: number;
   /** The service's current program (decision 0039). */
   isCurrent: boolean;
+  /** Only in the archived list (decision 0060). */
+  archivedAt?: string | null;
 };
 
 export type PublishedProgram = {
@@ -32,6 +34,18 @@ export function usePublishedPrograms() {
     queryKey: ['training', 'programs'],
     queryFn: async () => {
       const { data, error } = await requireSupabase().rpc('list_published_programs');
+      if (error) throw error;
+      return data as PublishedProgramSummary[];
+    },
+  });
+}
+
+/** The client's archived programs that were published at least once, newest archive first (decision 0060). */
+export function useArchivedPrograms() {
+  return useQuery({
+    queryKey: ['training', 'programs', 'archived'],
+    queryFn: async () => {
+      const { data, error } = await requireSupabase().rpc('list_archived_programs');
       if (error) throw error;
       return data as PublishedProgramSummary[];
     },

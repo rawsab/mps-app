@@ -14,7 +14,7 @@ import { MeetingRow } from '@/features/scheduling/MeetingsCard';
 import { ResourceList } from '@/features/scheduling/MeetingRecord';
 import { sessionDay, sessionRange } from '@/features/scheduling/time';
 import { trainingErrorMessage, usePublishedPrograms } from '@/features/training/api';
-import { PublishedProgramRow } from '@/features/training/TrainingPages';
+import { ArchivedPrograms, PublishedProgramRow } from '@/features/training/TrainingPages';
 
 // The client's Personal training dashboard (decision 0052), laid out like Home.
 
@@ -62,6 +62,7 @@ function YourProgram() {
           {[...(current ? [current] : []), ...others].map((p) => <PublishedProgramRow key={p.programId} program={p} />)}
         </ul>
       ) : null}
+      <ArchivedPrograms service="personal_training" className="mt-3" />
     </section>
   );
 }

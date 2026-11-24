@@ -13,7 +13,7 @@ import { todayIn } from '@/features/scheduling/time';
 import { formatDate } from '@/lib/format';
 import { clientProgramPath, clientSections, SERVICE_LABELS, SERVICE_SHORT_LABELS } from '@/lib/services';
 import { isExerciseLogged, type TrainingSession } from '@/domain/training/volume';
-import { logErrorMessage, trainingErrorMessage, usePublishedProgram, usePublishedPrograms, useStartSession, useTrainingLog, type PublishedProgramSummary } from './api';
+import { logErrorMessage, trainingErrorMessage, usePublishedProgram, usePublishedPrograms, useStartSession, useTrainingLog, useArchivedPrograms, type PublishedProgramSummary } from './api';
 import { useClient } from '@/features/clients/api';
 import { ProgramSpreadsheet } from './ProgramSpreadsheet';
 import { TrainingProgressBar } from './TrainingProgress';
@@ -25,7 +25,7 @@ const programName = (title: string) => title.trim() || 'Your program';
 
 type TrainingService = Exclude<ServiceKind, 'nutrition'>;
 
-/** The client's current published programs for one service (M3 step 5). Drafts and archived programs never appear. */
+/** The client's current published programs for one service (M3 step 5), then archived ones (decision 0060). Drafts never appear. */
 export function ProgramListPage({ service }: { service: TrainingService }) {
   const programs = usePublishedPrograms();
   const listed = programs.data?.filter((p) => p.service === service);
@@ -42,7 +42,29 @@ export function ProgramListPage({ service }: { service: TrainingService }) {
           {listed.map((p) => <PublishedProgramRow key={p.programId} program={p} />)}
         </ul>
       ) : null}
+      <ArchivedPrograms service={service} className="mt-6" />
     </div>
+  );
+}
+
+/**
+ * A service's archived programs, collapsed under the current ones (decision 0060). Hidden while
+ * loading and when there are none; a failed load says so, since the list is otherwise invisible.
+ */
+export function ArchivedPrograms({ service, className = '' }: { service: TrainingService; className?: string }) {
+  const archived = useArchivedPrograms();
+  const listed = archived.data?.filter((p) => p.service === service) ?? [];
+  if (archived.error) return <Alert title="Could not load your archived programs" className={className}>{trainingErrorMessage(archived.error)}</Alert>;
+  if (!listed.length) return null;
+  return (
+    <details className={`rounded-card ${className}`}>
+      <DisclosureSummary className="flex min-h-11 cursor-pointer list-none items-center gap-2 py-2 text-sm font-medium text-muted hover:text-text [&::-webkit-details-marker]:hidden">
+        Archived programs<span className="font-normal">· {listed.length}</span>
+      </DisclosureSummary>
+      <ul className="divide-y divide-line">
+        {listed.map((p) => <PublishedProgramRow key={p.programId} program={p} />)}
+      </ul>
+    </details>
   );
 }
 
@@ -56,7 +78,7 @@ export function PublishedProgramRow({ program: p }: { program: PublishedProgramS
           <p className="break-words font-medium">{programName(p.title)}</p>
           {p.service === 'mesocycle' && p.programTheme.trim() ? <p className="mt-0.5 break-words text-sm text-muted">{p.programTheme}</p> : null}
           <p className="text-xs text-muted">
-            {p.weekCount} {p.weekCount === 1 ? 'week' : 'weeks'} · updated {formatDate(p.publishedAt)}
+            {p.weekCount} {p.weekCount === 1 ? 'week' : 'weeks'} · {p.archivedAt ? `archived ${formatDate(p.archivedAt)}` : `updated ${formatDate(p.publishedAt)}`}
           </p>
         </div>
         {p.isCurrent ? <Badge tone="gold">Current</Badge> : null}

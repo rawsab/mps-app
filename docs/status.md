@@ -754,3 +754,10 @@ Decision 0055, "Owner follow-ups".
   - Personal training weeks can be named, in the Spreadsheet and in List View's week settings. Blank or "Week N" labels still show the number. Mesocycle weeks stay numbered.
 - Help pages updated: the shared editor text, Personal training (new Week names section) and Mesocycle.
 - **Verification.** `pnpm verify` passes (449 tests). No browser checks; manual checks are in decision 0059.
+
+## Clients see archived programs (2026-11-24)
+
+- Decision 0060 (owner meeting, item 4). New `list_archived_programs()` (migration 00056) with grants and pgTAP tests. An **Archived programs** disclosure on the Mesocycle page and the PT dashboard, closed by default.
+- Help: What clients see and the shared editor text mention it.
+- The local DB was reset. `pnpm test:db` passes (1067), so the earlier `023`, `026` and `030` failures were leftover state.
+- **Verification.** `pnpm verify` (449), `pnpm test:db` (1067) and `pnpm test:api` (27) pass. No browser checks; manual checks are in decision 0060.

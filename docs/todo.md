@@ -4,7 +4,7 @@
 
 Development is moving from Claude Code to Codex. Agent instructions now live in `AGENTS.md` (`CLAUDE.md` just imports it). In priority order:
 
-- [ ] **Reset the local DB first.** Run `pnpm db:start && pnpm db:reset`. Manual testing left state that makes `023`, `026` and `030` fail. Then confirm `pnpm test:db` is fully green and `pnpm test:api` passes.
+- [x] **Reset the local DB first.** Done 2026-11-24: `pnpm test:db` (1067) and `pnpm test:api` pass. Run `pnpm db:start && pnpm db:reset`. Manual testing left state that makes `023`, `026` and `030` fail. Then confirm `pnpm test:db` is fully green and `pnpm test:api` passes.
 - [x] **Billing: client screens and "I've sent it"** (decision 0055, built 2026-11-21). Manual UI checks are in `docs/status.md`.
 - [x] **Payment notices in Activity / To review** (decision 0055 follow-up, built 2026-11-21).
 - [x] **Coach search and sidebar clients list** (decision 0054, owner request, 2026-11-21). A ⌘K / Ctrl+K command palette for clients, pages and sections; active clients nested under Clients in the sidebar. Manual UI checks are in `docs/status.md`.
@@ -37,7 +37,7 @@ Owner requests, not yet ordered. Each needs a decision record when built.
 - [x] **Delete exercise rows in Spreadsheet view** (mesocycle and PT). Built 2026-11-24, decision 0059.
 - [x] **Rename in place** (built 2026-11-24, decision 0059). A faint pencil next to each PT week name, and next to the program title on program pages, to edit the name where it is.
 - [ ] **One-off PT programs, built a day at a time.** Days can be duplicated, and each day has its own notes. The most important part is **duplicating a PT program**. The coach's routine: build a program and go through it with the client, adding notes. Then duplicate it; the old one is archived and the copy becomes current (perhaps a dialog with buttons for this). Change the copy (values, add or remove exercises), go through it with the client, and repeat.
-- [ ] **Clients can see their archived programs.** Today the client lists show current published programs only (`TrainingPages.tsx`).
+- [x] **Clients can see their archived programs** (built 2026-11-24, decision 0060).
 - [x] **Help search results hidden behind page content** (fixed 2026-11-24): the sticky sidebar and the animated page each had their own layer, and the page was drawn on top.
 - [ ] **Back up programs.** Download a single program, perhaps as a spreadsheet.
 - [ ] **Plan two-way Google Calendar sync** (important). Covers one-off and repeating meetings, descriptions and meeting links, rescheduling, cancelling, and inviting and notifying clients. Plan only for now; any hosted Google project needs explicit authorization.
