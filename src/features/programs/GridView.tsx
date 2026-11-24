@@ -312,6 +312,20 @@ function WeekGrid({ rows, weekId, label, readOnly, addedId, onAdded, onMove, onA
       onWeekAction(menuRow.weekId, action === 'duplicateWeek' ? 'duplicate' : 'delete');
       return;
     }
+    if (action === 'removeExercise') {
+      // Undo brings it back, so there's no confirmation. Focus moves to the next row's name (or the previous).
+      // The name column never spans rows, so the focus lookup can't land on the deleted row.
+      const index = rows.indexOf(menuRow);
+      const neighbour = rows[index + 1] ?? rows[index - 1];
+      setCellMenu(null);
+      const error = editor.dispatch([{ type: 'remove', id: menuRow.exerciseId }]);
+      if (error) { setMessage(error.message); return; }
+      Object.keys(editor.state.rejected).filter((key) => key.startsWith(`${menuRow.exerciseId}:`)).forEach((key) => editor.setRejected(key, null));
+      if (neighbour) requestAnimationFrame(() => focus({ exerciseId: neighbour.exerciseId, column: nameColumn }));
+      else { setActive(null); setAnchor(null); }
+      announceEdit(`${menuRow.exercise.name || 'Unnamed exercise'} deleted from the draft.`);
+      return;
+    }
     if (action === 'moveExercise') {
       closeCellMenu(true);
       onMove({ kind: 'exercise', id: menuRow.exerciseId });
